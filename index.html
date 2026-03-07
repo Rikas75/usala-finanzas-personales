@@ -775,7 +775,7 @@ function renderAlertas(){
   +'<input class="form-input" id="alHora" type="time" value="09:00">'  
   +'<button class="form-btn" onclick="guardarAlerta()">🔔 Programar alerta</button>'
   +'</div>'
-  +'<div 6="foricardo66t-size:0.7rem;color:var(--dim);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">Mis alertas ('+alertas.length+')</div>'
+  +'<div style="font-size:0.7rem;color:var(--dim);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">Mis alertas ('+alertas.length+')</div>'
   +rows;
 }
 
@@ -791,14 +791,18 @@ function guardarAlerta(){
   alertas.push({nombre:nombre,categoria:cat,limite:limite,fecha:fecha,hora:hora||'09:00',activa:true,id:Date.now()});
   save('alertas',alertas);
   pedirPermisoNotif(function(){
-    programarNotifAlerta({nombre:nombre,fecha:fecha,limite:limite,categoria:cat});
+    programarNotifAlerta({nombre:nombre,fecha:fecha,hora:hora,limite:limite,categoria:cat});
   });
-  showToast('✓ Alerta programada'); renderTab('alertas');
+  showToast('✓ Alerta programada');
+  STATE.tab='alertas';
+  document.getElementById('mainContent').innerHTML=renderAlertas();
 }
 
 function borrarAlerta(i){
   var alertas=load('alertas',[]); alertas.splice(i,1); save('alertas',alertas);
-  showToast('✓ Alerta eliminada'); renderTab('alertas');
+  showToast('✓ Alerta eliminada');
+  STATE.tab='alertas';
+  document.getElementById('mainContent').innerHTML=renderAlertas();
 }
 
 // ── NOTIFICACIONES PUSH ────────────────────────────
@@ -1065,6 +1069,7 @@ function cerrarSesionVencida(){
 </script>
 </body>
 </html>
+
 
 
 
