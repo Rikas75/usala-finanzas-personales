@@ -302,6 +302,21 @@ select.form-input{appearance:none;}
   </div>
 </div>
 
+<!-- ══ MODAL SESIÓN VENCIDA ══ -->
+<div class="confirm-overlay" id="sesionVencidaModal" style="z-index:600;">
+  <div class="confirm-box" style="max-width:340px;text-align:center;padding:28px 24px;">
+    <div style="font-size:2.5rem;margin-bottom:10px;">⏰</div>
+    <div style="font-weight:900;font-size:1.1rem;margin-bottom:8px;" id="svNombre">Tu acceso ha finalizado</div>
+    <div style="font-size:0.82rem;color:var(--dim);line-height:1.6;margin-bottom:20px;" id="svMsg">
+      Tu período de acceso a <strong>USALA Suite Finanzas Personales</strong> ha concluido.<br><br>
+      Para continuar gestionando tus finanzas y mantener el acceso a tu historial, contacta al administrador para renovar tu plan de acceso.<br><br>
+      <em style="font-size:0.75rem;">✅ Tu información está guardada y segura — no se perderá.</em>
+    </div>
+    <button onclick="solicitarRenovacion()" style="width:100%;padding:13px;background:var(--accent);color:var(--navtext);border:none;border-radius:12px;font-family:inherit;font-weight:700;font-size:0.95rem;cursor:pointer;margin-bottom:8px;">📩 Solicitar renovación</button>
+    <button onclick="cerrarSesionVencida()" style="width:100%;padding:11px;background:var(--bg2);color:var(--dim);border:1px solid var(--border);border-radius:12px;font-family:inherit;font-weight:600;font-size:0.85rem;cursor:pointer;">Cerrar sesión</button>
+  </div>
+</div>
+
 <!-- ══ CONFIRM DIALOG ══ -->
 <div class="confirm-overlay" id="confirmOverlay">
   <div class="confirm-box">
@@ -409,7 +424,9 @@ function verificarAdmin(){
     cerrarLoginAdmin();
     var u={name:'Admin',role:'admin',isAdmin:true};
     STATE.user=u;
-    localStorage.setItem('fp_session',JSON.stringify(u));
+    // Admin usa sessionStorage: se borra automáticamente al cerrar el navegador
+    sessionStorage.setItem('fp_admin_session',JSON.stringify(u));
+    localStorage.removeItem('fp_session'); // limpiar cualquier sesión invitado
     initDashboard();
     showScreen('dashboard');
   } else {
@@ -418,6 +435,32 @@ function verificarAdmin(){
     e.style.display='';
     document.getElementById('adminPass').value='';
   }
+}
+
+function renderVersion(){
+  var isAdmin = STATE.user && STATE.user.isAdmin;
+  var adminEdit = isAdmin ? '<div style="height:14px"></div><div class="card"><div class="card-title">✏️ Modificar versión (solo admin)</div><label class="form-label">Número de versión</label><input class="form-input" id="verNum" value="'+APP_VERSION+'" placeholder="Ej: 1.2.0"><label class="form-label">Notas de esta versión</label><textarea class="form-input" id="verNotas" rows="3" style="resize:none;">'+APP_NOTAS+'</textarea><button class="form-btn" onclick="guardarVersion()">💾 Guardar versión</button></div>' : '';
+  return '<div style="display:flex;align-items:center;margin-bottom:14px;">'+backBtn('config',4)+'<div style="font-size:1.05rem;font-weight:800;">📋 Versión de la App</div></div>'
+  +'<div class="card" style="text-align:center;padding:24px 16px;">'
+  +'<div style="font-size:2.5rem;margin-bottom:8px;">✦</div>'
+  +'<div style="font-weight:900;font-size:1.1rem;">USALA Suite</div>'
+  +'<div style="font-weight:700;font-size:0.88rem;color:var(--dim);margin-top:2px;">Finanzas Personales</div>'
+  +'<div style="display:inline-block;margin-top:12px;padding:6px 18px;background:var(--accent);color:var(--navtext);border-radius:20px;font-family:monospace;font-weight:700;font-size:1rem;">v'+APP_VERSION+'</div>'
+  +'<div style="margin-top:14px;font-size:0.8rem;color:var(--dim);line-height:1.6;">'+APP_NOTAS+'</div>'
+  +'</div>'
+  +adminEdit;
+}
+
+function guardarVersion(){
+  var ver = document.getElementById('verNum').value.trim();
+  var notas = document.getElementById('verNotas').value.trim();
+  if(!ver){ showToast('⚠ Ingresa el número de versión'); return; }
+  APP_VERSION = ver;
+  APP_NOTAS = notas;
+  localStorage.setItem('fp_app_version', ver);
+  localStorage.setItem('fp_app_notas', notas);
+  showToast('✓ Versión actualizada a v'+ver);
+  renderTab('version');
 }
 
 function cerrarSesion(){
@@ -513,7 +556,7 @@ function renderTab(tab){
     analisis:renderAnalisis, mas:renderMas, balance:renderBalance,
     metas:renderMetas, presupuesto:renderPresupuesto, recordatorios:renderRecordatorios,
     historial:renderHistorial, conversor:renderConversor, alertas:renderAlertas,
-    codigos:renderCodigos, config:renderConfig, ayuda:renderAyuda
+    codigos:renderCodigos, config:renderConfig, ayuda:renderAyuda, version:renderVersion
   };
   var fn=renders[tab]||function(){ return renderModulo(tab); };
   c.innerHTML=fn();
@@ -703,7 +746,7 @@ function renderAlertas(){
     var hoy=new Date(); hoy.setHours(0,0,0,0);
     var fa=a.fecha?new Date(a.fecha):null;
     var estado=fa?(fa<hoy?'🔴 Vencida':fa.getTime()===hoy.getTime()?'⚡ Hoy':'🟡 Pendiente'):'🔵';
-    return '<div class="alerta-item"><div style="flex:1"><div style="font-weight:700;font-size:0.88rem">'+estado+' '+a.nombre+'</div><div style="font-size:0.7rem;color:var(--dim);margin-top:3px">📂 '+a.categoria+' · 💰 '+fmt(a.limite)+(a.fecha?' · 📅 '+a.fecha:'')+'</div></div><button class="alerta-del" onclick="borrarAlerta('+i+')">🗑️</button></div>';
+    return '<div class="alerta-item"><div style="flex:1"><div style="font-weight:700;font-size:0.88rem">'+estado+' '+a.nombre+'</div><div style="font-size:0.7rem;color:var(--dim);margin-top:3px">📂 '+a.categoria+' · 💰 '+fmt(a.limite)+(a.fecha?' · 📅 '+a.fecha+(a.hora?' 🕐 '+a.hora:''):'')+'</div></div><button class="alerta-del" onclick="borrarAlerta('+i+')">🗑️</button></div>';
   }).join('')||'<div style="text-align:center;padding:14px;color:var(--dim);font-size:0.83rem;">Sin alertas programadas</div>';
 
   return '<div style="display:flex;align-items:center;margin-bottom:14px;">'+backBtn('mas',4)+'<div style="font-size:1.05rem;font-weight:800;">🔔 Alertas de Gasto</div></div>'
@@ -718,6 +761,8 @@ function renderAlertas(){
   +'<input class="form-input" id="alLimite" type="number" placeholder="0.00">'
   +'<label class="form-label">📅 Fecha en que quieres la alerta <span style="color:#e53935">*</span></label>'
   +'<input class="form-input" id="alFecha" type="date" min="'+today()+'">'
+  +'<label class="form-label">🕐 Hora de la alerta</label>'
+  +'<input class="form-input" id="alHora" type="time" value="09:00">'  
   +'<button class="form-btn" onclick="guardarAlerta()">🔔 Programar alerta</button>'
   +'</div>'
   +'<div style="font-size:0.7rem;color:var(--dim);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">Mis alertas ('+alertas.length+')</div>'
@@ -729,10 +774,11 @@ function guardarAlerta(){
   var limite=parseFloat(document.getElementById('alLimite').value);
   var cat=document.getElementById('alCat').value;
   var fecha=document.getElementById('alFecha').value;
+  var hora=document.getElementById('alHora')?document.getElementById('alHora').value:'09:00';
   if(!nombre||!limite){ showToast('⚠ Completa nombre y límite'); return; }
   if(!fecha){ showToast('⚠ Selecciona una fecha para la alerta'); return; }
   var alertas=load('alertas',[]);
-  alertas.push({nombre:nombre,categoria:cat,limite:limite,fecha:fecha,activa:true,id:Date.now()});
+  alertas.push({nombre:nombre,categoria:cat,limite:limite,fecha:fecha,hora:hora||'09:00',activa:true,id:Date.now()});
   save('alertas',alertas);
   pedirPermisoNotif(function(){
     programarNotifAlerta({nombre:nombre,fecha:fecha,limite:limite,categoria:cat});
@@ -759,7 +805,7 @@ function pedirPermisoNotif(cb){
 function programarNotifAlerta(a){
   if(!('Notification' in window)||Notification.permission!=='granted') return;
   var ahora=new Date();
-  var fechaAlerta=new Date(a.fecha+'T09:00:00');
+  var fechaAlerta=new Date(a.fecha+'T'+(a.hora||'09:00')+':00');
   var diff=fechaAlerta-ahora;
   if(diff<=0){
     // Ya pasó — notificar inmediatamente
@@ -865,7 +911,8 @@ function renderConfig(){
   +'<div class="mod-list">'
   +'<div class="mod-item" onclick="pickThemeAgain()"><div class="mod-icon">🎨</div><div><div class="mod-label">Cambiar tema</div></div><div class="mod-arrow">›</div></div>'
   +'<div class="mod-item" onclick="cerrarSesion()"><div class="mod-icon">🚪</div><div><div class="mod-label" style="color:#e53935">Cerrar sesión</div></div><div class="mod-arrow">›</div></div>'
-  +'</div>'
+  +'<div class="mod-item" onclick="goTabSub('version')"><div class="mod-icon">📋</div><div><div class="mod-label">Versión de la app</div><div class="mod-sub">v'+APP_VERSION+'</div></div><div class="mod-arrow">›</div></div>'
+  +'</div>' 
   +cambioPass
   +'<div style="height:16px"></div>'
   +'<div class="danger-box">'
@@ -931,6 +978,75 @@ function showToast(msg){
   document.body.appendChild(t); setTimeout(function(){ t.remove(); },2500);
 }
 
+// ── VERSIÓN DE LA APP ─────────────────────────────
+var APP_VERSION = localStorage.getItem('fp_app_version') || '1.0.0';
+var APP_NOTAS   = localStorage.getItem('fp_app_notas')   || 'Versión inicial de USALA Suite Finanzas Personales.';
+
+// ── SESIONES: sin persistencia para admin, vencimiento para invitados ─────
+// Admin: sesión solo en memoria (sessionStorage), se borra al cerrar navegador
+// Invitados: sesión válida mientras no venza su código
+
+function verificarSesion(){
+  // Admin: usa sessionStorage (se borra al cerrar navegador/pestaña)
+  var adminSess = sessionStorage.getItem('fp_admin_session');
+  if(adminSess){
+    try{
+      var u = JSON.parse(adminSess);
+      STATE.user = u;
+      initDashboard();
+      showScreen('dashboard');
+      return true;
+    }catch(e){}
+  }
+  // Invitado: usa localStorage pero verifica vencimiento del código
+  var invSess = localStorage.getItem('fp_session');
+  if(invSess){
+    try{
+      var u = JSON.parse(invSess);
+      if(!u.isAdmin){
+        // Verificar si el código sigue vigente
+        var cs = getCodigos();
+        var cod = cs[u.codigo];
+        if(cod && cod.vence && new Date() > new Date(cod.vence)){
+          // Código vencido — mostrar modal de renovación
+          localStorage.removeItem('fp_session');
+          STATE.user = u;
+          showScreen('dashboard');
+          initDashboard();
+          setTimeout(function(){ mostrarSesionVencida(u.name); }, 800);
+          return true;
+        }
+        STATE.user = u;
+        initDashboard();
+        showScreen('dashboard');
+        return true;
+      }
+    }catch(e){}
+  }
+  return false;
+}
+
+function mostrarSesionVencida(nombre){
+  var el = document.getElementById('svNombre');
+  if(el) el.textContent = '⏰ Hola ' + nombre + ', tu acceso ha finalizado';
+  document.getElementById('sesionVencidaModal').classList.add('open');
+}
+
+function solicitarRenovacion(){
+  // Abrir WhatsApp o correo con mensaje pre-llenado
+  var nombre = STATE.user ? STATE.user.name : 'Usuario';
+  var tel = STATE.user ? (STATE.user.telefono||'') : '';
+  var msg = encodeURIComponent('Hola, soy ' + nombre + (tel?' ('+tel+')':'') + '. Mi acceso a USALA Suite Finanzas Personales ha vencido. Me gustaría renovar mi plan. ¿Podrías ayudarme?');
+  window.open('https://wa.me/?text='+msg, '_blank');
+}
+
+function cerrarSesionVencida(){
+  document.getElementById('sesionVencidaModal').classList.remove('open');
+  localStorage.removeItem('fp_session');
+  STATE.user = null;
+  showScreen('welcome');
+}
+
 // ── INIT ───────────────────────────────────────────
 (function(){
   var theme=localStorage.getItem('fp_theme')||'t1';
@@ -938,13 +1054,12 @@ function showToast(msg){
   document.body.className=theme;
   var el=document.querySelector('[data-t="'+theme+'"]');
   if(el) el.classList.add('sel');
-  var sess=localStorage.getItem('fp_session');
-  if(sess){ try{ STATE.user=JSON.parse(sess); initDashboard(); showScreen('dashboard'); return; }catch(e){} }
-  showScreen('welcome');
+  if(!verificarSesion()) showScreen('welcome');
 })();
 </script>
 </body>
 </html>
+
 
 
 
