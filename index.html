@@ -758,7 +758,7 @@ function renderAlertas(){
       var todayStr=ahora.getFullYear()+'-'+String(ahora.getMonth()+1).padStart(2,'0')+'-'+String(ahora.getDate()).padStart(2,'0');
       estado=fa<ahora?'🔴 Vencida':(a.fecha===todayStr?'⚡ Hoy':'🟡 Pendiente');
     }
-    return '<div class="alerta-item"><div style="flex:1"><div style="font-weight:700;font-size:0.88rem">'+estado+' '+a.nombre+'</div><div style="font-size:0.7rem;color:var(--dim);margin-top:3px">📂 '+a.categoria+' · 💰 '+fmt(a.limite)+(a.fecha?' · 📅 '+a.fecha+(a.hora?' 🕐 '+a.hora:''):'')+'</div></div><button class="alerta-del" onclick="borrarAlerta('+i+')">🗑️</button></div>';
+    return '<div class="alerta-item"><div style="flex:1"><div style="font-weight:700;font-size:0.88rem">'+estado+' '+a.nombre+'</div><div style="font-size:0.7rem;color:var(--dim);margin-top:3px">📂 '+a.categoria+' · 💰 '+fmt(a.limite)+(a.fecha?' · 📅 '+a.fecha+(a.hora?' 🕐 '+a.hora:''):'')+'</div></div><div style="display:flex;gap:6px"><button class="alerta-del" style="background:var(--bg2);color:var(--accent);border:1px solid var(--border)" onclick="editarAlerta('+i+')">✏️</button><button class="alerta-del" onclick="borrarAlerta('+i+')">🗑️</button></div></div>';
   }).join('')||'<div style="text-align:center;padding:14px;color:var(--dim);font-size:0.83rem;">Sin alertas programadas</div>';
 
   return '<div style="display:flex;align-items:center;margin-bottom:14px;">'+backBtn('mas',4)+'<div style="font-size:1.05rem;font-weight:800;">🔔 Alertas de Gasto</div></div>'
@@ -812,6 +812,56 @@ function guardarAlerta(){
   // Scroll al inicio para ver la lista de alertas
   var mc=document.getElementById('mainContent');
   if(mc) mc.scrollTop=mc.scrollHeight;
+}
+
+function editarAlerta(i){
+  var alertas=load('alertas',[]);
+  var a=alertas[i];
+  if(!a) return;
+  // Guardar índice para sobreescribir
+  STATE._editAlerta=i;
+  // Re-render para mostrar el formulario precargado
+  STATE.tab='alertas';
+  document.getElementById('mainContent').innerHTML=renderAlertasEdit(a);
+}
+
+function renderAlertasEdit(a){
+  var cats=['Pagos','Compras','Servicios','Inversiones','Créditos','Otros','Cualquiera'];
+  var catOpts=cats.map(function(c){ return '<option'+(c===a.categoria?' selected':'')+'>'+c+'</option>'; }).join('');
+  return '<div style="display:flex;align-items:center;margin-bottom:14px;">'+backBtn('alertas',4)+'<div style="font-size:1.05rem;font-weight:800;">✏️ Editar Alerta</div></div>'
+  +'<div class="card">'
+  +'<div class="card-title">Modificar alerta</div>'
+  +'<label class="form-label">Descripción</label>'
+  +'<input class="form-input" id="alNombre" value="'+a.nombre+'" placeholder="Ej: Límite de comida">'
+  +'<label class="form-label">Categoría</label>'
+  +'<select class="form-input" id="alCat">'+catOpts+'</select>'
+  +'<label class="form-label">Límite de monto ($)</label>'
+  +'<input class="form-input" id="alLimite" type="number" value="'+a.limite+'">'
+  +'<label class="form-label">📅 Fecha</label>'
+  +'<input class="form-input" id="alFecha" type="date" value="'+(a.fecha||'')+'">'
+  +'<label class="form-label">🕐 Hora</label>'
+  +'<input class="form-input" id="alHora" type="time" value="'+(a.hora||'09:00')+'">'
+  +'<button class="form-btn" onclick="guardarEdicionAlerta()">💾 Guardar cambios</button>'
+  +'</div>';
+}
+
+function guardarEdicionAlerta(){
+  var i=STATE._editAlerta;
+  if(i===undefined) return;
+  var nombre=document.getElementById('alNombre').value.trim();
+  var limite=parseFloat(document.getElementById('alLimite').value);
+  var cat=document.getElementById('alCat').value;
+  var fecha=document.getElementById('alFecha').value;
+  var hora=document.getElementById('alHora').value||'09:00';
+  if(!nombre||!limite){ showToast('⚠ Completa nombre y límite'); return; }
+  if(!fecha){ showToast('⚠ Selecciona una fecha'); return; }
+  var alertas=load('alertas',[]);
+  alertas[i]=Object.assign(alertas[i],{nombre:nombre,categoria:cat,limite:limite,fecha:fecha,hora:hora,disparada:false,activa:true});
+  save('alertas',alertas);
+  delete STATE._editAlerta;
+  showToast('✓ Alerta actualizada');
+  STATE.tab='alertas';
+  document.getElementById('mainContent').innerHTML=renderAlertas();
 }
 
 function borrarAlerta(i){
@@ -1142,6 +1192,7 @@ function iniciarRevisionAlertas(){
 </script>
 </body>
 </html>
+
 
 
 
