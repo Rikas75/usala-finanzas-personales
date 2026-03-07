@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -1195,9 +1196,69 @@ body.t8b4 .sidebar{background:linear-gradient(180deg,#FF8FAB,#E91E8C);}
   ✦ Aurora Profunda — Claude
 </div>
 
+<script>
+var currentTheme='t1';
+var blossomVariant='t8b1';
+var themeNames={t1:'Verde Esmeralda',t2:'Azul Marino',t3:'Oscuro Premium',t4:'Dorado & Negro',t5:'Neon Gaming',t6:'Minimalista Pro',t7:'Clásico & Serio',t8:'Blossom',t9:'Aurora Profunda'};
+
+function applyTheme(t){
+  var b=document.body;
+  ['t1','t2','t3','t4','t5','t6','t7','t8','t9','t8b1','t8b2','t8b3','t8b4'].forEach(function(c){b.classList.remove(c);});
+  b.classList.add(t);
+  if(t==='t8')b.classList.add(blossomVariant);
+  var sig=document.getElementById('auroraSig');
+  if(sig)sig.style.display=t==='t9'?'flex':'none';
+}
+
+function selectTheme(t,el){
+  currentTheme=t;
+  document.querySelectorAll('.theme-card').forEach(function(c){c.classList.remove('selected');});
+  el.classList.add('selected');
+  applyTheme(t);
+  var btn=document.getElementById('startBtn');
+  if(btn)btn.disabled=false;
+  var lbl=document.getElementById('selectedLabel');
+  if(lbl)lbl.textContent='✓ Tema seleccionado: '+(themeNames[t]||t);
+}
+
+function setBlossom(v,e){
+  e.stopPropagation();
+  blossomVariant=v;
+  currentTheme='t8';
+  applyTheme('t8');
+  document.querySelectorAll('.theme-card').forEach(function(c){c.classList.remove('selected');});
+  var t8=document.querySelector('[data-theme="t8"]');
+  if(t8)t8.classList.add('selected');
+  var btn=document.getElementById('startBtn');
+  if(btn)btn.disabled=false;
+  var lbl=document.getElementById('selectedLabel');
+  if(lbl)lbl.textContent='✓ Blossom seleccionado ✨';
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
+  var el=document.getElementById(id);
+  if(el)el.classList.add('active');
+}
+
+function goToDashboardFromTheme(){
+  var b=document.body;
+  applyTheme(currentTheme);
+  b.classList.add('role-admin');
+  var av=document.getElementById('sAvatar');if(av)av.textContent='AD';
+  var un=document.getElementById('sUsername');if(un)un.textContent='Administrador';
+  var rl=document.getElementById('sRoleLabel');if(rl)rl.textContent='Control Total';
+  if(window.applyTextOverrides)applyTextOverrides(currentTheme);
+  showScreen('dashboard');
+}
+
+function navClick(el){
+  document.querySelectorAll('.s-item').forEach(function(i){i.classList.remove('active');});
+  el.classList.add('active');
+}
+</script>
 
 <script>
-window.addEventListener("DOMContentLoaded",function(){
 /* ================================================================
    🔐 USALA SUITE — SISTEMA DE PERÍODO DE PRUEBA
    - Admin: control total (activar, extender, revocar, ver usuarios)
@@ -2017,13 +2078,8 @@ applyTheme('t1');
     showScreen('welcome');
     return;
   }
-  // Skip welcome + login — go straight to dashboard
-  currentRole = 'admin';
-  document.getElementById('sAvatar').textContent = 'AD';
-  document.getElementById('sUsername').textContent = 'Administrador';
-  document.getElementById('sRoleLabel').textContent = 'Control Total';
-  applyTextOverrides(currentTheme);
-  showScreen('dashboard');
+  // Mostrar selector de temas primero
+  showScreen('welcome');
 })();
 
 /* ============================================================
@@ -2857,7 +2913,6 @@ function showToast(msg) {
 // ── INIT VOICE ──
 injectVoiceUI();
 
-}); // end DOMContentLoaded
 </script>
 </body>
 </html>
