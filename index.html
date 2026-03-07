@@ -2023,7 +2023,7 @@ function goToDashboardFromTheme(){
 }
 function goToLogin(){
   applyTheme(currentTheme);
-  document.getElementById('blossomDeco').style.display = currentTheme==='t8'?'block':'none';
+  var _bd=document.getElementById('blossomDeco');if(_bd)_bd.style.display = currentTheme==='t8'?'block':'none';
   document.getElementById('auroraDeco').style.display = currentTheme==='t9'?'block':'none';
   const subs = {
     t5:'Accede a tu HUD financiero',
@@ -2034,7 +2034,8 @@ function goToLogin(){
   };
   document.getElementById('loginSub').textContent = subs[currentTheme] || 'Inicia sesión para continuar';
   showScreen('login');
-rikas75.github.io/usala-finanzas-personalesrikas75.github.io/usala-finanzas-personales
+}
+
 function goToDashboard(){
   const email = document.getElementById('loginEmail').value || 'admin@usala.com';
   // update sidebar user info
@@ -2079,13 +2080,14 @@ function goBack(){
 
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+  var el=document.getElementById(id);
+  if(el)el.classList.add('active');
 }
 
 function setRole(role){
   currentRole = role;
-  document.getElementById('roleAdmin').classList.toggle('active', role==='admin');
-  document.getElementById('roleUser').classList.toggle('active', role==='user');
+  var _ra=document.getElementById('roleAdmin');if(_ra)_ra.classList.toggle('active', role==='admin');
+  var _ru=document.getElementById('roleUser');if(_ru)_ru.classList.toggle('active', role==='user');
 }
 
 function navClick(el){
@@ -2948,5 +2950,6 @@ injectVoiceUI();
 </script>
 </body>
 </html>
+
 
 
