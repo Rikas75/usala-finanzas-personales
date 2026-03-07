@@ -773,29 +773,43 @@ function renderAlertas(){
   +'<input class="form-input" id="alFecha" type="date" min="'+today()+'">'
   +'<label class="form-label">🕐 Hora de la alerta</label>'
   +'<input class="form-input" id="alHora" type="time" value="09:00">'  
-  +'<button class="form-btn" onclick="guardarAlerta()">🔔 Programar alerta</button>'
+  +'<button class="form-btn" id="btnProgramarAlerta" onclick="guardarAlerta()">🔔 Programar alerta</button>'
   +'</div>'
   +'<div style="font-size:0.7rem;color:var(--dim);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px;">Mis alertas ('+alertas.length+')</div>'
   +rows;
 }
 
 function guardarAlerta(){
+  // Evitar doble envío
+  var btnAl=document.getElementById('btnProgramarAlerta');
+  if(btnAl){ if(btnAl.disabled) return; btnAl.disabled=true; btnAl.textContent='⏳ Guardando...'; }
   var nombre=document.getElementById('alNombre').value.trim();
   var limite=parseFloat(document.getElementById('alLimite').value);
   var cat=document.getElementById('alCat').value;
   var fecha=document.getElementById('alFecha').value;
   var hora=document.getElementById('alHora')?document.getElementById('alHora').value:'09:00';
-  if(!nombre||!limite){ showToast('⚠ Completa nombre y límite'); return; }
-  if(!fecha){ showToast('⚠ Selecciona una fecha para la alerta'); return; }
+  if(!nombre||!limite){
+    showToast('⚠ Completa nombre y límite');
+    if(btnAl){ btnAl.disabled=false; btnAl.textContent='🔔 Programar alerta'; }
+    return;
+  }
+  if(!fecha){
+    showToast('⚠ Selecciona una fecha para la alerta');
+    if(btnAl){ btnAl.disabled=false; btnAl.textContent='🔔 Programar alerta'; }
+    return;
+  }
   var alertas=load('alertas',[]);
   alertas.push({nombre:nombre,categoria:cat,limite:limite,fecha:fecha,hora:hora||'09:00',activa:true,id:Date.now()});
   save('alertas',alertas);
   pedirPermisoNotif(function(){
     programarNotifAlerta({nombre:nombre,fecha:fecha,hora:hora,limite:limite,categoria:cat});
   });
-  showToast('✓ Alerta programada');
+  showToast('✓ ¡Alerta programada!');
   STATE.tab='alertas';
   document.getElementById('mainContent').innerHTML=renderAlertas();
+  // Scroll al inicio para ver la lista de alertas
+  var mc=document.getElementById('mainContent');
+  if(mc) mc.scrollTop=mc.scrollHeight;
 }
 
 function borrarAlerta(i){
@@ -1069,6 +1083,7 @@ function cerrarSesionVencida(){
 </script>
 </body>
 </html>
+
 
 
 
