@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -200,8 +199,24 @@ body{font-family:'DM Sans',sans-serif;background:#0A0D12;transition:background 0
   width:260px;min-width:260px;height:100vh;
   display:flex;flex-direction:column;
   overflow-y:auto;flex-shrink:0;
-  transition:all 0.4s;
+  transition:transform 0.3s ease;
+  z-index:100;
 }
+@media(max-width:768px){
+  #dashboard{position:relative;}
+  .sidebar{
+    position:fixed;left:0;top:0;
+    transform:translateX(-100%);
+    box-shadow:4px 0 20px rgba(0,0,0,0.5);
+  }
+  .sidebar.open{transform:translateX(0);}
+  .main-content{width:100%!important;padding:16px!important;}
+  .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99;}
+  .sidebar-overlay.open{display:block;}
+  .mobile-header{display:flex!important;}
+}
+.mobile-header{display:none;align-items:center;justify-content:space-between;padding:14px 16px;position:sticky;top:0;z-index:50;backdrop-filter:blur(10px);}
+#menuToggle{background:none;border:1px solid rgba(255,255,255,0.2);color:inherit;font-size:18px;width:36px;height:36px;border-radius:8px;cursor:pointer;}
 .main-content{
   flex:1;height:100vh;
   overflow-y:auto;padding:28px 32px;
@@ -1049,7 +1064,14 @@ body.t8b4 .sidebar{background:linear-gradient(180deg,#FF8FAB,#E91E8C);}
 
 <!-- ============ SCREEN 3: DASHBOARD ============ -->
 <div id="dashboard" class="screen">
-
+  <!-- Overlay móvil -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+  <!-- Header móvil -->
+  <div class="mobile-header" id="mobileHeader">
+    <button id="menuToggle" onclick="toggleSidebar()">☰</button>
+    <div style="font-weight:800;font-size:1rem;" id="mobileTitle">Finanzas Personales</div>
+    <div style="width:36px;"></div>
+  </div>
   <!-- SIDEBAR -->
   <aside class="sidebar" id="mainSidebar">
     <div class="s-logo">
@@ -1255,6 +1277,19 @@ function goToDashboardFromTheme(){
 function navClick(el){
   document.querySelectorAll('.s-item').forEach(function(i){i.classList.remove('active');});
   el.classList.add('active');
+  closeSidebar();
+}
+function toggleSidebar(){
+  var s=document.getElementById('mainSidebar');
+  var o=document.getElementById('sidebarOverlay');
+  s.classList.toggle('open');
+  o.classList.toggle('open');
+}
+function closeSidebar(){
+  var s=document.getElementById('mainSidebar');
+  var o=document.getElementById('sidebarOverlay');
+  if(s)s.classList.remove('open');
+  if(o)o.classList.remove('open');
 }
 </script>
 
@@ -2916,3 +2951,4 @@ injectVoiceUI();
 </script>
 </body>
 </html>
+
