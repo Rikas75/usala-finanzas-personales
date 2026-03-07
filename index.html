@@ -536,6 +536,8 @@ function initDashboard(){
   document.getElementById('switchBanner').style.display=u.isAdmin?'block':'none';
   // Revisar alertas al entrar
   setTimeout(revisarAlertasHoy, 1500);
+  // Iniciar revisión periódica con sonido
+  iniciarRevisionAlertas();
   // Reprogramar alertas activas para notificaciones push
   setTimeout(function(){
     var alertas=load('alertas',[]);
@@ -862,6 +864,7 @@ function revisarAlertasHoy(){
   if(disparadas.length>0){
     var msg='🔔 '+disparadas.length+' alerta(s) activa(s): '+disparadas.map(function(a){return a.nombre;}).join(', ');
     showToast(msg);
+    sonarAlerta('urgente');
     if(Notification.permission==='granted'){
       disparadas.forEach(function(a){
         new Notification('⚠️ USALA — Límite alcanzado',{body:a.nombre+' · '+a.categoria+' · '+fmt(a.limite)});
@@ -1071,6 +1074,62 @@ function cerrarSesionVencida(){
   showScreen('welcome');
 }
 
+
+// ── SONIDO DE ALERTA (Web Audio API) ──────────────
+function sonarAlerta(tipo){
+  try{
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var secuencia = tipo==='urgente'
+      ? [[880,0,0.15],[0,0.15,0.05],[880,0.2,0.15],[0,0.35,0.05],[880,0.4,0.3]]
+      : [[523,0,0.1],[659,0.12,0.1],[784,0.24,0.2]];
+    secuencia.forEach(function(n){
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = n[0];
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0, ctx.currentTime + n[1]);
+      gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + n[1] + 0.01);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + n[1] + n[2]);
+      osc.start(ctx.currentTime + n[1]);
+      osc.stop(ctx.currentTime + n[1] + n[2] + 0.05);
+    });
+  } catch(e){ console.log('Audio no disponible:', e); }
+}
+
+// Revisar cada minuto si hay alertas que disparar
+function iniciarRevisionAlertas(){
+  setInterval(function(){
+    var alertas = load('alertas', []);
+    var ahora = new Date();
+    alertas.forEach(function(a, i){
+      if(!a.activa || !a.fecha || a.disparada) return;
+      var partes = a.fecha.split('-');
+      var hp = (a.hora||'09:00').split(':');
+      var fa = new Date(parseInt(partes[0]),parseInt(partes[1])-1,parseInt(partes[2]),parseInt(hp[0]),parseInt(hp[1]),0);
+      var diff = Math.abs(ahora - fa);
+      // Si es la hora exacta (dentro de 60 seg)
+      if(ahora >= fa && diff <= 60000 && !a.disparada){
+        alertas[i].disparada = true;
+        save('alertas', alertas);
+        // Sonido
+        sonarAlerta('normal');
+        // Toast visible
+        showToast('🔔 ALERTA: ' + a.nombre + ' · ' + a.categoria);
+        // Notificación push
+        if(Notification && Notification.permission === 'granted'){
+          new Notification('🔔 USALA — Alerta de Gasto', {
+            body: a.nombre + ' · ' + a.categoria + ' · Límite: ' + fmt(a.limite),
+            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><text y="28" font-size="28">🔔</text></svg>',
+            vibrate: [200, 100, 200]
+          });
+        }
+      }
+    });
+  }, 30000); // revisar cada 30 segundos
+}
+
 // ── INIT ───────────────────────────────────────────
 (function(){
   var theme=localStorage.getItem('fp_theme')||'t1';
@@ -1083,6 +1142,7 @@ function cerrarSesionVencida(){
 </script>
 </body>
 </html>
+
 
 
 
