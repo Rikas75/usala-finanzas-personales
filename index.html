@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -202,7 +203,22 @@ select.form-input{appearance:none;}
       <button class="acc-btn" onclick="entrarConCodigo()">Entrar →</button>
       <button class="acc-back" onclick="resetAccStep()">← Cambiar código</button>
     </div>
-    <div class="acc-admin"><button onclick="entrarAdmin()">¿Eres el administrador? Acceso admin</button></div>
+    <div class="acc-admin"><button onclick="abrirLoginAdmin()">¿Eres el administrador? Acceso admin</button></div>
+  </div>
+</div>
+
+<!-- ══ MODAL LOGIN ADMIN ══ -->
+<div class="modal" id="adminModal">
+  <div class="modal-bg" onclick="cerrarLoginAdmin()"></div>
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div style="text-align:center;font-size:2rem;margin-bottom:8px;">🔐</div>
+    <div class="modal-title" style="text-align:center">Acceso Administrador</div>
+    <div id="adminErr" style="display:none;padding:9px 12px;background:rgba(255,60,60,0.1);border:1px solid rgba(255,60,60,0.3);border-radius:10px;font-size:0.78rem;color:#e53935;margin-bottom:10px;"></div>
+    <label class="form-label">Contraseña</label>
+    <input class="form-input" id="adminPass" type="password" placeholder="Contraseña de administrador" onkeydown="if(event.key==='Enter')verificarAdmin()">
+    <button class="form-btn" onclick="verificarAdmin()">Entrar como Admin →</button>
+    <div style="text-align:center;margin-top:14px;font-size:0.72rem;color:var(--dim);">Primera vez: la contraseña es <b>admin1234</b><br>Cámbiala en Configuración después.</div>
   </div>
 </div>
 
@@ -379,12 +395,30 @@ function entrarConCodigo(){
   showScreen('dashboard');
 }
 
-function entrarAdmin(){
-  var u={name:'Admin',role:'admin',isAdmin:true};
-  STATE.user=u;
-  localStorage.setItem('fp_session',JSON.stringify(u));
-  initDashboard();
-  showScreen('dashboard');
+function abrirLoginAdmin(){
+  document.getElementById('adminPass').value='';
+  document.getElementById('adminErr').style.display='none';
+  document.getElementById('adminModal').classList.add('open');
+  setTimeout(function(){ document.getElementById('adminPass').focus(); }, 300);
+}
+function cerrarLoginAdmin(){ document.getElementById('adminModal').classList.remove('open'); }
+
+function verificarAdmin(){
+  var pass = document.getElementById('adminPass').value;
+  var guardada = localStorage.getItem('fp_admin_pass') || 'admin1234';
+  if(pass === guardada){
+    cerrarLoginAdmin();
+    var u={name:'Admin',role:'admin',isAdmin:true};
+    STATE.user=u;
+    localStorage.setItem('fp_session',JSON.stringify(u));
+    initDashboard();
+    showScreen('dashboard');
+  } else {
+    var e=document.getElementById('adminErr');
+    e.textContent='⚠ Contraseña incorrecta';
+    e.style.display='';
+    document.getElementById('adminPass').value='';
+  }
 }
 
 function cerrarSesion(){
@@ -826,11 +860,14 @@ function toggleHelp(i){
 
 // ── CONFIG + ZONA PELIGRO ─────────────────────────
 function renderConfig(){
+  var isAdmin = STATE.user && STATE.user.isAdmin;
+  var cambioPass = isAdmin ? '<div style="height:12px"></div><div class="card"><div class="card-title">🔐 Contraseña de administrador</div><label class="form-label">Nueva contraseña</label><input class="form-input" id="newPass1" type="password" placeholder="Nueva contraseña"><label class="form-label">Confirmar contraseña</label><input class="form-input" id="newPass2" type="password" placeholder="Repite la contraseña"><button class="form-btn" onclick="cambiarPassAdmin()">Cambiar contraseña</button></div>' : '';
   return '<div style="display:flex;align-items:center;margin-bottom:14px;">'+backBtn('mas',4)+'<div style="font-size:1.05rem;font-weight:800;">⚙️ Configuración</div></div>'
   +'<div class="mod-list">'
   +'<div class="mod-item" onclick="pickThemeAgain()"><div class="mod-icon">🎨</div><div><div class="mod-label">Cambiar tema</div></div><div class="mod-arrow">›</div></div>'
   +'<div class="mod-item" onclick="cerrarSesion()"><div class="mod-icon">🚪</div><div><div class="mod-label" style="color:#e53935">Cerrar sesión</div></div><div class="mod-arrow">›</div></div>'
   +'</div>'
+  +cambioPass
   +'<div style="height:16px"></div>'
   +'<div class="danger-box">'
   +'<div class="danger-title" onclick="toggleDanger()" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;">⚠️ Zona de peligro <span id="dangerIco">▼</span></div>'
@@ -841,6 +878,17 @@ function renderConfig(){
   +'<button class="danger-btn" onclick="confirmar(\'borrarAlertas\',\'Borrar alertas\',\'Se eliminarán todas tus alertas programadas.\')">🔔 Borrar alertas</button>'
   +'<button class="danger-btn" onclick="confirmar(\'resetTotal\',\'Restablecer todo\',\'Se borrará TODA tu información: transacciones, metas, presupuesto, alertas y recordatorios. Esta acción no se puede deshacer.\')">♻️ Restablecer toda mi cuenta</button>'
   +'</div></div>';
+}
+
+function cambiarPassAdmin(){
+  var p1=document.getElementById('newPass1').value;
+  var p2=document.getElementById('newPass2').value;
+  if(!p1||p1.length<4){ showToast('⚠ La contraseña debe tener al menos 4 caracteres'); return; }
+  if(p1!==p2){ showToast('⚠ Las contraseñas no coinciden'); return; }
+  localStorage.setItem('fp_admin_pass', p1);
+  showToast('✓ Contraseña actualizada');
+  document.getElementById('newPass1').value='';
+  document.getElementById('newPass2').value='';
 }
 
 function toggleDanger(){
