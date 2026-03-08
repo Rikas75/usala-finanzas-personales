@@ -372,6 +372,11 @@ select.inp{appearance:none;-webkit-appearance:none;}
         </select>
       </div>
     </div>
+    <label class="inp-label">💼 Cuenta / Bolsillo</label>
+    <select class="inp" id="txCuenta">
+      <option value="">— Sin asignar —</option>
+      <option value="efectivo">💵 Efectivo</option>
+    </select>
     <label class="inp-label">Fecha</label>
     <input class="inp" id="txFecha" type="date">
     <button class="btn-main" id="txSaveBtn" onclick="guardarTx()" style="margin-top:8px;">💾 Guardar</button>
@@ -760,6 +765,20 @@ function calcDel(){
   document.getElementById('calcDisplay').textContent=_calcResult;
 }
 
+// ── Poblar selector de cuentas ──
+function poblarCuentas(cuentaActual){
+  var c = getCuentas();
+  var sel = document.getElementById('txCuenta');
+  if(!sel) return;
+  var ops = '<option value="">— Sin asignar —</option>'
+    +'<option value="efectivo"'+(cuentaActual==='efectivo'?' selected':'')+'>💵 Efectivo</option>';
+  (c.cheques||[]).forEach(function(ch, i){
+    var val = 'cheque_'+i;
+    ops += '<option value="'+val+'"'+(cuentaActual===val?' selected':'')+'>🏧 '+ch.banco+' ('+ch.tipo+')</option>';
+  });
+  sel.innerHTML = ops;
+}
+
 function abrirTxModal(tipo){
   S.editTxId = null;
   document.getElementById('txModalTitle').textContent = 'Nueva Transacción';
@@ -769,6 +788,7 @@ function abrirTxModal(tipo){
   document.getElementById('tipoSelector').style.display = 'grid';
   document.getElementById('txSaveBtn').textContent = '💾 Guardar';
   selTipo(tipo || 'gasto');
+  poblarCuentas('');
   document.getElementById('txModal').classList.add('open');
   setTimeout(function(){ document.getElementById('txDesc').focus(); }, 400);
 }
@@ -795,62 +815,120 @@ function editarTx(id){
   document.getElementById('txMonto').value = t.monto;
   document.getElementById('txFecha').value = t.fecha;
   document.getElementById('txSaveBtn').textContent = '💾 Guardar cambios';
-  // Cargar categorías del tipo correcto y seleccionar la actual
   var cats = t.tipo==='ingreso'
     ? ['Salario','Activos','Freelance','Renta','Inversión','Otros']
     : ['Pagos','Compras','Servicios','Alimentación','Transporte','Otros'];
   var sel = document.getElementById('txCat');
   sel.innerHTML = cats.map(function(c){ return '<option'+(c===t.cat?' selected':'')+'>'+c+'</option>'; }).join('');
+  poblarCuentas(t.cuenta||'');
   document.getElementById('txModal').classList.add('open');
   setTimeout(function(){ document.getElementById('txDesc').focus(); }, 400);
 }
 
+// ── Aplica el movimiento en la cuenta seleccionada ──
+function aplicarMovimientoCuenta(cuentaVal, monto, tipo, desc, fecha, txId){
+  if(!cuentaVal) return;
+  var c = getCuentas();
+  var delta = tipo==='ingreso' ? monto : -monto; // ingreso suma, gasto resta
+  if(cuentaVal==='efectivo'){
+    c.movEfectivo = c.movEfectivo||[];
+    c.movEfectivo.push({
+      desc: desc, monto: Math.abs(delta), fecha: fecha,
+      tipo: tipo==='ingreso'?'entrada':'salida', txId: txId
+    });
+    c.efectivo = (c.efectivo||0) + delta;
+  } else if(cuentaVal.indexOf('cheque_')===0){
+    var idx = parseInt(cuentaVal.replace('cheque_',''));
+    if(c.cheques && c.cheques[idx]){
+      c.cheques[idx].saldo = (c.cheques[idx].saldo||0) + delta;
+    }
+  }
+  saveCuentas(c);
+}
+
+// ── Revierte un movimiento previo si se edita ──
+function revertirMovimientoCuenta(cuentaVal, monto, tipo){
+  if(!cuentaVal) return;
+  var c = getCuentas();
+  var delta = tipo==='ingreso' ? -monto : monto; // invertir
+  if(cuentaVal==='efectivo'){
+    c.efectivo = (c.efectivo||0) + delta;
+    // quitar el último movimiento inline de efectivo vinculado a esta tx es opcional
+  } else if(cuentaVal.indexOf('cheque_')===0){
+    var idx = parseInt(cuentaVal.replace('cheque_',''));
+    if(c.cheques && c.cheques[idx]){
+      c.cheques[idx].saldo = (c.cheques[idx].saldo||0) + delta;
+    }
+  }
+  saveCuentas(c);
+}
+
 function guardarTx(){
-  var desc = document.getElementById('txDesc').value.trim();
+  var desc  = document.getElementById('txDesc').value.trim();
   var monto = parseFloat(document.getElementById('txMonto').value);
-  var cat = document.getElementById('txCat').value;
+  var cat   = document.getElementById('txCat').value;
   var fecha = document.getElementById('txFecha').value || today();
-  var tipo = document.getElementById('tipoGasto').classList.contains('selected') ? 'gasto' : 'ingreso';
+  var cuenta = document.getElementById('txCuenta').value;
+  var tipo  = document.getElementById('tipoGasto').classList.contains('selected') ? 'gasto' : 'ingreso';
   if(!desc){ showToast('⚠ Escribe una descripción'); return; }
-  if(!monto || monto <= 0){ showToast('⚠ Escribe un monto válido'); return; }
+  if(!monto || monto<=0){ showToast('⚠ Escribe un monto válido'); return; }
   var txs = getTxs();
   if(S.editTxId){
-    // En edición conservar el tipo original
     var ei = txs.findIndex(function(t){ return t.id===S.editTxId; });
     if(ei>-1){
-      tipo = txs[ei].tipo; // conservar tipo original
-      txs[ei] = Object.assign(txs[ei], {desc:desc, monto:monto, cat:cat, fecha:fecha, tipo:tipo});
+      var prev = txs[ei];
+      // Revertir cuenta anterior si tenía
+      if(prev.cuenta) revertirMovimientoCuenta(prev.cuenta, Number(prev.monto), prev.tipo);
+      tipo = prev.tipo;
+      txs[ei] = Object.assign(prev, {desc:desc, monto:monto, cat:cat, fecha:fecha, cuenta:cuenta});
+      if(cuenta) aplicarMovimientoCuenta(cuenta, monto, tipo, desc, fecha, S.editTxId);
     }
     showToast('✓ Actualizado correctamente');
   } else {
-    txs.push({id:Date.now(), tipo:tipo, desc:desc, monto:monto, cat:cat, fecha:fecha});
-    showToast('✓ Transacción guardada');
+    var id = Date.now();
+    txs.push({id:id, tipo:tipo, desc:desc, monto:monto, cat:cat, fecha:fecha, cuenta:cuenta});
+    if(cuenta) aplicarMovimientoCuenta(cuenta, monto, tipo, desc, fecha, id);
+    showToast('✓ '+( tipo==='ingreso'?'Ingreso':'Gasto')+' guardado'+(cuenta?' → '+nombreCuenta(cuenta):''));
   }
   saveTxs(txs);
   cerrarTxModal();
   renderTab(S.tab);
 }
 
+function nombreCuenta(val){
+  if(!val) return '';
+  if(val==='efectivo') return 'Efectivo';
+  if(val.indexOf('cheque_')===0){
+    var c=getCuentas(); var idx=parseInt(val.replace('cheque_',''));
+    return c.cheques&&c.cheques[idx] ? c.cheques[idx].banco : 'Banco';
+  }
+  return val;
+}
+
 function guardarTxInline(tipo, cat){
   var sufijo = tipo==='ingreso' ? 'ingreso' : cat;
-  var descEl = document.getElementById('inDesc_'+sufijo);
+  var descEl  = document.getElementById('inDesc_'+sufijo);
   var montoEl = document.getElementById('inMonto_'+sufijo);
   var fechaEl = document.getElementById('inFecha_'+sufijo);
+  var cuentaEl= document.getElementById('inCuenta_'+sufijo);
   if(!descEl||!montoEl){ showToast('⚠ Error de formulario'); return; }
-  var desc = descEl.value.trim();
+  var desc  = descEl.value.trim();
   var monto = parseFloat(montoEl.value);
-  var fecha = fechaEl ? fechaEl.value || today() : today();
+  var fecha = fechaEl ? fechaEl.value||today() : today();
+  var cuenta = cuentaEl ? cuentaEl.value : '';
   var catFinal = tipo==='ingreso'
     ? (document.getElementById('inCat_ingreso') ? document.getElementById('inCat_ingreso').value : 'Salario')
     : cat;
   if(!desc){ showToast('⚠ Escribe una descripción'); return; }
-  if(!monto || monto <= 0){ showToast('⚠ Escribe un monto válido'); return; }
+  if(!monto||monto<=0){ showToast('⚠ Escribe un monto válido'); return; }
   var txs = getTxs();
-  txs.push({id:Date.now(), tipo:tipo, desc:desc, monto:monto, cat:catFinal, fecha:fecha});
+  var id = Date.now();
+  txs.push({id:id, tipo:tipo, desc:desc, monto:monto, cat:catFinal, fecha:fecha, cuenta:cuenta});
   saveTxs(txs);
-  showToast('✓ Guardado');
+  if(cuenta) aplicarMovimientoCuenta(cuenta, monto, tipo, desc, fecha, id);
+  showToast('✓ Guardado'+(cuenta?' → '+nombreCuenta(cuenta):''));
   var mapSub = {Pagos:'pagos', Compras:'compras', Servicios:'servicios', ingreso:'activos'};
-  var sub = mapSub[cat] || mapSub[tipo];
+  var sub = mapSub[cat]||mapSub[tipo];
   if(sub) goSub(sub);
 }
 
@@ -946,15 +1024,21 @@ function renderGastos(){
 function renderSubTxs(titulo, icono, cat){
   var txs = getTxs().filter(function(t){ return t.tipo==='gasto' && (cat==='all' || t.cat===cat); });
   var total = txs.reduce(function(s,t){ return s+Number(t.monto); },0);
-  var items = txs.slice().reverse().map(function(t){ return txItem(t,true); }).join('') || '<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin registros</div>';
+  var items = txs.slice().reverse().map(function(t){
+    var cuentaLabel = t.cuenta ? ' <span style="font-size:0.65rem;background:var(--inp);padding:2px 6px;border-radius:6px;color:var(--dim);">'+nombreCuenta(t.cuenta)+'</span>' : '';
+    return txItem(t,true).replace('</div></div>','</div>'+cuentaLabel+'</div>');
+  }).join('') || '<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin registros</div>';
+  var cuentaOpts = buildCuentaOpts('');
   return '<div class="page-header">'+backSubBtn()+'<div class="page-title">'+icono+' '+titulo+'</div></div>'
     +'<div class="card" style="margin-bottom:12px;"><div class="stat-label">Total gastado</div><div class="stat-val red">'+fmt(total)+'</div></div>'
     +'<div class="card" style="margin-bottom:14px;" id="formInline_'+cat+'">'
     +'<div class="card-title">+ Agregar gasto</div>'
-    +'<label class="inp-label">Descripción</label><input class="inp" id="inDesc_'+cat+'" placeholder="Ej: Supermercado">'
-    +'<label class="inp-label">Monto ($)</label><input class="inp" id="inMonto_'+cat+'" type="number" placeholder="0.00">'
-    +'<label class="inp-label">Fecha</label><input class="inp" id="inFecha_'+cat+'" type="date" value="'+today()+'">'
-    +'<button class="btn-main" onclick="guardarTxInline(\'gasto\',\''+cat+'\')">💾 Guardar</button>'
+    +'<label class="inp-label">Descripción</label><input class="inp" id="inDesc_'+cat+'" placeholder="Ej: Supermercado" autocomplete="off">'
+    +'<div class="form-row"><div><label class="inp-label">Monto ($)</label><input class="inp" id="inMonto_'+cat+'" type="number" inputmode="decimal" placeholder="0.00"></div>'
+    +'<div><label class="inp-label">Fecha</label><input class="inp" id="inFecha_'+cat+'" type="date" value="'+today()+'"></div></div>'
+    +'<label class="inp-label">💼 ¿De qué cuenta sale?</label>'
+    +'<select class="inp" id="inCuenta_'+cat+'">'+cuentaOpts+'</select>'
+    +'<button class="btn-main" onclick="guardarTxInline(\'gasto\',\''+cat+'\')">💾 Guardar gasto</button>'
     +'</div>'
     +'<div class="card"><div class="card-title">Registros</div>'+items+'</div>';
 }
@@ -974,16 +1058,22 @@ function renderIngresos(){
 function renderActivos(){
   var txs = getTxs().filter(function(t){ return t.tipo==='ingreso'; });
   var total = txs.reduce(function(s,t){ return s+Number(t.monto); },0);
-  var items = txs.slice().reverse().map(function(t){ return txItem(t,true); }).join('') || '<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin ingresos aún</div>';
+  var items = txs.slice().reverse().map(function(t){
+    var cuentaLabel = t.cuenta ? ' <span style="font-size:0.65rem;background:var(--inp);padding:2px 6px;border-radius:6px;color:var(--dim);">'+nombreCuenta(t.cuenta)+'</span>' : '';
+    return txItem(t,true).replace('</div></div>','</div>'+cuentaLabel+'</div>');
+  }).join('') || '<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin ingresos aún</div>';
+  var cuentaOpts = buildCuentaOpts('');
   return '<div class="page-header">'+backSubBtn()+'<div class="page-title">📥 Activos</div></div>'
     +'<div class="card" style="margin-bottom:12px;"><div class="stat-label">Total ingresos</div><div class="stat-val">'+fmt(total)+'</div></div>'
     +'<div class="card" style="margin-bottom:14px;">'
     +'<div class="card-title">+ Agregar ingreso</div>'
-    +'<label class="inp-label">Descripción</label><input class="inp" id="inDesc_ingreso" placeholder="Ej: Salario quincenal">'
-    +'<div class="form-row"><div><label class="inp-label">Monto ($)</label><input class="inp" id="inMonto_ingreso" type="number" placeholder="0.00"></div>'
+    +'<label class="inp-label">Descripción</label><input class="inp" id="inDesc_ingreso" placeholder="Ej: Salario quincenal" autocomplete="off">'
+    +'<div class="form-row"><div><label class="inp-label">Monto ($)</label><input class="inp" id="inMonto_ingreso" type="number" inputmode="decimal" placeholder="0.00"></div>'
     +'<div><label class="inp-label">Categoría</label><select class="inp" id="inCat_ingreso"><option>Salario</option><option>Activos</option><option>Freelance</option><option>Renta</option><option>Inversión</option><option>Otros</option></select></div></div>'
+    +'<label class="inp-label">💼 ¿A qué cuenta entra?</label>'
+    +'<select class="inp" id="inCuenta_ingreso">'+cuentaOpts+'</select>'
     +'<label class="inp-label">Fecha</label><input class="inp" id="inFecha_ingreso" type="date" value="'+today()+'">'
-    +'<button class="btn-main" onclick="guardarTxInline(\'ingreso\',\'ingreso\')">💾 Guardar</button>'
+    +'<button class="btn-main" onclick="guardarTxInline(\'ingreso\',\'ingreso\')">💾 Guardar ingreso</button>'
     +'</div>'
     +'<div class="card"><div class="card-title">Registros</div>'+items+'</div>';
 }
@@ -1592,6 +1682,26 @@ function borrarNoticia(i){
   goSub('noticias');
 }
 
+// ── Helper: construye opciones de cuentas para selects ──
+function buildCuentaOpts(selVal){
+  var c = getCuentas();
+  var ops = '<option value="">— Sin asignar —</option>'
+    +'<option value="efectivo"'+(selVal==='efectivo'?' selected':'')+'>💵 Efectivo</option>';
+  (c.cheques||[]).forEach(function(ch, i){
+    var val='cheque_'+i;
+    ops+='<option value="'+val+'"'+(selVal===val?' selected':'')+'>🏧 '+ch.banco+' — '+ch.tipo+'</option>';
+  });
+  return ops;
+}
+
+// ── Calcula saldo real de una cuenta sumando transacciones vinculadas ──
+function saldoRealCuenta(cuentaVal){
+  var txs = getTxs().filter(function(t){ return t.cuenta===cuentaVal; });
+  return txs.reduce(function(s,t){
+    return s + (t.tipo==='ingreso' ? Number(t.monto) : -Number(t.monto));
+  }, 0);
+}
+
 // ══════════════════════════════════════════
 // MÓDULO CUENTAS
 // ══════════════════════════════════════════
@@ -1600,23 +1710,30 @@ function saveCuentas(c){ localStorage.setItem('usala_cuentas_'+(S.user.isAdmin?'
 
 function renderCuentas(){
   var c = getCuentas();
-  var totalEfectivo = c.efectivo || 0;
-  var totalCheques = (c.cheques||[]).reduce(function(s,x){ return s+Number(x.monto); },0);
+  var saldoEfec = (c.efectivo||0);
+  var totalCheques = (c.cheques||[]).reduce(function(s,x){ return s+Number(x.saldo||0); },0);
   var totalTC = (c.tarjetas||[]).reduce(function(s,t){ return s+Number(t.balance||0); },0);
-  var totalActivos = totalEfectivo + totalCheques;
+  var totalActivos = saldoEfec + totalCheques;
+
+  var resCheques = (c.cheques||[]).map(function(ch){
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">'
+      +'<div style="font-size:0.8rem;font-weight:700;">🏧 '+ch.banco+' <span style="font-size:0.65rem;color:var(--dim);font-weight:400;">'+ch.tipo+'</span></div>'
+      +'<div style="font-weight:900;color:var(--accent);">'+fmt(ch.saldo||0)+'</div></div>';
+  }).join('');
 
   return '<div style="font-size:1.05rem;font-weight:900;margin-bottom:4px;padding-top:4px;">🏦 Mis Cuentas</div>'
-    +'<div style="font-size:0.74rem;color:var(--dim);margin-bottom:14px;">Control de tu dinero y tarjetas</div>'
+    +'<div style="font-size:0.74rem;color:var(--dim);margin-bottom:14px;">Saldos actualizados con cada transacción</div>'
     +'<div class="stat-grid" style="margin-bottom:14px;">'
-    +'<div class="stat-card"><div class="stat-label">💵 Efectivo</div><div class="stat-val">'+fmt(totalEfectivo)+'</div></div>'
-    +'<div class="stat-card"><div class="stat-label">🏧 Cheques/Banco</div><div class="stat-val">'+fmt(totalCheques)+'</div></div>'
-    +'<div class="stat-card"><div class="stat-label">✅ Total Activos</div><div class="stat-val">'+fmt(totalActivos)+'</div></div>'
-    +'<div class="stat-card"><div class="stat-label">💳 Deuda TC</div><div class="stat-val red">'+fmt(totalTC)+'</div></div>'
+    +'<div class="stat-card" onclick="goSub(\'efectivo\')"><div class="stat-label">💵 Efectivo ›</div><div class="stat-val">'+fmt(saldoEfec)+'</div></div>'
+    +'<div class="stat-card" onclick="goSub(\'cheques\')"><div class="stat-label">🏧 Banco ›</div><div class="stat-val">'+fmt(totalCheques)+'</div></div>'
+    +'<div class="stat-card" style="background:rgba(45,158,95,0.08);border:1.5px solid rgba(45,158,95,0.2);"><div class="stat-label">✅ Total disponible</div><div class="stat-val">'+fmt(totalActivos)+'</div></div>'
+    +'<div class="stat-card" onclick="goSub(\'tarjetas_credito\')" style="background:rgba(229,57,53,0.05);"><div class="stat-label">💳 Deuda TC ›</div><div class="stat-val red">'+fmt(totalTC)+'</div></div>'
     +'</div>'
+    +(resCheques?'<div class="card" style="margin-bottom:14px;"><div class="card-title">Cuentas bancarias</div>'+resCheques+'</div>':'')
     +'<div class="mod-list">'
-    +'<div class="mod-item" onclick="goSub(\'efectivo\')"><div class="mod-icon">💵</div><div><div class="mod-label">Efectivo</div><div class="mod-sub">'+fmt(totalEfectivo)+' disponible</div></div><div class="mod-arrow">›</div></div>'
+    +'<div class="mod-item" onclick="goSub(\'efectivo\')"><div class="mod-icon">💵</div><div><div class="mod-label">Efectivo</div><div class="mod-sub">Saldo: '+fmt(saldoEfec)+'</div></div><div class="mod-arrow">›</div></div>'
     +'<div class="mod-item" onclick="goSub(\'cheques\')"><div class="mod-icon">🏧</div><div><div class="mod-label">Cheques / Banco</div><div class="mod-sub">Transferencias, depósitos, ahorro</div></div><div class="mod-arrow">›</div></div>'
-    +'<div class="mod-item" onclick="goSub(\'tarjetas_credito\')"><div class="mod-icon">💳</div><div><div class="mod-label">Tarjetas de Crédito</div><div class="mod-sub">'+(c.tarjetas||[]).length+' tarjeta'+(((c.tarjetas||[]).length)!==1?'s':'')+' registrada'+(((c.tarjetas||[]).length)!==1?'s':'')+' · Deuda: '+fmt(totalTC)+'</div></div><div class="mod-arrow">›</div></div>'
+    +'<div class="mod-item" onclick="goSub(\'tarjetas_credito\')"><div class="mod-icon">💳</div><div><div class="mod-label">Tarjetas de Crédito</div><div class="mod-sub">'+(c.tarjetas||[]).length+' tarjeta'+(((c.tarjetas||[]).length)!==1?'s':'')+' · Deuda: '+fmt(totalTC)+'</div></div><div class="mod-arrow">›</div></div>'
     +'</div>';
 }
 
