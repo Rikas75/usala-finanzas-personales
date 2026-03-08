@@ -348,6 +348,7 @@ select.inp{appearance:none;-webkit-appearance:none;}
     <button class="nb active" onclick="goTab('inicio',this)"><div class="nb-ico">🏠</div><div class="nb-lbl">Inicio</div></button>
     <button class="nb" onclick="goTab('cuentas',this)"><div class="nb-ico">🏦</div><div class="nb-lbl">Cuentas</div></button>
     <button class="nb" onclick="goTab('creditos',this)"><div class="nb-ico">🤝</div><div class="nb-lbl">Créditos</div></button>
+    <button class="nb" onclick="goTab('reportes',this)"><div class="nb-ico">📊</div><div class="nb-lbl">Reportes</div></button>
     <button class="nb" onclick="goTab('mas',this)"><div class="nb-ico">⋯</div><div class="nb-lbl">Más</div></button>
   </nav>
 </div>
@@ -826,35 +827,43 @@ function editarTx(id){
 function aplicarMovimientoCuenta(cuentaVal, monto, tipo, desc, fecha, txId){
   if(!cuentaVal) return;
   var c = getCuentas();
-  var delta = tipo==='ingreso' ? monto : -monto; // ingreso suma, gasto resta
+  var delta = tipo==='ingreso' ? monto : -monto;
   if(cuentaVal==='efectivo'){
     c.movEfectivo = c.movEfectivo||[];
-    c.movEfectivo.push({
-      desc: desc, monto: Math.abs(delta), fecha: fecha,
-      tipo: tipo==='ingreso'?'entrada':'salida', txId: txId
-    });
+    c.movEfectivo.push({desc:desc, monto:Math.abs(delta), fecha:fecha, tipo:tipo==='ingreso'?'entrada':'salida', txId:txId});
     c.efectivo = (c.efectivo||0) + delta;
   } else if(cuentaVal.indexOf('cheque_')===0){
     var idx = parseInt(cuentaVal.replace('cheque_',''));
     if(c.cheques && c.cheques[idx]){
       c.cheques[idx].saldo = (c.cheques[idx].saldo||0) + delta;
     }
+  } else if(cuentaVal.indexOf('tc_')===0){
+    // Tarjeta de crédito: gasto AUMENTA la deuda, pago la REDUCE. NO toca efectivo ni banco.
+    var ti = parseInt(cuentaVal.replace('tc_',''));
+    if(c.tarjetas && c.tarjetas[ti]){
+      var cambio = tipo==='gasto' ? monto : -monto;
+      c.tarjetas[ti].balance = (Number(c.tarjetas[ti].balance)||0) + cambio;
+    }
   }
   saveCuentas(c);
 }
 
-// ── Revierte un movimiento previo si se edita ──
 function revertirMovimientoCuenta(cuentaVal, monto, tipo){
   if(!cuentaVal) return;
   var c = getCuentas();
-  var delta = tipo==='ingreso' ? -monto : monto; // invertir
+  var delta = tipo==='ingreso' ? -monto : monto;
   if(cuentaVal==='efectivo'){
     c.efectivo = (c.efectivo||0) + delta;
-    // quitar el último movimiento inline de efectivo vinculado a esta tx es opcional
   } else if(cuentaVal.indexOf('cheque_')===0){
     var idx = parseInt(cuentaVal.replace('cheque_',''));
     if(c.cheques && c.cheques[idx]){
       c.cheques[idx].saldo = (c.cheques[idx].saldo||0) + delta;
+    }
+  } else if(cuentaVal.indexOf('tc_')===0){
+    var ti = parseInt(cuentaVal.replace('tc_',''));
+    if(c.tarjetas && c.tarjetas[ti]){
+      var cambio = tipo==='gasto' ? -monto : monto;
+      c.tarjetas[ti].balance = (Number(c.tarjetas[ti].balance)||0) + cambio;
     }
   }
   saveCuentas(c);
@@ -1344,25 +1353,33 @@ function guardarPres(cat,val){ var p=load('presupuesto',{}); p[cat]=parseFloat(v
 // ══════════════════════════════════════════
 function renderAlertas(){
   var alertas=load('alertas',[]);
+  var txs=getTxs();
   var items=alertas.length?alertas.map(function(a,i){
-    var hoy=new Date();
-    var partes=a.fecha.split('-'); var hp=(a.hora||'09:00').split(':');
-    var fa=new Date(+partes[0],+partes[1]-1,+partes[2],+hp[0],+hp[1],0);
-    var venc=fa<hoy; var esHoy=fa.toDateString()===hoy.toDateString();
-    var estado=venc?'🔴':esHoy?'⚡':'🟡';
-    return '<div class="alerta-item">'
-      +'<div class="alerta-info"><div class="alerta-nombre">'+estado+' '+a.nombre+'</div>'
-      +'<div class="alerta-meta">💰 '+fmt(a.limite)+' · 📅 '+a.fecha+' '+a.hora+'</div></div>'
-      +'<div class="alerta-actions">'
+    var gastado=txs.filter(function(t){ return t.tipo==='gasto' && t.cat===a.nombre; }).reduce(function(s,t){ return s+Number(t.monto); },0);
+    var pct=a.limite>0?Math.min(100,Math.round((gastado/a.limite)*100)):0;
+    var color=pct>=100?'var(--danger)':pct>=75?'#f59e0b':'var(--accent2)';
+    return '<div class="card" style="margin-bottom:10px;padding:14px;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
+      +'<div style="font-weight:800;font-size:0.9rem;">'+(pct>=100?'🔴':pct>=75?'⚡':'🟢')+' '+a.nombre+'</div>'
+      +'<div style="display:flex;gap:6px;">'
       +'<button class="ic-btn" onclick="editarAlerta('+i+')">✏️</button>'
       +'<button class="ic-btn" onclick="borrarAlerta('+i+')">🗑️</button>'
-      +'</div></div>';
-  }).join(''):'<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin alertas</div>';
+      +'</div></div>'
+      +'<div style="font-size:0.75rem;color:var(--dim);margin-bottom:6px;">'+fmt(gastado)+' de '+fmt(a.limite)+' · Vence: '+a.fecha+'</div>'
+      +'<div style="background:rgba(0,0,0,0.08);border-radius:8px;height:7px;overflow:hidden;">'
+      +'<div style="height:100%;border-radius:8px;background:'+color+';width:'+pct+'%;transition:width 0.4s;"></div></div>'
+      +'</div>';
+  }).join(''):'<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin alertas configuradas</div>';
+
   return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">🔔 Alertas de Gasto</div></div>'
     +'<div class="card" style="margin-bottom:14px;" id="alertaForm">'
-    +'<label class="inp-label">Descripción</label><input class="inp" id="alNombre" placeholder="Ej: No gastar más en ropa">'
-    +'<div class="form-row"><div><label class="inp-label">Límite ($)</label><input class="inp" id="alLimite" type="number" placeholder="0.00"></div><div><label class="inp-label">Hora</label><input class="inp" id="alHora" type="time" value="09:00"></div></div>'
-    +'<label class="inp-label">Fecha</label><input class="inp" id="alFecha" type="date" value="'+today()+'">'
+    +'<div class="card-title">+ Nueva alerta</div>'
+    +'<label class="inp-label">Nombre / Categoría a vigilar</label>'
+    +'<input class="inp" id="alNombre" placeholder="Ej: Alimentación, Entretenimiento...">'
+    +'<div class="form-row">'
+    +'<div><label class="inp-label">Límite ($)</label><input class="inp" id="alLimite" type="number" inputmode="decimal" placeholder="0.00"></div>'
+    +'<div><label class="inp-label">Fecha límite</label><input class="inp" id="alFecha" type="date" value="'+today()+'"></div>'
+    +'</div>'
     +'<button class="btn-main" id="alSaveBtn" onclick="guardarAlerta()">+ Agregar alerta</button>'
     +'</div>'+items;
 }
@@ -1370,27 +1387,23 @@ function guardarAlerta(){
   var n=document.getElementById('alNombre').value.trim();
   var l=parseFloat(document.getElementById('alLimite').value);
   var f=document.getElementById('alFecha').value;
-  var h=document.getElementById('alHora').value||'09:00';
   if(!n||!l||!f){ showToast('⚠ Completa todos los campos'); return; }
-  var btn=document.getElementById('alSaveBtn'); btn.disabled=true; btn.textContent='⏳ Guardando...';
   var alertas=load('alertas',[]);
   if(window._editAlerta!==undefined){
-    alertas[window._editAlerta]=Object.assign(alertas[window._editAlerta],{nombre:n,limite:l,fecha:f,hora:h});
-    delete window._editAlerta; showToast('✓ Actualizado');
+    alertas[window._editAlerta]=Object.assign(alertas[window._editAlerta],{nombre:n,limite:l,fecha:f});
+    delete window._editAlerta; showToast('✓ Alerta actualizada');
   } else {
-    alertas.push({nombre:n,limite:l,fecha:f,hora:h,activa:true});
+    alertas.push({nombre:n,limite:l,fecha:f,activa:true});
     showToast('✓ Alerta guardada');
   }
-  save('alertas',alertas); setTimeout(function(){ goSub('alertas'); },300);
+  save('alertas',alertas); goSub('alertas');
 }
 function editarAlerta(i){
   var a=load('alertas',[])[i];
   document.getElementById('alNombre').value=a.nombre;
   document.getElementById('alLimite').value=a.limite;
   document.getElementById('alFecha').value=a.fecha;
-  document.getElementById('alHora').value=a.hora||'09:00';
   document.getElementById('alSaveBtn').textContent='💾 Guardar cambios';
-  document.getElementById('alSaveBtn').disabled=false;
   window._editAlerta=i;
   document.getElementById('alertaForm').scrollIntoView({behavior:'smooth'});
 }
@@ -1400,11 +1413,61 @@ function borrarAlerta(i){ if(!confirm('¿Eliminar?')) return; var a=load('alerta
 // HISTORIAL
 // ══════════════════════════════════════════
 function renderHistorial(){
-  var txs=getTxs().slice().reverse();
-  var items=txs.length?txs.map(function(t){ return txItem(t,true); }).join(''):'<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin transacciones</div>';
+  var txs = getTxs().slice().reverse();
+  var filtro = window._histFiltro || 'todos';
+
+  var txsFilt = txs.filter(function(t){
+    if(filtro==='ingresos') return t.tipo==='ingreso';
+    if(filtro==='gastos') return t.tipo==='gasto';
+    return true;
+  });
+
+  function fmtFecha(f){
+    if(!f) return '';
+    var p=f.split('-');
+    var meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    return p[2]+' '+meses[parseInt(p[1])-1]+' '+p[0];
+  }
+
+  var ing = txs.filter(function(t){ return t.tipo==='ingreso'; }).reduce(function(s,t){ return s+Number(t.monto); },0);
+  var gas = txs.filter(function(t){ return t.tipo==='gasto'; }).reduce(function(s,t){ return s+Number(t.monto); },0);
+
+  var items = txsFilt.length ? txsFilt.map(function(t){
+    var cuentaLabel = t.cuenta ? '<span style="font-size:0.6rem;background:rgba(45,158,95,0.12);color:var(--accent2);padding:1px 5px;border-radius:8px;margin-left:4px;">'+nombreCuenta(t.cuenta)+'</span>' : '';
+    return '<div class="tx-item" style="padding:12px 0;">'
+      +'<div class="tx-ico" style="font-size:1.3rem;">'+(t.tipo==='ingreso'?'💰':'💸')+'</div>'
+      +'<div class="tx-info" style="flex:1;">'
+      +'<div class="tx-name" style="font-size:0.88rem;font-weight:700;">'+t.desc+cuentaLabel+'</div>'
+      +'<div class="tx-date" style="font-size:0.7rem;margin-top:2px;">'+fmtFecha(t.fecha)+' · '+t.cat+'</div>'
+      +'</div>'
+      +'<div class="tx-right" style="align-items:flex-end;gap:6px;">'
+      +'<div class="tx-amt '+(t.tipo==='ingreso'?'ing':'gas')+'" style="font-size:0.95rem;">'+(t.tipo==='ingreso'?'+':'-')+fmt(t.monto)+'</div>'
+      +'<div style="display:flex;gap:4px;">'
+      +'<button class="ic-btn" onclick="editarTx('+t.id+')" title="Editar">✏️</button>'
+      +'<button class="ic-btn" onclick="borrarTx('+t.id+')" title="Eliminar">🗑️</button>'
+      +'</div></div></div>';
+  }).join('') : '<div style="text-align:center;padding:30px;color:var(--dim);font-size:0.83rem;">Sin movimientos '+(filtro!=='todos'?'en esta categoría':'aún')+'</div>';
+
+  function filtBtn(val, label){
+    var act = filtro===val;
+    return '<button onclick="window._histFiltro=\''+val+'\';goSub(\'historial\')" style="padding:7px 14px;border:none;border-radius:20px;font-family:\'Outfit\',sans-serif;font-size:0.75rem;font-weight:700;cursor:pointer;background:'+(act?'var(--accent)':'rgba(0,0,0,0.06)')+';color:'+(act?'var(--navtext)':'var(--dim)')+';">'+label+'</button>';
+  }
+
   return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">📋 Historial</div></div>'
+    // Resumen rápido
+    +'<div class="stat-grid" style="margin-bottom:12px;">'
+    +'<div class="stat-card" style="padding:12px;"><div class="stat-label" style="font-size:0.6rem;">💰 Total ingresos</div><div style="font-size:1rem;font-weight:900;color:var(--accent2);">'+fmt(ing)+'</div></div>'
+    +'<div class="stat-card" style="padding:12px;"><div class="stat-label" style="font-size:0.6rem;">💸 Total gastos</div><div style="font-size:1rem;font-weight:900;color:var(--danger);">'+fmt(gas)+'</div></div>'
+    +'</div>'
+    // Filtros
+    +'<div style="display:flex;gap:8px;margin-bottom:12px;">'
+    +filtBtn('todos','Todos ('+txs.length+')')
+    +filtBtn('ingresos','💰 Ingresos')
+    +filtBtn('gastos','💸 Gastos')
+    +'</div>'
     +'<div class="card">'+items+'</div>';
 }
+
 
 // ══════════════════════════════════════════
 // CONVERSOR
