@@ -320,7 +320,7 @@ select.inp{appearance:none;-webkit-appearance:none;}
     <label class="inp-label">Contraseña</label>
     <input class="inp" id="adminPass" type="password" placeholder="Contraseña de administrador" onkeydown="if(event.key==='Enter')verificarAdmin()">
     <button class="btn-main" onclick="verificarAdmin()">Entrar como Admin →</button>
-    <div class="admin-hint">Primera vez: <b>admin1234</b></div>
+    <div class="admin-hint">¿Primera vez? Usa la clave que te fue asignada</div>
     <button class="admin-recover" onclick="recuperarAdmin()">¿Olvidaste tu contraseña? Restablecer</button>
   </div>
 </div>
@@ -479,11 +479,11 @@ function verificarAdmin(){
 }
 
 function recuperarAdmin(){
-  if(!confirm('¿Restablecer contraseña a admin1234?')) return;
+  if(!confirm('¿Restablecer la contraseña al valor original?')) return;
   localStorage.removeItem('usala_admin_pass');
   document.getElementById('adminErr').style.display = 'none';
   document.getElementById('adminPass').value = '';
-  alert('Listo. Ahora escribe admin1234 y toca Entrar.');
+  alert('Listo. Usa la clave maestra que conoces para entrar.');
 }
 
 // ══════════════════════════════════════════
@@ -1227,14 +1227,24 @@ function abrirAyuda(){ goTab('mas',document.querySelectorAll('.nb')[4]); setTime
 function abrirMenu(){
   var u=S.user;
   document.getElementById('menuNombre').textContent=(u.isAdmin?'⚙️ Admin':'👤 ')+u.nombre;
-  var items='<div class="set-item" onclick="cerrarMenu();pickTema()"><div class="set-label">🎨 Cambiar tema</div></div>'
-    +'<div class="set-item" onclick="cerrarMenu();goTab(\'mas\',document.querySelectorAll(\'.nb\')[4]);setTimeout(function(){goSub(\'config\');},10)"><div class="set-label">⚙️ Configuración</div></div>'
-    +(S.user.isAdmin?'<div class="set-item" onclick="cerrarMenu();goTab(\'mas\',document.querySelectorAll(\'.nb\')[4]);setTimeout(function(){goSub(\'codigos\');},10)"><div class="set-label">🔑 Códigos de acceso</div></div>':'')
-    +'<div class="set-item" onclick="cerrarMenu();cerrarSesion()"><div class="set-label" style="color:var(--danger);">🚪 Cerrar sesión</div></div>';
+  var items='<div class="set-item" onclick="menuAccion(\'tema\')"><div class="set-label">🎨 Cambiar tema</div><div class="set-arrow">›</div></div>'
+    +'<div class="set-item" onclick="menuAccion(\'config\')"><div class="set-label">⚙️ Configuración</div><div class="set-arrow">›</div></div>'
+    +(S.user.isAdmin?'<div class="set-item" onclick="menuAccion(\'codigos\')"><div class="set-label">🔑 Códigos de acceso</div><div class="set-arrow">›</div></div>':'')
+    +'<div class="set-item" onclick="menuAccion(\'salir\')"><div class="set-label" style="color:var(--danger);">🚪 Cerrar sesión</div></div>';
   document.getElementById('menuItems').innerHTML=items;
   document.getElementById('menuModal').classList.add('open');
+}
+function menuAccion(accion){
+  cerrarMenu();
+  setTimeout(function(){
+    if(accion==='tema'){ pickTema(); }
+    else if(accion==='salir'){ cerrarSesion(); }
+    else if(accion==='config'){ goTab('mas',document.querySelectorAll('.nb')[4]); setTimeout(function(){ goSub('config'); },50); }
+    else if(accion==='codigos'){ goTab('mas',document.querySelectorAll('.nb')[4]); setTimeout(function(){ goSub('codigos'); },50); }
+  },200);
 }
 function cerrarMenu(){ document.getElementById('menuModal').classList.remove('open'); }
 </script>
 </body>
 </html>
+
