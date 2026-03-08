@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -219,6 +218,7 @@ select.form-input{appearance:none;}
     <input class="form-input" id="adminPass" type="password" placeholder="Contraseña de administrador" onkeydown="if(event.key==='Enter')verificarAdmin()">
     <button class="form-btn" onclick="verificarAdmin()">Entrar como Admin →</button>
     <div style="text-align:center;margin-top:14px;font-size:0.72rem;color:var(--dim);">Primera vez: la contraseña es <b>admin1234</b><br>Cámbiala en Configuración después.</div>
+    <div style="text-align:center;margin-top:10px;"><button onclick="recuperarPassAdmin()" style="background:none;border:none;font-size:0.68rem;color:var(--dim);text-decoration:underline;cursor:pointer;font-family:inherit;">¿Olvidaste tu contraseña? Restablecer a admin1234</button></div>
   </div>
 </div>
 
@@ -422,6 +422,15 @@ function abrirLoginAdmin(){
   setTimeout(function(){ document.getElementById('adminPass').focus(); }, 300);
 }
 function cerrarLoginAdmin(){ document.getElementById('adminModal').classList.remove('open'); }
+
+
+function recuperarPassAdmin(){
+  if(!confirm('¿Restablecer la contraseña de administrador a admin1234?')) return;
+  localStorage.removeItem('fp_admin_pass');
+  document.getElementById('adminErr').style.display='none';
+  document.getElementById('adminPass').value='';
+  showToast('✓ Contraseña restablecida. Usa admin1234');
+}
 
 function verificarAdmin(){
   var pass = document.getElementById('adminPass').value;
@@ -1319,10 +1328,12 @@ function ejecutarAccion(){
     claves.forEach(function(k){
       localStorage.removeItem(userKey(k));
     });
-    // Borrar también presupuesto mensual y cualquier otra clave con prefijo del usuario
+    // Borrar todas las claves del usuario EXCEPTO la contraseña admin
     var uid = STATE.user.isAdmin ? 'admin' : ('u_'+(STATE.user.codigo||'guest'));
     var prefix = 'fp_'+uid+'_';
-    Object.keys(localStorage).filter(function(k){ return k.indexOf(prefix)===0; }).forEach(function(k){ localStorage.removeItem(k); });
+    Object.keys(localStorage).filter(function(k){
+      return k.indexOf(prefix)===0 && k !== 'fp_admin_pass' && k !== 'fp_app_version' && k !== 'fp_app_notas';
+    }).forEach(function(k){ localStorage.removeItem(k); });
     showToast('✅ Cuenta restablecida — todo borrado');
     // Regresar al inicio después de limpiar
     setTimeout(function(){ goTab('inicio', document.querySelector('.nav-btn')); }, 600);
@@ -1476,6 +1487,7 @@ function iniciarRevisionAlertas(){
 </script>
 </body>
 </html>
+
 
 
 
