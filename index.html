@@ -2380,9 +2380,27 @@ function renderTarjetasCredito(){
       +'</div>'
       +'<div class="cred-btns">'
       +'<button class="cred-btn" onclick="editarTC('+i+')">✏️ Editar</button>'
-      +'<button class="cred-btn success" onclick="registrarPagoTC('+i+')">💳 Registrar pago</button>'
+      +'<button class="cred-btn success" onclick="toggleFormCompraTC('+i+')">🛒 Registrar compra</button>'
+      +'<button class="cred-btn" onclick="registrarPagoTC('+i+')" style="background:rgba(45,158,95,0.1);color:var(--accent2);border:1px solid rgba(45,158,95,0.2);">💳 Pago</button>'
       +'<button class="cred-btn danger" onclick="borrarTC('+i+')">🗑️</button>'
-      +'</div></div>';
+      +'</div>'
+      // Formulario inline de compra (oculto por defecto)
+      +'<div id="formCompraTC_'+i+'" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">'
+      +'<div style="font-size:0.75rem;font-weight:800;color:var(--accent);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">🛒 Nueva compra con '+t.banco+'</div>'
+      +'<input class="inp" id="tcCDesc_'+i+'" placeholder="Descripción (ej: Supermercado, Netflix...)" style="margin-bottom:8px;">'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
+      +'<input class="inp" id="tcCMonto_'+i+'" type="number" inputmode="decimal" placeholder="Monto $">'
+      +'<select class="inp" id="tcCCat_'+i+'">'
+      +'<option>Compras</option><option>Alimentación</option><option>Servicios</option>'
+      +'<option>Transporte</option><option>Entretenimiento</option><option>Salud</option>'
+      +'<option>Ropa</option><option>Pagos</option><option>Otros</option>'
+      +'</select></div>'
+      +'<input class="inp" id="tcCFecha_'+i+'" type="date" value="'+today()+'" style="margin-bottom:8px;">'
+      +'<div style="display:flex;gap:8px;">'
+      +'<button onclick="guardarCompraTC('+i+')" style="flex:1;padding:11px;background:var(--accent);color:var(--navtext);border:none;border-radius:12px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:0.85rem;cursor:pointer;">✅ Guardar compra</button>'
+      +'<button onclick="toggleFormCompraTC('+i+')" style="padding:11px 14px;background:var(--inp);color:var(--dim);border:none;border-radius:12px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:0.85rem;cursor:pointer;">✕</button>'
+      +'</div></div>'
+      +'</div>';
   }).join('')||'<div style="text-align:center;padding:24px;color:var(--dim);font-size:0.83rem;">Sin tarjetas registradas</div>';
 
   return '<div class="page-header">'+backBtn('cuentas',1)+'<div class="page-title">💳 Tarjetas de Crédito</div></div>'
@@ -2464,6 +2482,41 @@ function editarTC(i){
   var c=getCuentas();
   document.getElementById('mainContent').innerHTML=renderFormTC(c.tarjetas[i]);
 }
+function toggleFormCompraTC(i){
+  var f = document.getElementById('formCompraTC_'+i);
+  if(!f) return;
+  var abierto = f.style.display !== 'none';
+  f.style.display = abierto ? 'none' : 'block';
+  if(!abierto) document.getElementById('tcCDesc_'+i).focus();
+}
+
+function guardarCompraTC(i){
+  var desc  = (document.getElementById('tcCDesc_'+i).value||'').trim();
+  var monto = parseFloat(document.getElementById('tcCMonto_'+i).value);
+  var cat   = document.getElementById('tcCCat_'+i).value;
+  var fecha = document.getElementById('tcCFecha_'+i).value || today();
+  if(!desc){ showToast('⚠ Escribe una descripción'); return; }
+  if(!monto||monto<=0){ showToast('⚠ Escribe un monto válido'); return; }
+
+  // Crear transacción vinculada a esta TC
+  var txs = getTxs();
+  var id = Date.now();
+  txs.push({ id:id, tipo:'gasto', desc:desc, monto:monto, cat:cat, fecha:fecha, cuenta:'tc_'+i });
+  saveTxs(txs);
+
+  // Actualizar balance de la TC
+  var c = getCuentas();
+  c.tarjetas = c.tarjetas||[];
+  if(c.tarjetas[i]){
+    c.tarjetas[i].balance = (Number(c.tarjetas[i].balance)||0) + monto;
+    c.tarjetas[i].pagoPendiente = true;
+    saveCuentas(c);
+  }
+
+  showToast('✅ Compra de '+fmt(monto)+' registrada en '+( c.tarjetas[i]?c.tarjetas[i].banco:'TC'));
+  goSub('tarjetas_credito');
+}
+
 function registrarPagoTC(i){
   var pago=parseFloat(prompt('Monto del pago ($):')); if(!pago||pago<=0) return;
   var c=getCuentas(); c.tarjetas[i].balance=Math.max(0,(c.tarjetas[i].balance||0)-pago);
