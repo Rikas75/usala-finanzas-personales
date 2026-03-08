@@ -1536,18 +1536,30 @@ function cambiarPass(){
   showToast('✓ Contraseña actualizada');
 }
 function resetTxs(){
-  if(!confirm('¿Borrar todas tus transacciones?')) return;
-  save('txs',[]); showToast('✓ Transacciones borradas'); goSub('config');
+  if(!confirm('¿Borrar todas tus transacciones?\n\nTambién se resetearán los saldos de Efectivo y Cuentas bancarias vinculados.')) return;
+  save('txs',[]);
+  // También limpiar saldos de cuentas que se calculan desde txs
+  var uid = S.user.isAdmin ? 'admin' : 'u_'+S.user.codigo;
+  var cu = JSON.parse(localStorage.getItem('usala_cuentas_'+uid)||'{}');
+  cu.efectivo = 0;
+  cu.movEfectivo = [];
+  (cu.cheques||[]).forEach(function(ch){ ch.saldo = 0; });
+  localStorage.setItem('usala_cuentas_'+uid, JSON.stringify(cu));
+  showToast('✓ Transacciones y saldos borrados');
+  goSub('config');
 }
 function resetCuenta(){
-  if(!confirm('¿BORRAR TODA tu información? Esta acción no se puede deshacer.')) return;
-  if(!confirm('¿Estás seguro? Se borrará TODO.')) return;
-  var uid=S.user.isAdmin?'admin':'u_'+S.user.codigo;
-  var prefix='usala_'+uid+'_';
+  if(!confirm('¿BORRAR TODA tu información?\n\nSe eliminarán transacciones, cuentas, créditos, metas, alertas y presupuestos.\n\nEsta acción NO se puede deshacer.')) return;
+  if(!confirm('⚠️ Última confirmación\n\n¿Estás completamente seguro?')) return;
+  var uid = S.user.isAdmin ? 'admin' : 'u_'+S.user.codigo;
+  var prefix = 'usala_'+uid+'_';
+  // Borrar claves con prefijo estándar
   Object.keys(localStorage).filter(function(k){
     return k.indexOf(prefix)===0;
   }).forEach(function(k){ localStorage.removeItem(k); });
-  showToast('✅ Cuenta restablecida');
+  // Borrar clave de cuentas (usa formato diferente)
+  localStorage.removeItem('usala_cuentas_'+uid);
+  showToast('✅ Cuenta restablecida completamente');
   setTimeout(function(){ goTab('inicio',document.querySelector('.nb')); },600);
 }
 
