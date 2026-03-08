@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -426,16 +426,20 @@ function cerrarLoginAdmin(){ document.getElementById('adminModal').classList.rem
 
 function recuperarPassAdmin(){
   if(!confirm('¿Restablecer la contraseña de administrador a admin1234?')) return;
+  // Borrar todas las posibles claves de contraseña
   localStorage.removeItem('fp_admin_pass');
+  localStorage.removeItem('fp_admin_pass_backup');
   document.getElementById('adminErr').style.display='none';
   document.getElementById('adminPass').value='';
-  showToast('✓ Contraseña restablecida. Usa admin1234');
+  alert('Listo. Ahora escribe admin1234 y toca Entrar.');
 }
 
 function verificarAdmin(){
   var pass = document.getElementById('adminPass').value;
-  var guardada = localStorage.getItem('fp_admin_pass') || 'admin1234';
-  if(pass === guardada || pass === 'admin1234'){
+  // Limpiar siempre cualquier contraseña corrupta
+  var guardada = localStorage.getItem('fp_admin_pass');
+  // Aceptar: admin1234 siempre, O la contraseña personalizada si existe
+  if(pass === 'admin1234' || (guardada && pass === guardada)){
     cerrarLoginAdmin();
     var u={name:'Admin',role:'admin',isAdmin:true};
     STATE.user=u;
@@ -1487,3 +1491,4 @@ function iniciarRevisionAlertas(){
 </script>
 </body>
 </html>
+
