@@ -335,7 +335,7 @@ select.inp{appearance:none;-webkit-appearance:none;}
     <div class="top-logo">USALA <span class="top-ver" id="verBadge"></span></div>
     <div id="topUserName" style="font-size:0.72rem;font-weight:700;color:var(--dim);flex:1;text-align:right;padding-right:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
     <button class="top-icon" onclick="abrirCalc()" title="Calculadora">🔢</button>
-    <button class="top-icon" onclick="goTab('mas',document.querySelectorAll('.nb')[4]);setTimeout(function(){goSub('ayuda');},50);" title="Ayuda">❓</button>
+    <button class="top-icon" onclick="goTab('mas',document.querySelectorAll('.nb')[5]);setTimeout(function(){goSub('ayuda');},50);" title="Ayuda">❓</button>
   </div>
   <div class="content" id="mainContent"></div>
   <nav class="bot-nav">
@@ -343,6 +343,7 @@ select.inp{appearance:none;-webkit-appearance:none;}
     <button class="nb" onclick="goTab('gastos',this)"><div class="nb-ico">💳</div><div class="nb-lbl">Gastos</div></button>
     <button class="nb" onclick="goTab('ingresos',this)"><div class="nb-ico">💰</div><div class="nb-lbl">Ingresos</div></button>
     <button class="nb" onclick="goTab('creditos',this)"><div class="nb-ico">🤝</div><div class="nb-lbl">Créditos</div></button>
+    <button class="nb" onclick="goTab('cuentas',this)"><div class="nb-ico">🏦</div><div class="nb-lbl">Cuentas</div></button>
     <button class="nb" onclick="goTab('mas',this)"><div class="nb-ico">⋯</div><div class="nb-lbl">Más</div></button>
   </nav>
 </div>
@@ -550,6 +551,9 @@ function goSub(sub){
     historial: renderHistorial, conversor: renderConversor,
     codigos: renderCodigos, config: renderConfig, ayuda: renderAyuda, version: renderVersion,
     noticias: renderNoticias,
+    efectivo: renderEfectivo, cheques: renderCheques,
+    tarjetas_credito: renderTarjetasCredito,
+    nueva_tc: function(){ return renderFormTC(null); },
     creditos_debo: renderCreditosDebo, creditos_cobrar: renderCreditosCobrar,
     nueva_deuda: function(){ return renderFormCredito('deuda', null); },
     nuevo_prestamo: function(){ return renderFormCredito('prestamo', null); }
@@ -561,7 +565,7 @@ function goSub(sub){
 function renderTab(tab){
   var map = {
     inicio: renderInicio, gastos: renderGastos, ingresos: renderIngresos,
-    creditos: renderCreditos, mas: renderMas
+    creditos: renderCreditos, cuentas: renderCuentas, mas: renderMas
   };
   var fn = map[tab] || function(){ return '<p>En construcción</p>'; };
   document.getElementById('mainContent').innerHTML = fn();
@@ -1176,7 +1180,7 @@ function renderMetas(){
       +'<button class="cred-btn danger" onclick="borrarMeta('+i+')">🗑️</button>'
       +'</div></div>';
   }).join(''):'<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin metas aún</div>';
-  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">🎯 Metas de Ahorro</div></div>'
+  return '<div class="page-header">'+backBtn('mas',5)+'<div class="page-title">🎯 Metas de Ahorro</div></div>'
     +'<div class="card" style="margin-bottom:14px;">'
     +'<label class="inp-label">Nombre de la meta</label><input class="inp" id="metaNombre" placeholder="Ej: Fondo de emergencia">'
     +'<div class="form-row"><div><label class="inp-label">Objetivo ($)</label><input class="inp" id="metaObjetivo" type="number" placeholder="0.00"></div><div><label class="inp-label">Ya tengo ($)</label><input class="inp" id="metaActual" type="number" placeholder="0.00"></div></div>'
@@ -1214,7 +1218,7 @@ function renderPresupuesto(){
       +'<div class="pres-val" style="color:'+color+';margin-left:8px;width:70px;text-align:right;">'+fmt(gas)+'</div>'
       +'</div>';
   }).join('');
-  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">📊 Presupuesto</div></div>'
+  return '<div class="page-header">'+backBtn('mas',5)+'<div class="page-title">📊 Presupuesto</div></div>'
     +'<div class="card"><div class="card-title">Categoría · Límite · Gastado</div>'+rows+'</div>';
 }
 function guardarPres(cat,val){ var p=load('presupuesto',{}); p[cat]=parseFloat(val)||0; save('presupuesto',p); showToast('✓ Límite guardado'); }
@@ -1238,7 +1242,7 @@ function renderAlertas(){
       +'<button class="ic-btn" onclick="borrarAlerta('+i+')">🗑️</button>'
       +'</div></div>';
   }).join(''):'<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin alertas</div>';
-  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">🔔 Alertas de Gasto</div></div>'
+  return '<div class="page-header">'+backBtn('mas',5)+'<div class="page-title">🔔 Alertas de Gasto</div></div>'
     +'<div class="card" style="margin-bottom:14px;" id="alertaForm">'
     +'<label class="inp-label">Descripción</label><input class="inp" id="alNombre" placeholder="Ej: No gastar más en ropa">'
     +'<div class="form-row"><div><label class="inp-label">Límite ($)</label><input class="inp" id="alLimite" type="number" placeholder="0.00"></div><div><label class="inp-label">Hora</label><input class="inp" id="alHora" type="time" value="09:00"></div></div>'
@@ -1282,7 +1286,7 @@ function borrarAlerta(i){ if(!confirm('¿Eliminar?')) return; var a=load('alerta
 function renderHistorial(){
   var txs=getTxs().slice().reverse();
   var items=txs.length?txs.map(function(t){ return txItem(t,true); }).join(''):'<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin transacciones</div>';
-  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">📋 Historial</div></div>'
+  return '<div class="page-header">'+backBtn('mas',5)+'<div class="page-title">📋 Historial</div></div>'
     +'<div class="card">'+items+'</div>';
 }
 
@@ -1290,7 +1294,7 @@ function renderHistorial(){
 // CONVERSOR
 // ══════════════════════════════════════════
 function renderConversor(){
-  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">💱 Conversor</div></div>'
+  return '<div class="page-header">'+backBtn('mas',5)+'<div class="page-title">💱 Conversor</div></div>'
     +'<div class="card">'
     +'<label class="inp-label">Monto</label><input class="inp" id="convMonto" type="number" placeholder="0.00" oninput="convertir()">'
     +'<div class="form-row">'
@@ -1316,7 +1320,7 @@ function renderCodigos(){
   var codigos=JSON.parse(localStorage.getItem('usala_codigos')||'[]');
   var activos=codigos.filter(function(c){ return c.activo && new Date(c.vencimiento.split('-').join('/'))>=new Date(); });
   var usados=codigos.filter(function(c){ return c.usado; });
-  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">🔑 Códigos de Acceso</div></div>'
+  return '<div class="page-header">'+backBtn('mas',5)+'<div class="page-title">🔑 Códigos de Acceso</div></div>'
     +'<div class="card" style="margin-bottom:14px;">'
     +'<label class="inp-label">Prefijo del código</label><input class="inp" id="codPrefijo" placeholder="Ej: FIN" value="FIN">'
     +'<label class="inp-label">Vence en</label>'
@@ -1357,7 +1361,7 @@ function desactivarCodigo(c){ if(!confirm('¿Desactivar '+c+'?')) return; var co
 // ══════════════════════════════════════════
 function renderConfig(){
   var isAdmin=S.user&&S.user.isAdmin;
-  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">⚙️ Configuración</div></div>'
+  return '<div class="page-header">'+backBtn('mas',5)+'<div class="page-title">⚙️ Configuración</div></div>'
     +'<div class="card">'
     +'<div class="set-item" onclick="pickTema()"><div><div class="set-label">🎨 Cambiar tema</div></div><div class="set-arrow">›</div></div>'
     +'<div class="set-item" onclick="goSub(\'version\')"><div><div class="set-label">📋 Versión</div><div class="set-sub">v'+APP_VERSION+'</div></div><div class="set-arrow">›</div></div>'
@@ -1417,7 +1421,7 @@ function resetCuenta(){
 // ══════════════════════════════════════════
 function renderVersion(){
   var isAdmin=S.user&&S.user.isAdmin;
-  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">📋 Versión</div></div>'
+  return '<div class="page-header">'+backBtn('mas',5)+'<div class="page-title">📋 Versión</div></div>'
     +'<div class="card" style="text-align:center;padding:28px 20px;">'
     +'<div style="font-size:2rem;font-weight:900;color:var(--accent);font-family:\'JetBrains Mono\',monospace;">v'+APP_VERSION+'</div>'
     +'<div style="font-size:0.8rem;color:var(--dim);margin-top:8px;">'+APP_NOTAS+'</div>'
@@ -1452,10 +1456,10 @@ function renderAyuda(){
     ['¿Qué es Créditos?','Son los préstamos: lo que tú debes a otros (Mis Deudas) y lo que otros te deben a ti (Créditos por Cobrar).'],
     ['¿Puedo deshacer un borrado?','Sí, tienes 6 segundos para tocar "Deshacer" después de eliminar algo.'],
   ];
-  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">❓ Ayuda</div></div>'
+  return '<div class="page-header">'+backBtn('mas',5)+'<div class="page-title">❓ Ayuda</div></div>'
     +faqs.map(function(f){ return '<div class="card" style="margin-bottom:8px;"><div style="font-weight:700;font-size:0.88rem;margin-bottom:6px;">'+f[0]+'</div><div style="font-size:0.78rem;color:var(--dim);line-height:1.5;">'+f[1]+'</div></div>'; }).join('');
 }
-function abrirAyuda(){ goTab('mas',document.querySelectorAll('.nb')[4]); setTimeout(function(){ goSub('ayuda'); },10); }
+function abrirAyuda(){ goTab('mas',document.querySelectorAll('.nb')[5]); setTimeout(function(){ goSub('ayuda'); },10); }
 
 // ══════════════════════════════════════════
 // MENÚ USUARIO
@@ -1512,7 +1516,7 @@ function renderNoticias(){
         +'</div></div>';
     }).join('') : '<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin mensajes enviados</div>';
 
-    return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">📢 Centro de Mensajes</div></div>'
+    return '<div class="page-header">'+backBtn('mas',5)+'<div class="page-title">📢 Centro de Mensajes</div></div>'
       +'<div class="card" style="margin-bottom:14px;">'
       +'<div class="card-title">✍️ Nuevo mensaje</div>'
       +'<label class="inp-label">Título</label>'
@@ -1556,7 +1560,7 @@ function renderNoticias(){
         +'</div>';
     }).join('') : '<div style="text-align:center;padding:30px;color:var(--dim);font-size:0.83rem;">📭 No hay mensajes aún</div>';
 
-    return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">📢 Mensajes</div></div>'
+    return '<div class="page-header">'+backBtn('mas',5)+'<div class="page-title">📢 Mensajes</div></div>'
       + items;
   }
 }
@@ -1588,12 +1592,307 @@ function borrarNoticia(i){
   goSub('noticias');
 }
 
+// ══════════════════════════════════════════
+// MÓDULO CUENTAS
+// ══════════════════════════════════════════
+function getCuentas(){ return JSON.parse(localStorage.getItem('usala_cuentas_'+(S.user.isAdmin?'admin':'u_'+S.user.codigo))||'{"efectivo":0,"cheques":[],"tarjetas":[]}'); }
+function saveCuentas(c){ localStorage.setItem('usala_cuentas_'+(S.user.isAdmin?'admin':'u_'+S.user.codigo), JSON.stringify(c)); }
+
+function renderCuentas(){
+  var c = getCuentas();
+  var totalEfectivo = c.efectivo || 0;
+  var totalCheques = (c.cheques||[]).reduce(function(s,x){ return s+Number(x.monto); },0);
+  var totalTC = (c.tarjetas||[]).reduce(function(s,t){ return s+Number(t.balance||0); },0);
+  var totalActivos = totalEfectivo + totalCheques;
+
+  return '<div style="font-size:1.05rem;font-weight:900;margin-bottom:4px;padding-top:4px;">🏦 Mis Cuentas</div>'
+    +'<div style="font-size:0.74rem;color:var(--dim);margin-bottom:14px;">Control de tu dinero y tarjetas</div>'
+    +'<div class="stat-grid" style="margin-bottom:14px;">'
+    +'<div class="stat-card"><div class="stat-label">💵 Efectivo</div><div class="stat-val">'+fmt(totalEfectivo)+'</div></div>'
+    +'<div class="stat-card"><div class="stat-label">🏧 Cheques/Banco</div><div class="stat-val">'+fmt(totalCheques)+'</div></div>'
+    +'<div class="stat-card"><div class="stat-label">✅ Total Activos</div><div class="stat-val">'+fmt(totalActivos)+'</div></div>'
+    +'<div class="stat-card"><div class="stat-label">💳 Deuda TC</div><div class="stat-val red">'+fmt(totalTC)+'</div></div>'
+    +'</div>'
+    +'<div class="mod-list">'
+    +'<div class="mod-item" onclick="goSub(\'efectivo\')"><div class="mod-icon">💵</div><div><div class="mod-label">Efectivo</div><div class="mod-sub">'+fmt(totalEfectivo)+' disponible</div></div><div class="mod-arrow">›</div></div>'
+    +'<div class="mod-item" onclick="goSub(\'cheques\')"><div class="mod-icon">🏧</div><div><div class="mod-label">Cheques / Banco</div><div class="mod-sub">Transferencias, depósitos, ahorro</div></div><div class="mod-arrow">›</div></div>'
+    +'<div class="mod-item" onclick="goSub(\'tarjetas_credito\')"><div class="mod-icon">💳</div><div><div class="mod-label">Tarjetas de Crédito</div><div class="mod-sub">'+(c.tarjetas||[]).length+' tarjeta'+(((c.tarjetas||[]).length)!==1?'s':'')+' registrada'+(((c.tarjetas||[]).length)!==1?'s':'')+' · Deuda: '+fmt(totalTC)+'</div></div><div class="mod-arrow">›</div></div>'
+    +'</div>';
+}
+
+// ── EFECTIVO ──
+function renderEfectivo(){
+  var c = getCuentas();
+  var movs = c.movEfectivo || [];
+  var items = movs.slice().reverse().map(function(m,i){
+    return '<div class="tx-item">'
+      +'<div class="tx-ico">'+(m.tipo==='entrada'?'💵':'💸')+'</div>'
+      +'<div class="tx-info"><div class="tx-name">'+m.desc+'</div><div class="tx-date">'+m.fecha+'</div></div>'
+      +'<div class="tx-right"><div class="tx-amt '+(m.tipo==='entrada'?'ing':'gas')+'">'+(m.tipo==='entrada'?'+':'-')+fmt(m.monto)+'</div>'
+      +'<button class="ic-btn" onclick="borrarMovEfectivo('+( movs.length-1-i)+')">🗑️</button></div></div>';
+  }).join('') || '<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin movimientos</div>';
+
+  return '<div class="page-header">'+backBtn('cuentas',4)+'<div class="page-title">💵 Efectivo</div></div>'
+    +'<div class="card" style="margin-bottom:14px;text-align:center;padding:24px;">'
+    +'<div style="font-size:0.7rem;font-weight:700;color:var(--dim);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Saldo actual</div>'
+    +'<div style="font-size:2.2rem;font-weight:900;color:var(--accent);">'+fmt(c.efectivo||0)+'</div>'
+    +'</div>'
+    +'<div class="card" style="margin-bottom:14px;">'
+    +'<div class="card-title">Registrar movimiento</div>'
+    +'<div class="tipo-selector" style="margin-bottom:12px;">'
+    +'<div class="tipo-opt selected" id="efTipoEnt" onclick="selEfTipo(\'entrada\')">💵 Entrada</div>'
+    +'<div class="tipo-opt" id="efTipoSal" onclick="selEfTipo(\'salida\')">💸 Salida</div>'
+    +'</div>'
+    +'<label class="inp-label">Descripción</label>'
+    +'<input class="inp" id="efDesc" placeholder="Ej: Cobré trabajo, Gasté en mercado...">'
+    +'<div class="form-row"><div><label class="inp-label">Monto ($)</label><input class="inp" id="efMonto" type="number" inputmode="decimal" placeholder="0.00"></div>'
+    +'<div><label class="inp-label">Fecha</label><input class="inp" id="efFecha" type="date" value="'+today()+'"></div></div>'
+    +'<button class="btn-main" onclick="guardarMovEfectivo()">💾 Guardar</button>'
+    +'</div>'
+    +'<div class="card"><div class="card-title">Movimientos</div>'+items+'</div>';
+}
+function selEfTipo(t){
+  document.getElementById('efTipoEnt').classList.toggle('selected',t==='entrada');
+  document.getElementById('efTipoSal').classList.toggle('selected',t==='salida');
+}
+function guardarMovEfectivo(){
+  var desc=document.getElementById('efDesc').value.trim();
+  var monto=parseFloat(document.getElementById('efMonto').value);
+  var fecha=document.getElementById('efFecha').value||today();
+  var tipo=document.getElementById('efTipoEnt').classList.contains('selected')?'entrada':'salida';
+  if(!desc||!monto||monto<=0){ showToast('⚠ Completa descripción y monto'); return; }
+  var c=getCuentas();
+  c.movEfectivo=c.movEfectivo||[];
+  c.movEfectivo.push({desc:desc,monto:monto,fecha:fecha,tipo:tipo});
+  c.efectivo=(c.efectivo||0)+(tipo==='entrada'?monto:-monto);
+  saveCuentas(c); showToast('✓ Guardado'); goSub('efectivo');
+}
+function borrarMovEfectivo(i){
+  if(!confirm('¿Eliminar este movimiento?')) return;
+  var c=getCuentas(); c.movEfectivo=c.movEfectivo||[];
+  var m=c.movEfectivo[i];
+  c.efectivo=(c.efectivo||0)-(m.tipo==='entrada'?m.monto:-m.monto);
+  c.movEfectivo.splice(i,1); saveCuentas(c); goSub('efectivo');
+}
+
+// ── CHEQUES / BANCO ──
+function renderCheques(){
+  var c=getCuentas(); var cuentas=c.cheques||[];
+  var total=cuentas.reduce(function(s,x){ return s+Number(x.saldo||0); },0);
+  var items=cuentas.map(function(ct,i){
+    return '<div class="cred-item">'
+      +'<div class="cred-top"><div><div class="cred-persona">'+ct.banco+'</div>'
+      +'<div class="cred-desc">'+ct.tipo+(ct.numCuenta?' · ***'+ct.numCuenta.slice(-4):'')+'</div></div>'
+      +'<div style="font-size:1rem;font-weight:900;color:var(--accent);">'+fmt(ct.saldo||0)+'</div></div>'
+      +(ct.nota?'<div style="font-size:0.72rem;color:var(--dim);margin-top:4px;">📝 '+ct.nota+'</div>':'')
+      +'<div class="cred-btns">'
+      +'<button class="cred-btn success" onclick="abonarCuenta('+i+')">± Actualizar</button>'
+      +'<button class="cred-btn" onclick="editarCuenta('+i+')">✏️</button>'
+      +'<button class="cred-btn danger" onclick="borrarCuenta('+i+')">🗑️</button>'
+      +'</div></div>';
+  }).join('')||'<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin cuentas registradas</div>';
+
+  return '<div class="page-header">'+backBtn('cuentas',4)+'<div class="page-title">🏧 Cheques / Banco</div></div>'
+    +'<div class="card" style="text-align:center;padding:20px;margin-bottom:14px;">'
+    +'<div style="font-size:0.7rem;font-weight:700;color:var(--dim);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Total en bancos</div>'
+    +'<div style="font-size:2rem;font-weight:900;color:var(--accent);">'+fmt(total)+'</div>'
+    +'</div>'
+    +'<div class="card" style="margin-bottom:14px;" id="chequesForm">'
+    +'<div class="card-title" id="chFormTitle">+ Nueva cuenta</div>'
+    +'<label class="inp-label">Banco / Institución</label>'
+    +'<input class="inp" id="chBanco" placeholder="Ej: BBVA, Santander, HSBC...">'
+    +'<div class="form-row">'
+    +'<div><label class="inp-label">Tipo</label>'
+    +'<select class="inp" id="chTipo"><option>Débito</option><option>Ahorro</option><option>Nómina</option><option>Inversión</option><option>Otro</option></select></div>'
+    +'<div><label class="inp-label">Saldo ($)</label><input class="inp" id="chSaldo" type="number" inputmode="decimal" placeholder="0.00"></div>'
+    +'</div>'
+    +'<label class="inp-label">No. de cuenta (últimos 4 dígitos)</label>'
+    +'<input class="inp" id="chNum" placeholder="Ej: 4521" maxlength="4" inputmode="numeric">'
+    +'<label class="inp-label">Nota (opcional)</label>'
+    +'<input class="inp" id="chNota" placeholder="Ej: Cuenta de nómina principal">'
+    +'<button class="btn-main" id="chSaveBtn" onclick="guardarCuenta()">💾 Guardar</button>'
+    +'</div>'
+    +items;
+}
+var _editCuentaIdx=null;
+function guardarCuenta(){
+  var banco=document.getElementById('chBanco').value.trim();
+  var tipo=document.getElementById('chTipo').value;
+  var saldo=parseFloat(document.getElementById('chSaldo').value)||0;
+  var num=document.getElementById('chNum').value.trim();
+  var nota=document.getElementById('chNota').value.trim();
+  if(!banco){ showToast('⚠ Escribe el nombre del banco'); return; }
+  var c=getCuentas(); c.cheques=c.cheques||[];
+  if(_editCuentaIdx!==null){
+    c.cheques[_editCuentaIdx]=Object.assign(c.cheques[_editCuentaIdx],{banco:banco,tipo:tipo,saldo:saldo,numCuenta:num,nota:nota});
+    _editCuentaIdx=null; showToast('✓ Actualizado');
+  } else {
+    c.cheques.push({banco:banco,tipo:tipo,saldo:saldo,numCuenta:num,nota:nota});
+    showToast('✓ Cuenta guardada');
+  }
+  saveCuentas(c); goSub('cheques');
+}
+function abonarCuenta(i){
+  var nuevo=parseFloat(prompt('Nuevo saldo de la cuenta ($):')); if(isNaN(nuevo)) return;
+  var c=getCuentas(); c.cheques[i].saldo=nuevo; saveCuentas(c); showToast('✓ Saldo actualizado'); goSub('cheques');
+}
+function editarCuenta(i){
+  var c=getCuentas(); var ct=c.cheques[i]; _editCuentaIdx=i;
+  document.getElementById('chBanco').value=ct.banco;
+  document.getElementById('chTipo').value=ct.tipo;
+  document.getElementById('chSaldo').value=ct.saldo||0;
+  document.getElementById('chNum').value=ct.numCuenta||'';
+  document.getElementById('chNota').value=ct.nota||'';
+  document.getElementById('chFormTitle').textContent='✏️ Editar cuenta';
+  document.getElementById('chSaveBtn').textContent='💾 Guardar cambios';
+  document.getElementById('chequesForm').scrollIntoView({behavior:'smooth'});
+}
+function borrarCuenta(i){
+  if(!confirm('¿Eliminar esta cuenta?')) return;
+  var c=getCuentas(); c.cheques.splice(i,1); saveCuentas(c); goSub('cheques');
+}
+
+// ── TARJETAS DE CRÉDITO ──
+function renderTarjetasCredito(){
+  var c=getCuentas(); var tcs=c.tarjetas||[];
+  var items=tcs.map(function(t,i){
+    var pct=t.limite>0?Math.min(100,Math.round((t.balance/t.limite)*100)):0;
+    var disp=Math.max(0,(t.limite||0)-(t.balance||0));
+    var color=pct>=90?'var(--danger)':pct>=70?'#f57c00':'var(--accent)';
+    var hoy=new Date(); var diasCorte='';
+    if(t.fechaCorte){
+      var fc=new Date(t.fechaCorte.split('-').join('/'));
+      var diff=Math.ceil((fc-hoy)/(1000*60*60*24));
+      diasCorte=diff>0?diff+' días para corte':'Cortó hace '+Math.abs(diff)+' días';
+    }
+    return '<div class="cred-item">'
+      +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'
+      +'<div style="width:42px;height:28px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:#fff;font-weight:800;">'+t.banco.substring(0,4).toUpperCase()+'</div>'
+      +'<div style="flex:1;"><div style="font-weight:800;font-size:0.9rem;">'+t.banco+'</div>'
+      +'<div style="font-size:0.68rem;color:var(--dim);">'+t.tipo+(t.ultimos?' · ***'+t.ultimos:'')+'</div></div>'
+      +'<span class="cred-badge '+(t.pagoPendiente?'badge-vencido':'badge-pagado')+'">'+(t.pagoPendiente?'⚠ Pago pend.':'✅ Al corriente')+'</span>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
+      +'<div style="background:var(--inp);border-radius:10px;padding:10px;">'
+      +'<div style="font-size:0.6rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:0.05em;">Saldo usado</div>'
+      +'<div style="font-size:1rem;font-weight:900;color:var(--danger);">'+fmt(t.balance||0)+'</div></div>'
+      +'<div style="background:var(--inp);border-radius:10px;padding:10px;">'
+      +'<div style="font-size:0.6rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:0.05em;">Disponible</div>'
+      +'<div style="font-size:1rem;font-weight:900;color:var(--accent);">'+fmt(disp)+'</div></div>'
+      +'<div style="background:var(--inp);border-radius:10px;padding:10px;">'
+      +'<div style="font-size:0.6rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:0.05em;">Límite</div>'
+      +'<div style="font-size:1rem;font-weight:900;">'+fmt(t.limite||0)+'</div></div>'
+      +'<div style="background:var(--inp);border-radius:10px;padding:10px;">'
+      +'<div style="font-size:0.6rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:0.05em;">Interés anual</div>'
+      +'<div style="font-size:1rem;font-weight:900;color:#f57c00;">'+(t.interes||0)+'%</div></div>'
+      +'</div>'
+      +'<div class="prog-wrap"><div class="prog-bar" style="width:'+pct+'%;background:'+color+';"></div></div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:0.68rem;color:var(--dim);margin-top:4px;margin-bottom:8px;">'
+      +'<span>Usado: '+pct+'%</span><span>'+( diasCorte||'')+'</span></div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.68rem;margin-bottom:8px;">'
+      +(t.fechaCorte?'<div style="background:var(--inp);border-radius:8px;padding:8px;"><div style="color:var(--dim);">✂️ Fecha de corte</div><div style="font-weight:700;margin-top:2px;">'+t.fechaCorte+'</div></div>':'')
+      +(t.diaPago?'<div style="background:rgba(229,57,53,0.06);border-radius:8px;padding:8px;"><div style="color:var(--dim);">📅 Día de pago</div><div style="font-weight:700;color:var(--danger);margin-top:2px;">Día '+t.diaPago+'</div></div>':'')
+      +(t.pagoMinimo?'<div style="background:var(--inp);border-radius:8px;padding:8px;"><div style="color:var(--dim);">💳 Pago mínimo</div><div style="font-weight:700;margin-top:2px;">'+fmt(t.pagoMinimo)+'</div></div>':'')
+      +(t.pagoTotal?'<div style="background:var(--inp);border-radius:8px;padding:8px;"><div style="color:var(--dim);">💰 Para no pagar int.</div><div style="font-weight:700;margin-top:2px;">'+fmt(t.pagoTotal)+'</div></div>':'')
+      +'</div>'
+      +'<div class="cred-btns">'
+      +'<button class="cred-btn" onclick="editarTC('+i+')">✏️ Editar</button>'
+      +'<button class="cred-btn success" onclick="registrarPagoTC('+i+')">💳 Registrar pago</button>'
+      +'<button class="cred-btn danger" onclick="borrarTC('+i+')">🗑️</button>'
+      +'</div></div>';
+  }).join('')||'<div style="text-align:center;padding:24px;color:var(--dim);font-size:0.83rem;">Sin tarjetas registradas</div>';
+
+  return '<div class="page-header">'+backBtn('cuentas',4)+'<div class="page-title">💳 Tarjetas de Crédito</div></div>'
+    +items
+    +'<div style="height:80px;"></div>'
+    +'<div style="position:fixed;bottom:75px;left:12px;right:12px;z-index:40;">'
+    +'<button onclick="goSub(\'nueva_tc\')" style="width:100%;padding:16px;background:var(--accent);color:var(--navtext);border:none;border-radius:16px;font-family:\'Outfit\',sans-serif;font-size:1rem;font-weight:800;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.2);">+ Agregar Tarjeta</button>'
+    +'</div>';
+}
+
+function renderFormTC(data){
+  var d=data||{}; var titulo=d.banco?'Editar tarjeta':'Nueva Tarjeta';
+  return '<div class="page-header">'+backBtn('cuentas',4)+'<div class="page-title">💳 '+titulo+'</div></div>'
+    +'<div class="card">'
+    +'<label class="inp-label">Banco / Emisor</label>'
+    +'<input class="inp" id="tcBanco" placeholder="Ej: BBVA, Santander, Citibanamex..." value="'+(d.banco||'')+'">'
+    +'<div class="form-row">'
+    +'<div><label class="inp-label">Tipo</label>'
+    +'<select class="inp" id="tcTipo">'
+    +'<option'+(d.tipo==='Visa'?' selected':'')+'>Visa</option>'
+    +'<option'+(d.tipo==='Mastercard'?' selected':'')+'>Mastercard</option>'
+    +'<option'+(d.tipo==='Amex'?' selected':'')+'>Amex</option>'
+    +'<option'+(d.tipo==='Otro'?' selected':'')+'>Otro</option>'
+    +'</select></div>'
+    +'<div><label class="inp-label">Últimos 4 dígitos</label>'
+    +'<input class="inp" id="tcUltimos" placeholder="1234" maxlength="4" inputmode="numeric" value="'+(d.ultimos||'')+'">'
+    +'</div></div>'
+    +'<div class="form-row">'
+    +'<div><label class="inp-label">Límite de crédito ($)</label><input class="inp" id="tcLimite" type="number" inputmode="decimal" placeholder="0.00" value="'+(d.limite||'')+'" ></div>'
+    +'<div><label class="inp-label">Saldo usado ($)</label><input class="inp" id="tcBalance" type="number" inputmode="decimal" placeholder="0.00" value="'+(d.balance||'')+'" ></div>'
+    +'</div>'
+    +'<div class="form-row">'
+    +'<div><label class="inp-label">Interés anual (%)</label><input class="inp" id="tcInteres" type="number" inputmode="decimal" placeholder="Ej: 36" value="'+(d.interes||'')+'" ></div>'
+    +'<div><label class="inp-label">Día de pago</label><input class="inp" id="tcDiaPago" type="number" inputmode="numeric" placeholder="Ej: 15" min="1" max="31" value="'+(d.diaPago||'')+'" ></div>'
+    +'</div>'
+    +'<label class="inp-label">Fecha de corte</label>'
+    +'<input class="inp" id="tcFechaCorte" type="date" value="'+(d.fechaCorte||'')+'">'
+    +'<div class="form-row">'
+    +'<div><label class="inp-label">Pago mínimo ($)</label><input class="inp" id="tcPagoMin" type="number" inputmode="decimal" placeholder="0.00" value="'+(d.pagoMinimo||'')+'" ></div>'
+    +'<div><label class="inp-label">Para no pagar interés ($)</label><input class="inp" id="tcPagoTotal" type="number" inputmode="decimal" placeholder="0.00" value="'+(d.pagoTotal||'')+'" ></div>'
+    +'</div>'
+    +'<div style="display:flex;align-items:center;gap:10px;padding:12px 0;">'
+    +'<input type="checkbox" id="tcPagoPend" style="width:18px;height:18px;accent-color:var(--accent);"'+(d.pagoPendiente?' checked':'')+'>'
+    +'<label for="tcPagoPend" style="font-size:0.85rem;font-weight:600;cursor:pointer;">⚠️ Tiene pago pendiente</label>'
+    +'</div>'
+    +'<button class="btn-main" onclick="guardarTC()">💾 '+(d.banco?'Guardar cambios':'Registrar tarjeta')+'</button>'
+    +'</div>';
+}
+
+var _editTCIdx=null;
+function guardarTC(){
+  var banco=document.getElementById('tcBanco').value.trim();
+  if(!banco){ showToast('⚠ Escribe el banco'); return; }
+  var tc={
+    banco:banco,
+    tipo:document.getElementById('tcTipo').value,
+    ultimos:document.getElementById('tcUltimos').value.trim(),
+    limite:parseFloat(document.getElementById('tcLimite').value)||0,
+    balance:parseFloat(document.getElementById('tcBalance').value)||0,
+    interes:parseFloat(document.getElementById('tcInteres').value)||0,
+    diaPago:document.getElementById('tcDiaPago').value,
+    fechaCorte:document.getElementById('tcFechaCorte').value,
+    pagoMinimo:parseFloat(document.getElementById('tcPagoMin').value)||0,
+    pagoTotal:parseFloat(document.getElementById('tcPagoTotal').value)||0,
+    pagoPendiente:document.getElementById('tcPagoPend').checked
+  };
+  var c=getCuentas(); c.tarjetas=c.tarjetas||[];
+  if(_editTCIdx!==null){ c.tarjetas[_editTCIdx]=tc; _editTCIdx=null; showToast('✓ Tarjeta actualizada'); }
+  else { c.tarjetas.push(tc); showToast('✓ Tarjeta registrada'); }
+  saveCuentas(c); goSub('tarjetas_credito');
+}
+function editarTC(i){
+  _editTCIdx=i;
+  var c=getCuentas();
+  document.getElementById('mainContent').innerHTML=renderFormTC(c.tarjetas[i]);
+}
+function registrarPagoTC(i){
+  var pago=parseFloat(prompt('Monto del pago ($):')); if(!pago||pago<=0) return;
+  var c=getCuentas(); c.tarjetas[i].balance=Math.max(0,(c.tarjetas[i].balance||0)-pago);
+  if(c.tarjetas[i].balance===0) c.tarjetas[i].pagoPendiente=false;
+  saveCuentas(c); showToast('✓ Pago registrado'); goSub('tarjetas_credito');
+}
+function borrarTC(i){
+  if(!confirm('¿Eliminar esta tarjeta?')) return;
+  var c=getCuentas(); c.tarjetas.splice(i,1); saveCuentas(c); goSub('tarjetas_credito');
+}
+
 function menuAccion(accion){
   document.getElementById('menuModal').classList.remove('open');
   var nbs = document.querySelectorAll('.nb');
   function irMas(sub){
     nbs.forEach(function(b){ b.classList.remove('active'); });
-    nbs[4].classList.add('active');
+    nbs[5].classList.add('active');
     S.tab='mas'; S.subtab=sub;
     var renders = {config:renderConfig, codigos:renderCodigos, noticias:renderNoticias};
     document.getElementById('mainContent').innerHTML = renders[sub] ? renders[sub]() : '';
@@ -1640,7 +1939,7 @@ var FAQS = [
 ];
 
 function renderAyuda(){
-  var html = '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">❓ Ayuda</div></div>'
+  var html = '<div class="page-header">'+backBtn('mas',5)+'<div class="page-title">❓ Ayuda</div></div>'
     +'<div style="position:relative;margin-bottom:14px;">'
     +'<input class="inp" id="ayudaBusca" placeholder="🔍 Buscar en la ayuda..." oninput="filtrarAyuda()" style="padding-left:16px;">'
     +'</div>'
