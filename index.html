@@ -251,6 +251,10 @@ html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--bg);color
 .pres-val{font-family:'JetBrains Mono',monospace;font-size:0.8rem;font-weight:700;}
 
 select.inp{appearance:none;-webkit-appearance:none;}
+.calc-btn{padding:16px 8px;border-radius:12px;border:none;background:var(--card);color:var(--text);font-family:'Outfit',sans-serif;font-size:1.1rem;font-weight:700;cursor:pointer;box-shadow:var(--shadow);transition:opacity 0.1s;}
+.calc-btn:active{opacity:0.7;}
+.op-calc{background:var(--inp);color:var(--accent);}
+.danger-calc{background:rgba(229,57,53,0.08);color:var(--danger);}
 </style>
 </head>
 <body>
@@ -330,6 +334,7 @@ select.inp{appearance:none;-webkit-appearance:none;}
   <div class="topbar">
     <div class="top-logo">USALA <span class="top-ver" id="verBadge"></span></div>
     <div id="topUserName" style="font-size:0.72rem;font-weight:700;color:var(--dim);flex:1;text-align:right;padding-right:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+    <button class="top-icon" onclick="abrirCalc()" title="Calculadora">🔢</button>
     <button class="top-icon" onclick="goTab('mas',document.querySelectorAll('.nb')[4]);setTimeout(function(){goSub('ayuda');},50);" title="Ayuda">❓</button>
   </div>
   <div class="content" id="mainContent"></div>
@@ -344,8 +349,7 @@ select.inp{appearance:none;-webkit-appearance:none;}
 
 <!-- ══ TX MODAL ══ -->
 <div class="modal" id="txModal">
-  <div style="position:absolute;inset:0;" onclick="cerrarTxModal()"></div>
-  <div class="modal-box">
+  <div class="modal-box" style="position:relative;z-index:2;">
     <div class="modal-header">
       <div class="modal-title" id="txModalTitle">Nueva Transacción</div>
       <button class="modal-close" onclick="cerrarTxModal()">✕</button>
@@ -355,23 +359,57 @@ select.inp{appearance:none;-webkit-appearance:none;}
       <div class="tipo-opt" id="tipoIngreso" onclick="selTipo('ingreso')">💰 Ingreso</div>
     </div>
     <label class="inp-label">Descripción</label>
-    <input class="inp" id="txDesc" placeholder="Ej: Supermercado">
+    <input class="inp" id="txDesc" placeholder="Ej: Supermercado" autocomplete="off">
     <div class="form-row">
-      <div><label class="inp-label">Monto ($)</label><input class="inp" id="txMonto" type="number" placeholder="0.00"></div>
+      <div><label class="inp-label">Monto ($)</label><input class="inp" id="txMonto" type="number" inputmode="decimal" placeholder="0.00"></div>
       <div><label class="inp-label">Categoría</label>
         <select class="inp" id="txCat">
           <option>Pagos</option><option>Compras</option><option>Servicios</option>
-          <option>Salario</option><option>Activos</option><option>Otros</option>
+          <option>Alimentación</option><option>Transporte</option>
+          <option>Salario</option><option>Activos</option><option>Freelance</option><option>Renta</option><option>Inversión</option>
+          <option>Otros</option>
         </select>
       </div>
     </div>
     <label class="inp-label">Fecha</label>
     <input class="inp" id="txFecha" type="date">
-    <button class="btn-main" id="txSaveBtn" onclick="guardarTx()">💾 Guardar</button>
+    <button class="btn-main" id="txSaveBtn" onclick="guardarTx()" style="margin-top:8px;">💾 Guardar</button>
+    <button onclick="cerrarTxModal()" style="width:100%;padding:12px;background:none;border:1.5px solid var(--border);border-radius:12px;font-family:'Outfit',sans-serif;font-size:0.88rem;color:var(--dim);cursor:pointer;margin-top:8px;">Cancelar</button>
   </div>
 </div>
 
-<!-- menuModal eliminado - acciones disponibles en Configuración -->
+<!-- CALCULADORA MODAL -->
+<div class="modal" id="calcModal">
+  <div class="modal-box" style="position:relative;z-index:2;">
+    <div class="modal-header">
+      <div class="modal-title">🔢 Calculadora</div>
+      <button class="modal-close" onclick="document.getElementById('calcModal').classList.remove('open')">✕</button>
+    </div>
+    <div id="calcDisplay" style="background:var(--inp);border-radius:12px;padding:16px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:1.8rem;font-weight:700;color:var(--text);margin-bottom:4px;min-height:60px;word-break:break-all;">0</div>
+    <div id="calcExpr" style="text-align:right;font-size:0.7rem;color:var(--dim);margin-bottom:12px;min-height:16px;font-family:'JetBrains Mono',monospace;"></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+      <button class="calc-btn danger-calc" onclick="calcAc()">AC</button>
+      <button class="calc-btn op-calc" onclick="calcOp('%')">%</button>
+      <button class="calc-btn op-calc" onclick="calcDel()">⌫</button>
+      <button class="calc-btn op-calc" onclick="calcOp('/')">÷</button>
+      <button class="calc-btn" onclick="calcNum('7')">7</button>
+      <button class="calc-btn" onclick="calcNum('8')">8</button>
+      <button class="calc-btn" onclick="calcNum('9')">9</button>
+      <button class="calc-btn op-calc" onclick="calcOp('*')">×</button>
+      <button class="calc-btn" onclick="calcNum('4')">4</button>
+      <button class="calc-btn" onclick="calcNum('5')">5</button>
+      <button class="calc-btn" onclick="calcNum('6')">6</button>
+      <button class="calc-btn op-calc" onclick="calcOp('-')">−</button>
+      <button class="calc-btn" onclick="calcNum('1')">1</button>
+      <button class="calc-btn" onclick="calcNum('2')">2</button>
+      <button class="calc-btn" onclick="calcNum('3')">3</button>
+      <button class="calc-btn op-calc" onclick="calcOp('+')">+</button>
+      <button class="calc-btn" onclick="calcNum('0')" style="grid-column:span 2;">0</button>
+      <button class="calc-btn" onclick="calcPunto()">.</button>
+      <button class="calc-btn" onclick="calcEqual()" style="background:var(--accent);color:var(--navtext);">=</button>
+    </div>
+  </div>
+</div>
 
 <script>
 // ══════════════════════════════════════════
@@ -576,6 +614,50 @@ function txItem(t, showEdit){
     +'</div></div>';
 }
 
+// ══════════════════════════════════════════
+// CALCULADORA
+// ══════════════════════════════════════════
+var _calcExpr = '', _calcResult = '0', _calcNewNum = true;
+function abrirCalc(){
+  _calcExpr=''; _calcResult='0'; _calcNewNum=true;
+  document.getElementById('calcDisplay').textContent='0';
+  document.getElementById('calcExpr').textContent='';
+  document.getElementById('calcModal').classList.add('open');
+}
+function calcNum(n){
+  if(_calcNewNum){ _calcResult=n; _calcNewNum=false; }
+  else { _calcResult = _calcResult==='0' ? n : _calcResult+n; }
+  document.getElementById('calcDisplay').textContent=_calcResult;
+}
+function calcPunto(){
+  if(_calcNewNum){ _calcResult='0.'; _calcNewNum=false; }
+  else if(!_calcResult.includes('.')) _calcResult+='.';
+  document.getElementById('calcDisplay').textContent=_calcResult;
+}
+function calcOp(op){
+  _calcExpr += _calcResult + ' ' + op + ' ';
+  document.getElementById('calcExpr').textContent=_calcExpr;
+  _calcNewNum=true; _calcResult='0';
+}
+function calcEqual(){
+  try{
+    var expr = (_calcExpr + _calcResult).replace(/÷/g,'/').replace(/×/g,'*');
+    // reemplazar % : número seguido de % = número/100
+    expr = expr.replace(/(\d+\.?\d*)\s*%/g, function(m,n){ return (parseFloat(n)/100); });
+    var res = Function('"use strict";return ('+expr+')')();
+    _calcResult = parseFloat(res.toFixed(10)).toString();
+    document.getElementById('calcDisplay').textContent=_calcResult;
+    document.getElementById('calcExpr').textContent=_calcExpr+' =';
+    _calcExpr=''; _calcNewNum=true;
+  }catch(e){ document.getElementById('calcDisplay').textContent='Error'; _calcExpr=''; _calcNewNum=true; }
+}
+function calcAc(){ _calcExpr=''; _calcResult='0'; _calcNewNum=true; document.getElementById('calcDisplay').textContent='0'; document.getElementById('calcExpr').textContent=''; }
+function calcDel(){
+  if(_calcNewNum||_calcResult==='0') return;
+  _calcResult=_calcResult.length>1?_calcResult.slice(0,-1):'0';
+  document.getElementById('calcDisplay').textContent=_calcResult;
+}
+
 function abrirTxModal(tipo){
   S.editTxId = null;
   document.getElementById('txModalTitle').textContent = 'Nueva Transacción';
@@ -583,8 +665,10 @@ function abrirTxModal(tipo){
   document.getElementById('txMonto').value = '';
   document.getElementById('txFecha').value = today();
   document.getElementById('tipoSelector').style.display = 'grid';
+  document.getElementById('txSaveBtn').textContent = '💾 Guardar';
   selTipo(tipo || 'gasto');
   document.getElementById('txModal').classList.add('open');
+  setTimeout(function(){ document.getElementById('txDesc').focus(); }, 400);
 }
 function cerrarTxModal(){ document.getElementById('txModal').classList.remove('open'); }
 
@@ -599,16 +683,24 @@ function selTipo(t){
 }
 
 function editarTx(id){
-  var txs = getTxs(); var t = txs.find(function(x){ return x.id===id; }); if(!t) return;
+  var txs = getTxs();
+  var t = txs.find(function(x){ return x.id===id; });
+  if(!t) return;
   S.editTxId = id;
   document.getElementById('txModalTitle').textContent = 'Editar Transacción';
   document.getElementById('tipoSelector').style.display = 'none';
   document.getElementById('txDesc').value = t.desc;
   document.getElementById('txMonto').value = t.monto;
   document.getElementById('txFecha').value = t.fecha;
-  selTipo(t.tipo);
-  document.getElementById('txCat').value = t.cat;
+  document.getElementById('txSaveBtn').textContent = '💾 Guardar cambios';
+  // Cargar categorías del tipo correcto y seleccionar la actual
+  var cats = t.tipo==='ingreso'
+    ? ['Salario','Activos','Freelance','Renta','Inversión','Otros']
+    : ['Pagos','Compras','Servicios','Alimentación','Transporte','Otros'];
+  var sel = document.getElementById('txCat');
+  sel.innerHTML = cats.map(function(c){ return '<option'+(c===t.cat?' selected':'')+'>'+c+'</option>'; }).join('');
   document.getElementById('txModal').classList.add('open');
+  setTimeout(function(){ document.getElementById('txDesc').focus(); }, 400);
 }
 
 function guardarTx(){
@@ -617,34 +709,45 @@ function guardarTx(){
   var cat = document.getElementById('txCat').value;
   var fecha = document.getElementById('txFecha').value || today();
   var tipo = document.getElementById('tipoGasto').classList.contains('selected') ? 'gasto' : 'ingreso';
-  if(!desc || !monto){ showToast('⚠ Completa descripción y monto'); return; }
+  if(!desc){ showToast('⚠ Escribe una descripción'); return; }
+  if(!monto || monto <= 0){ showToast('⚠ Escribe un monto válido'); return; }
   var txs = getTxs();
   if(S.editTxId){
+    // En edición conservar el tipo original
     var ei = txs.findIndex(function(t){ return t.id===S.editTxId; });
-    if(ei>-1) txs[ei] = Object.assign(txs[ei],{desc:desc,monto:monto,cat:cat,fecha:fecha,tipo:tipo});
-    showToast('✓ Actualizado');
+    if(ei>-1){
+      tipo = txs[ei].tipo; // conservar tipo original
+      txs[ei] = Object.assign(txs[ei], {desc:desc, monto:monto, cat:cat, fecha:fecha, tipo:tipo});
+    }
+    showToast('✓ Actualizado correctamente');
   } else {
-    txs.push({id:Date.now(),tipo:tipo,desc:desc,monto:monto,cat:cat,fecha:fecha});
-    showToast('✓ Guardado');
+    txs.push({id:Date.now(), tipo:tipo, desc:desc, monto:monto, cat:cat, fecha:fecha});
+    showToast('✓ Transacción guardada');
   }
-  saveTxs(txs); cerrarTxModal(); renderTab(S.tab);
+  saveTxs(txs);
+  cerrarTxModal();
+  renderTab(S.tab);
 }
 
 function guardarTxInline(tipo, cat){
   var sufijo = tipo==='ingreso' ? 'ingreso' : cat;
-  var desc = document.getElementById('inDesc_'+sufijo).value.trim();
-  var monto = parseFloat(document.getElementById('inMonto_'+sufijo).value);
-  var fecha = document.getElementById('inFecha_'+sufijo).value || today();
+  var descEl = document.getElementById('inDesc_'+sufijo);
+  var montoEl = document.getElementById('inMonto_'+sufijo);
+  var fechaEl = document.getElementById('inFecha_'+sufijo);
+  if(!descEl||!montoEl){ showToast('⚠ Error de formulario'); return; }
+  var desc = descEl.value.trim();
+  var monto = parseFloat(montoEl.value);
+  var fecha = fechaEl ? fechaEl.value || today() : today();
   var catFinal = tipo==='ingreso'
-    ? document.getElementById('inCat_ingreso').value
+    ? (document.getElementById('inCat_ingreso') ? document.getElementById('inCat_ingreso').value : 'Salario')
     : cat;
-  if(!desc || !monto){ showToast('⚠ Completa descripción y monto'); return; }
+  if(!desc){ showToast('⚠ Escribe una descripción'); return; }
+  if(!monto || monto <= 0){ showToast('⚠ Escribe un monto válido'); return; }
   var txs = getTxs();
   txs.push({id:Date.now(), tipo:tipo, desc:desc, monto:monto, cat:catFinal, fecha:fecha});
   saveTxs(txs);
   showToast('✓ Guardado');
-  // Refrescar la misma pantalla
-  var mapSub = { Pagos:'pagos', Compras:'compras', Servicios:'servicios', ingreso:'activos' };
+  var mapSub = {Pagos:'pagos', Compras:'compras', Servicios:'servicios', ingreso:'activos'};
   var sub = mapSub[cat] || mapSub[tipo];
   if(sub) goSub(sub);
 }
