@@ -247,7 +247,7 @@ select.form-input{appearance:none;}
 <div class="modal" id="menuModal">
   <div class="modal-bg" onclick="closeMenu()"></div>
   <div class="modal-box">
-    <div class="modal-handle"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><div class="modal-handle" style="margin:0"></div><button onclick="closeMenu()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--dim);">×</button></div>
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
       <div class="top-avatar" id="menuAvatar" style="width:42px;height:42px;border-radius:12px;font-size:1rem;">A</div>
       <div><div style="font-weight:800;font-size:1rem" id="menuName">Admin</div><div style="font-size:0.73rem;color:var(--dim)" id="menuRole">Administrador</div></div>
@@ -264,10 +264,10 @@ select.form-input{appearance:none;}
 <div class="modal" id="txModal">
   <div class="modal-bg" onclick="closeTxModal()"></div>
   <div class="modal-box">
-    <div class="modal-handle"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;"><div class="modal-handle" style="margin:0"></div><button onclick="closeTxModal()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--dim);line-height:1;">×</button></div>
     <div class="modal-title">Nueva Transacción</div>
     <label class="form-label">Tipo</label>
-    <select class="form-input" id="txTipo"><option value="ingreso">💰 Ingreso</option><option value="gasto">💳 Gasto</option></select>
+    <select class="form-input" id="txTipo"><option value="gasto">💳 Gasto</option></select>
     <label class="form-label">Descripción</label>
     <input class="form-input" id="txDesc" placeholder="Ej: Salario mensual">
     <div class="form-row">
@@ -287,7 +287,7 @@ select.form-input{appearance:none;}
   <div class="modal-bg" onclick="closeInvModal()"></div>
   <div class="modal-box">
     <div class="modal-handle"></div>
-    <div class="modal-title">🔑 Acceso como invitado</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><span></span><button onclick="closeInvModal()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--dim);">×</button></div><div class="modal-title">🔑 Acceso como invitado</div>
     <p style="font-size:0.82rem;color:var(--dim);margin-bottom:14px;">Ingresa con tu código personal. Tu información es privada y no será visible para otros usuarios.</p>
     <div id="invErr" class="acc-err" style="display:none"></div>
     <div id="invStep1">
@@ -586,8 +586,15 @@ function editarTx(id){
   document.getElementById('txModal').classList.add('open');
 }
 function borrarTx(id){
-  var txs=getTxs().filter(function(t){return t.id!==id;}); saveTxs(txs);
-  showToast('Transaccion eliminada'); renderTab(STATE.tab);
+  var txs=getTxs();
+  var eliminada=txs.find(function(t){return t.id===id;});
+  var nuevas=txs.filter(function(t){return t.id!==id;});
+  saveTxs(nuevas);
+  var tab=STATE.tab;
+  renderTab(tab);
+  mostrarDeshacer('Transacción eliminada', function(){
+    var t2=getTxs(); t2.push(eliminada); saveTxs(t2); showToast('✓ Transacción restaurada'); renderTab(tab);
+  });
 }
 
 function openTxModal(){ delete STATE._editTxId; document.getElementById('txFecha').value=today(); document.getElementById('txDesc').value=''; document.getElementById('txMonto').value=''; document.getElementById('txModal').classList.add('open'); }
@@ -621,7 +628,7 @@ function renderInicio(){
     return '<div class="tx-item"><div class="tx-ico">'+(t.tipo==='ingreso'?'💰':'💳')+'</div><div class="tx-info"><div class="tx-name">'+t.desc+'</div><div class="tx-date">'+t.fecha+' · '+t.cat+'</div></div><div style="display:flex;align-items:center;gap:4px"><div class="tx-amt '+(t.tipo==='ingreso'?'ing':'gas')+'">'+(t.tipo==='ingreso'?'+':'-')+fmt(t.monto)+'</div><button onclick="editarTx('+t.id+')" style="background:none;border:none;font-size:1rem;cursor:pointer;padding:2px 4px;">✏️</button></div></div>';
   }).join('')||'<div style="text-align:center;padding:18px;color:var(--dim);font-size:0.84rem;">Sin transacciones aún</div>';
   return '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;"><div><div style="font-size:1.2rem;font-weight:900;">Hola 👋 '+(STATE.user?STATE.user.name.split(' ')[0]:'')+'</div><div style="font-size:0.76rem;color:var(--dim);">Tus finanzas personales</div></div><button onclick="openTxModal()" style="padding:9px 14px;background:var(--accent);color:var(--navtext);border:none;border-radius:12px;font-family:inherit;font-weight:700;cursor:pointer;font-size:0.82rem;">+ Nueva</button></div>'
-  +'<div class="stat-grid"><div class="stat-card"><div class="stat-label">Ingresos</div><div class="stat-val">'+fmt(ing)+'</div></div><div class="stat-card"><div class="stat-label">Gastos</div><div class="stat-val red">'+fmt(gas)+'</div></div><div class="stat-card full"><div class="stat-label">Balance Neto</div><div class="stat-val gold">'+fmt(ing-gas)+'</div></div></div>'
+  +'<div class="stat-grid"><div class="stat-card" onclick="goTab(\'ingresos\',document.querySelectorAll(\'.nav-btn\')[1])" style="cursor:pointer;"><div class="stat-label">Ingresos ›</div><div class="stat-val">'+fmt(ing)+'</div></div><div class="stat-card" onclick="goTab(\'gastos\',document.querySelectorAll(\'.nav-btn\')[2])" style="cursor:pointer;"><div class="stat-label">Gastos ›</div><div class="stat-val red">'+fmt(gas)+'</div></div><div class="stat-card full" onclick="goTabSub(\'balance\')" style="cursor:pointer;"><div class="stat-label">Balance Neto ›</div><div class="stat-val gold">'+fmt(ing-gas)+'</div></div></div>'
   +'<div class="card"><div class="card-title">Últimas transacciones</div>'+recHTML+'</div>';
 }
 
@@ -707,8 +714,12 @@ function editarMeta(i){
   save('metas',metas); showToast('Meta actualizada'); renderTab('metas');
 }
 function borrarMeta(i){
-  var metas=load('metas',[]); metas.splice(i,1); save('metas',metas);
-  showToast('Meta eliminada'); renderTab('metas');
+  var metas=load('metas',[]);
+  var eliminada=metas[i];
+  metas.splice(i,1); save('metas',metas); renderTab('metas');
+  mostrarDeshacer('Meta eliminada', function(){
+    var m2=load('metas',[]); m2.splice(i,0,eliminada); save('metas',m2); showToast('✓ Meta restaurada'); renderTab('metas');
+  });
 }
 
 function nuevaMeta(){
@@ -756,7 +767,15 @@ function nuevoRec(){
   var recs=load('recs',[]); recs.push({nombre:nombre,fecha:fecha,monto:monto}); save('recs',recs);
   showToast('✓ Recordatorio creado'); renderTab('recordatorios');
 }
-function borrarRec(i){ var recs=load('recs',[]); recs.splice(i,1); save('recs',recs); STATE.tab='recordatorios'; document.getElementById('mainContent').innerHTML=renderRecordatorios(); }
+function borrarRec(i){
+  var recs=load('recs',[]);
+  var eliminado=recs[i];
+  recs.splice(i,1); save('recs',recs);
+  STATE.tab='recordatorios'; document.getElementById('mainContent').innerHTML=renderRecordatorios();
+  mostrarDeshacer('Recordatorio eliminado', function(){
+    var r2=load('recs',[]); r2.splice(i,0,eliminado); save('recs',r2); showToast('✓ Restaurado'); document.getElementById('mainContent').innerHTML=renderRecordatorios();
+  });
+}
 function editarRec(i){ var recs=load('recs',[]); var r=recs[i]; if(!r) return; var nombre=prompt('Descripción:',r.nombre); if(!nombre) return; var fecha=prompt('Fecha (AAAA-MM-DD):',r.fecha); if(!fecha) return; var monto=parseFloat(prompt('Monto ($):',r.monto||0))||0; recs[i]={nombre:nombre,fecha:fecha,monto:monto}; save('recs',recs); showToast('✓ Recordatorio actualizado'); STATE.tab='recordatorios'; document.getElementById('mainContent').innerHTML=renderRecordatorios(); }
 
 function renderHistorial(){
@@ -905,10 +924,13 @@ function guardarEdicionAlerta(){
 }
 
 function borrarAlerta(i){
-  var alertas=load('alertas',[]); alertas.splice(i,1); save('alertas',alertas);
-  showToast('✓ Alerta eliminada');
-  STATE.tab='alertas';
-  document.getElementById('mainContent').innerHTML=renderAlertas();
+  var alertas=load('alertas',[]);
+  var eliminada=alertas[i];
+  alertas.splice(i,1); save('alertas',alertas);
+  STATE.tab='alertas'; document.getElementById('mainContent').innerHTML=renderAlertas();
+  mostrarDeshacer('Alerta eliminada', function(){
+    var a2=load('alertas',[]); a2.splice(i,0,eliminada); save('alertas',a2); document.getElementById('mainContent').innerHTML=renderAlertas();
+  });
 }
 
 // ── NOTIFICACIONES PUSH ────────────────────────────
@@ -1063,6 +1085,54 @@ function toggleDanger(){
   var ico=document.getElementById('dangerIco');
   var open=opts.classList.toggle('open');
   ico.textContent=open?'▲':'▼';
+}
+
+
+// ── SISTEMA DESHACER ──────────────────────────────
+var _undoStack = null;
+var _undoTimer = null;
+
+function mostrarDeshacer(msg, undoFn){
+  if(_undoTimer) clearTimeout(_undoTimer);
+  // Quitar toast anterior
+  var old = document.getElementById('undoToast');
+  if(old) old.remove();
+  
+  var d = document.createElement('div');
+  d.id = 'undoToast';
+  d.style.cssText = 'position:fixed;bottom:90px;left:12px;right:12px;background:#1a2a1a;color:#fff;padding:12px 16px;border-radius:14px;font-size:0.84rem;font-weight:600;z-index:500;display:flex;justify-content:space-between;align-items:center;box-shadow:0 4px 20px rgba(0,0,0,0.3);';
+  d.innerHTML = '<span>' + msg + '</span><button onclick="ejecutarDeshacer()" style="background:var(--accent);border:none;color:var(--navtext);padding:6px 14px;border-radius:8px;font-family:inherit;font-weight:700;cursor:pointer;font-size:0.82rem;">Deshacer</button>';
+  document.body.appendChild(d);
+  
+  // Barra de tiempo
+  var bar = document.createElement('div');
+  bar.style.cssText = 'position:absolute;bottom:0;left:0;height:3px;background:var(--accent);border-radius:0 0 14px 14px;width:100%;transition:width 6s linear;';
+  d.style.position = 'fixed';
+  d.appendChild(bar);
+  setTimeout(function(){ bar.style.width = '0%'; }, 50);
+  
+  _undoStack = undoFn;
+  _undoTimer = setTimeout(function(){
+    var t = document.getElementById('undoToast');
+    if(t) t.remove();
+    _undoStack = null;
+  }, 6000);
+}
+
+function ejecutarDeshacer(){
+  if(_undoTimer) clearTimeout(_undoTimer);
+  var t = document.getElementById('undoToast');
+  if(t) t.remove();
+  if(_undoStack){ _undoStack(); _undoStack = null; }
+}
+
+function confirmarBorrar(msg, borrarFn, deshacerFn){
+  // Primero confirmar
+  if(!confirm(msg)) return;
+  // Ejecutar borrado
+  borrarFn();
+  // Ofrecer deshacer
+  mostrarDeshacer('Eliminado', deshacerFn);
 }
 
 // ── CONFIRM DIALOG ─────────────────────────────────
@@ -1232,6 +1302,7 @@ function iniciarRevisionAlertas(){
 </script>
 </body>
 </html>
+
 
 
 
