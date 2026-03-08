@@ -335,15 +335,14 @@ select.inp{appearance:none;-webkit-appearance:none;}
     <div class="top-logo">USALA <span class="top-ver" id="verBadge"></span></div>
     <div id="topUserName" style="font-size:0.72rem;font-weight:700;color:var(--dim);flex:1;text-align:right;padding-right:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
     <button class="top-icon" onclick="abrirCalc()" title="Calculadora">🔢</button>
-    <button class="top-icon" onclick="goTab('mas',document.querySelectorAll('.nb')[5]);setTimeout(function(){goSub('ayuda');},50);" title="Ayuda">❓</button>
+    <button class="top-icon" onclick="goTab('mas',document.querySelectorAll('.nb')[4]);setTimeout(function(){goSub('ayuda');},50);" title="Ayuda">❓</button>
   </div>
   <div class="content" id="mainContent"></div>
   <nav class="bot-nav">
     <button class="nb active" onclick="goTab('inicio',this)"><div class="nb-ico">🏠</div><div class="nb-lbl">Inicio</div></button>
-    <button class="nb" onclick="goTab('gastos',this)"><div class="nb-ico">💳</div><div class="nb-lbl">Gastos</div></button>
-    <button class="nb" onclick="goTab('ingresos',this)"><div class="nb-ico">💰</div><div class="nb-lbl">Ingresos</div></button>
-    <button class="nb" onclick="goTab('creditos',this)"><div class="nb-ico">🤝</div><div class="nb-lbl">Créditos</div></button>
     <button class="nb" onclick="goTab('cuentas',this)"><div class="nb-ico">🏦</div><div class="nb-lbl">Cuentas</div></button>
+    <button class="nb" onclick="goTab('creditos',this)"><div class="nb-ico">🤝</div><div class="nb-lbl">Créditos</div></button>
+    <button class="nb" onclick="goTab('reportes',this)"><div class="nb-ico">📊</div><div class="nb-lbl">Reportes</div></button>
     <button class="nb" onclick="goTab('mas',this)"><div class="nb-ico">⋯</div><div class="nb-lbl">Más</div></button>
   </nav>
 </div>
@@ -549,19 +548,26 @@ function goTab(tab, btn){
 
 function goSub(sub){
   S.subtab = sub;
+  // Manejar banco_N dinámico
+  if(sub && sub.indexOf('banco_')===0){
+    var idx = parseInt(sub.replace('banco_',''));
+    document.getElementById('mainContent').innerHTML = renderBancoDetalle(idx);
+    return;
+  }
   var renders = {
-    activos: renderActivos, cxc: renderCxC,
-    pagos: renderPagos, compras: renderCompras, servicios: renderServicios,
-    metas: renderMetas, presupuesto: renderPresupuesto, alertas: renderAlertas,
-    historial: renderHistorial, conversor: renderConversor,
-    codigos: renderCodigos, config: renderConfig, ayuda: renderAyuda, version: renderVersion,
-    noticias: renderNoticias,
+    // Cuentas
     efectivo: renderEfectivo, cheques: renderCheques,
     tarjetas_credito: renderTarjetasCredito,
     nueva_tc: function(){ return renderFormTC(null); },
+    // Créditos
     creditos_debo: renderCreditosDebo, creditos_cobrar: renderCreditosCobrar,
     nueva_deuda: function(){ return renderFormCredito('deuda', null); },
-    nuevo_prestamo: function(){ return renderFormCredito('prestamo', null); }
+    nuevo_prestamo: function(){ return renderFormCredito('prestamo', null); },
+    // Más
+    metas: renderMetas, presupuesto: renderPresupuesto, alertas: renderAlertas,
+    historial: renderHistorial, conversor: renderConversor,
+    codigos: renderCodigos, config: renderConfig, ayuda: renderAyuda,
+    version: renderVersion, noticias: renderNoticias
   };
   var fn = renders[sub];
   if(fn) document.getElementById('mainContent').innerHTML = fn();
@@ -569,8 +575,11 @@ function goSub(sub){
 
 function renderTab(tab){
   var map = {
-    inicio: renderInicio, gastos: renderGastos, ingresos: renderIngresos,
-    creditos: renderCreditos, cuentas: renderCuentas, mas: renderMas
+    inicio: renderInicio,
+    cuentas: renderCuentas,
+    creditos: renderCreditos,
+    reportes: renderReportes,
+    mas: renderMas
   };
   var fn = map[tab] || function(){ return '<p>En construcción</p>'; };
   document.getElementById('mainContent').innerHTML = fn();
@@ -998,10 +1007,10 @@ function renderInicio(){
   var secFlujo = ''
     +'<div style="font-size:0.62rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--dim);margin-bottom:8px;">📊 Flujo de dinero</div>'
     +'<div class="stat-grid" style="margin-bottom:6px;">'
-    +'<div class="stat-card" onclick="goTab(\'ingresos\',document.querySelectorAll(\'.nb\')[2])">'
+    +'<div class="stat-card" onclick="goTab(\'reportes\',document.querySelectorAll(\'.nb\')[3])">'
     +'<div class="stat-label">💰 Ingresos ›</div><div class="stat-val">'+fmt(ing)+'</div></div>'
-    +'<div class="stat-card" onclick="goTab(\'gastos\',document.querySelectorAll(\'.nb\')[1])">'
-    +'<div class="stat-label">💳 Gastos ›</div><div class="stat-val red">'+fmt(gas)+'</div></div>'
+    +'<div class="stat-card" onclick="goTab(\'reportes\',document.querySelectorAll(\'.nb\')[3])">'
+    +'<div class="stat-label">💸 Gastos ›</div><div class="stat-val red">'+fmt(gas)+'</div></div>'
     // Balance neto ancho completo
     +'<div class="stat-card full" style="background:'+(bal>=0?'rgba(45,158,95,0.08)':'rgba(229,57,53,0.06)')+';border:1.5px solid '+(bal>=0?'rgba(45,158,95,0.25)':'rgba(229,57,53,0.25)')+';">'
     +'<div style="display:flex;justify-content:space-between;align-items:center;">'
@@ -1017,22 +1026,22 @@ function renderInicio(){
   var secCuentas = ''
     +'<div style="font-size:0.62rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--dim);margin-bottom:8px;margin-top:4px;">🏦 Dónde está tu dinero</div>'
     +'<div class="stat-grid" style="margin-bottom:6px;">'
-    +'<div class="stat-card" onclick="goSub(\'efectivo\');goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[4])">'
+    +'<div class="stat-card" onclick="goSub(\'efectivo\');goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[1])">'
     +'<div class="stat-label">💵 Efectivo ›</div><div class="stat-val">'+fmt(efec)+'</div></div>'
-    +'<div class="stat-card" onclick="goSub(\'cheques\');goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[4])">'
+    +'<div class="stat-card" onclick="goSub(\'cheques\');goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[1])">'
     +'<div class="stat-label">🏧 Banco ›</div><div class="stat-val">'+fmt(banco)+'</div></div>'
     // Total disponible
-    +'<div class="stat-card" onclick="goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[4])" style="background:rgba(45,158,95,0.07);border:1.5px solid rgba(45,158,95,0.2);">'
+    +'<div class="stat-card" onclick="goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[1])" style="background:rgba(45,158,95,0.07);border:1.5px solid rgba(45,158,95,0.2);">'
     +'<div class="stat-label">✅ Total disponible</div><div class="stat-val" style="color:var(--accent2);">'+fmt(totalDisp)+'</div></div>'
     // Deuda TC
-    +'<div class="stat-card" onclick="goSub(\'tarjetas_credito\');goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[4])" style="background:rgba(229,57,53,0.05);">'
+    +'<div class="stat-card" onclick="goSub(\'tarjetas_credito\');goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[1])" style="background:rgba(229,57,53,0.05);">'
     +'<div class="stat-label">💳 Deuda TC ›</div><div class="stat-val red">'+fmt(deudaTC)+'</div></div>'
     +'</div>';
 
   // ── Sección 3: Créditos e invitados ──
   var secExtra = ''
     +'<div class="stat-grid" style="margin-bottom:6px;">'
-    +'<div class="stat-card full" onclick="goTab(\'creditos\',document.querySelectorAll(\'.nb\')[3])">'
+    +'<div class="stat-card full" onclick="goTab(\'creditos\',document.querySelectorAll(\'.nb\')[2])">'
     +'<div style="display:flex;justify-content:space-between;align-items:center;">'
     +'<div><div class="stat-label">🤝 Créditos ›</div>'
     +'<div style="font-size:0.72rem;margin-top:4px;">'
@@ -1046,7 +1055,7 @@ function renderInicio(){
     +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-top:4px;">'
     +'<div><div style="font-size:1.3rem;font-weight:900;">Hola 👋 '+S.user.nombre.split(' ')[0]+'</div>'
     +'<div style="font-size:0.74rem;color:var(--dim);">Tus finanzas personales</div></div>'
-    +'<button onclick="abrirTxModal()" style="padding:10px 16px;background:var(--accent);color:var(--navtext);border:none;border-radius:12px;font-family:\'Outfit\',sans-serif;font-weight:700;cursor:pointer;font-size:0.82rem;">+ Transacción</button>'
+    +'<button onclick="goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[1])" style="padding:10px 16px;background:var(--accent);color:var(--navtext);border:none;border-radius:12px;font-family:\'Outfit\',sans-serif;font-weight:700;cursor:pointer;font-size:0.82rem;">+ Registrar</button>'
     +'</div>'
     + secFlujo
     + secCuentas
@@ -1315,7 +1324,7 @@ function renderMetas(){
       +'<button class="cred-btn danger" onclick="borrarMeta('+i+')">🗑️</button>'
       +'</div></div>';
   }).join(''):'<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin metas aún</div>';
-  return '<div class="page-header">'+backBtn('mas',5)+'<div class="page-title">🎯 Metas de Ahorro</div></div>'
+  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">🎯 Metas de Ahorro</div></div>'
     +'<div class="card" style="margin-bottom:14px;">'
     +'<label class="inp-label">Nombre de la meta</label><input class="inp" id="metaNombre" placeholder="Ej: Fondo de emergencia">'
     +'<div class="form-row"><div><label class="inp-label">Objetivo ($)</label><input class="inp" id="metaObjetivo" type="number" placeholder="0.00"></div><div><label class="inp-label">Ya tengo ($)</label><input class="inp" id="metaActual" type="number" placeholder="0.00"></div></div>'
@@ -1353,7 +1362,7 @@ function renderPresupuesto(){
       +'<div class="pres-val" style="color:'+color+';margin-left:8px;width:70px;text-align:right;">'+fmt(gas)+'</div>'
       +'</div>';
   }).join('');
-  return '<div class="page-header">'+backBtn('mas',5)+'<div class="page-title">📊 Presupuesto</div></div>'
+  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">📊 Presupuesto</div></div>'
     +'<div class="card"><div class="card-title">Categoría · Límite · Gastado</div>'+rows+'</div>';
 }
 function guardarPres(cat,val){ var p=load('presupuesto',{}); p[cat]=parseFloat(val)||0; save('presupuesto',p); showToast('✓ Límite guardado'); }
@@ -1377,7 +1386,7 @@ function renderAlertas(){
       +'<button class="ic-btn" onclick="borrarAlerta('+i+')">🗑️</button>'
       +'</div></div>';
   }).join(''):'<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin alertas</div>';
-  return '<div class="page-header">'+backBtn('mas',5)+'<div class="page-title">🔔 Alertas de Gasto</div></div>'
+  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">🔔 Alertas de Gasto</div></div>'
     +'<div class="card" style="margin-bottom:14px;" id="alertaForm">'
     +'<label class="inp-label">Descripción</label><input class="inp" id="alNombre" placeholder="Ej: No gastar más en ropa">'
     +'<div class="form-row"><div><label class="inp-label">Límite ($)</label><input class="inp" id="alLimite" type="number" placeholder="0.00"></div><div><label class="inp-label">Hora</label><input class="inp" id="alHora" type="time" value="09:00"></div></div>'
@@ -1421,7 +1430,7 @@ function borrarAlerta(i){ if(!confirm('¿Eliminar?')) return; var a=load('alerta
 function renderHistorial(){
   var txs=getTxs().slice().reverse();
   var items=txs.length?txs.map(function(t){ return txItem(t,true); }).join(''):'<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin transacciones</div>';
-  return '<div class="page-header">'+backBtn('mas',5)+'<div class="page-title">📋 Historial</div></div>'
+  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">📋 Historial</div></div>'
     +'<div class="card">'+items+'</div>';
 }
 
@@ -1429,7 +1438,7 @@ function renderHistorial(){
 // CONVERSOR
 // ══════════════════════════════════════════
 function renderConversor(){
-  return '<div class="page-header">'+backBtn('mas',5)+'<div class="page-title">💱 Conversor</div></div>'
+  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">💱 Conversor</div></div>'
     +'<div class="card">'
     +'<label class="inp-label">Monto</label><input class="inp" id="convMonto" type="number" placeholder="0.00" oninput="convertir()">'
     +'<div class="form-row">'
@@ -1455,7 +1464,7 @@ function renderCodigos(){
   var codigos=JSON.parse(localStorage.getItem('usala_codigos')||'[]');
   var activos=codigos.filter(function(c){ return c.activo && new Date(c.vencimiento.split('-').join('/'))>=new Date(); });
   var usados=codigos.filter(function(c){ return c.usado; });
-  return '<div class="page-header">'+backBtn('mas',5)+'<div class="page-title">🔑 Códigos de Acceso</div></div>'
+  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">🔑 Códigos de Acceso</div></div>'
     +'<div class="card" style="margin-bottom:14px;">'
     +'<label class="inp-label">Prefijo del código</label><input class="inp" id="codPrefijo" placeholder="Ej: FIN" value="FIN">'
     +'<label class="inp-label">Vence en</label>'
@@ -1496,7 +1505,7 @@ function desactivarCodigo(c){ if(!confirm('¿Desactivar '+c+'?')) return; var co
 // ══════════════════════════════════════════
 function renderConfig(){
   var isAdmin=S.user&&S.user.isAdmin;
-  return '<div class="page-header">'+backBtn('mas',5)+'<div class="page-title">⚙️ Configuración</div></div>'
+  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">⚙️ Configuración</div></div>'
     +'<div class="card">'
     +'<div class="set-item" onclick="pickTema()"><div><div class="set-label">🎨 Cambiar tema</div></div><div class="set-arrow">›</div></div>'
     +'<div class="set-item" onclick="goSub(\'version\')"><div><div class="set-label">📋 Versión</div><div class="set-sub">v'+APP_VERSION+'</div></div><div class="set-arrow">›</div></div>'
@@ -1568,7 +1577,7 @@ function resetCuenta(){
 // ══════════════════════════════════════════
 function renderVersion(){
   var isAdmin=S.user&&S.user.isAdmin;
-  return '<div class="page-header">'+backBtn('mas',5)+'<div class="page-title">📋 Versión</div></div>'
+  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">📋 Versión</div></div>'
     +'<div class="card" style="text-align:center;padding:28px 20px;">'
     +'<div style="font-size:2rem;font-weight:900;color:var(--accent);font-family:\'JetBrains Mono\',monospace;">v'+APP_VERSION+'</div>'
     +'<div style="font-size:0.8rem;color:var(--dim);margin-top:8px;">'+APP_NOTAS+'</div>'
@@ -1603,10 +1612,10 @@ function renderAyuda(){
     ['¿Qué es Créditos?','Son los préstamos: lo que tú debes a otros (Mis Deudas) y lo que otros te deben a ti (Créditos por Cobrar).'],
     ['¿Puedo deshacer un borrado?','Sí, tienes 6 segundos para tocar "Deshacer" después de eliminar algo.'],
   ];
-  return '<div class="page-header">'+backBtn('mas',5)+'<div class="page-title">❓ Ayuda</div></div>'
+  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">❓ Ayuda</div></div>'
     +faqs.map(function(f){ return '<div class="card" style="margin-bottom:8px;"><div style="font-weight:700;font-size:0.88rem;margin-bottom:6px;">'+f[0]+'</div><div style="font-size:0.78rem;color:var(--dim);line-height:1.5;">'+f[1]+'</div></div>'; }).join('');
 }
-function abrirAyuda(){ goTab('mas',document.querySelectorAll('.nb')[5]); setTimeout(function(){ goSub('ayuda'); },10); }
+function abrirAyuda(){ goTab('mas',document.querySelectorAll('.nb')[4]); setTimeout(function(){ goSub('ayuda'); },10); }
 
 // ══════════════════════════════════════════
 // MENÚ USUARIO
@@ -1663,7 +1672,7 @@ function renderNoticias(){
         +'</div></div>';
     }).join('') : '<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin mensajes enviados</div>';
 
-    return '<div class="page-header">'+backBtn('mas',5)+'<div class="page-title">📢 Centro de Mensajes</div></div>'
+    return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">📢 Centro de Mensajes</div></div>'
       +'<div class="card" style="margin-bottom:14px;">'
       +'<div class="card-title">✍️ Nuevo mensaje</div>'
       +'<label class="inp-label">Título</label>'
@@ -1707,7 +1716,7 @@ function renderNoticias(){
         +'</div>';
     }).join('') : '<div style="text-align:center;padding:30px;color:var(--dim);font-size:0.83rem;">📭 No hay mensajes aún</div>';
 
-    return '<div class="page-header">'+backBtn('mas',5)+'<div class="page-title">📢 Mensajes</div></div>'
+    return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">📢 Mensajes</div></div>'
       + items;
   }
 }
@@ -1797,97 +1806,203 @@ function renderCuentas(){
 // ── EFECTIVO ──
 function renderEfectivo(){
   var c = getCuentas();
-  var movs = c.movEfectivo || [];
-  var items = movs.slice().reverse().map(function(m,i){
+  // Movimientos = todas las txs vinculadas a efectivo
+  var txs = getTxs().filter(function(t){ return t.cuenta==='efectivo'; });
+  var items = txs.slice().reverse().map(function(t){
     return '<div class="tx-item">'
-      +'<div class="tx-ico">'+(m.tipo==='entrada'?'💵':'💸')+'</div>'
-      +'<div class="tx-info"><div class="tx-name">'+m.desc+'</div><div class="tx-date">'+m.fecha+'</div></div>'
-      +'<div class="tx-right"><div class="tx-amt '+(m.tipo==='entrada'?'ing':'gas')+'">'+(m.tipo==='entrada'?'+':'-')+fmt(m.monto)+'</div>'
-      +'<button class="ic-btn" onclick="borrarMovEfectivo('+( movs.length-1-i)+')">🗑️</button></div></div>';
-  }).join('') || '<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin movimientos</div>';
+      +'<div class="tx-ico">'+(t.tipo==='ingreso'?'💵':'💸')+'</div>'
+      +'<div class="tx-info"><div class="tx-name">'+t.desc+'</div>'
+      +'<div class="tx-date">'+t.fecha+' · '+t.cat+'</div></div>'
+      +'<div class="tx-right"><div class="tx-amt '+(t.tipo==='ingreso'?'ing':'gas')+'">'
+      +(t.tipo==='ingreso'?'+':'-')+fmt(t.monto)+'</div>'
+      +'<button class="ic-btn" onclick="borrarTx('+t.id+')">🗑️</button></div></div>';
+  }).join('')||'<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin movimientos</div>';
 
-  return '<div class="page-header">'+backBtn('cuentas',4)+'<div class="page-title">💵 Efectivo</div></div>'
-    +'<div class="card" style="margin-bottom:14px;text-align:center;padding:24px;">'
-    +'<div style="font-size:0.7rem;font-weight:700;color:var(--dim);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Saldo actual</div>'
-    +'<div style="font-size:2.2rem;font-weight:900;color:var(--accent);">'+fmt(c.efectivo||0)+'</div>'
+  var catEnt = ['Salario','Freelance','Negocio','Venta','Regalo','Otros ingresos'];
+  var catSal = ['Alimentación','Transporte','Servicios','Compras','Pagos','Entretenimiento','Otros gastos'];
+
+  return '<div class="page-header">'+backBtn('cuentas',1)+'<div class="page-title">💵 Efectivo</div></div>'
+    +'<div class="card" style="margin-bottom:14px;text-align:center;padding:22px;">'
+    +'<div style="font-size:0.65rem;font-weight:700;color:var(--dim);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Saldo en efectivo</div>'
+    +'<div style="font-size:2.4rem;font-weight:900;color:var(--accent);">'+fmt(c.efectivo||0)+'</div>'
     +'</div>'
     +'<div class="card" style="margin-bottom:14px;">'
     +'<div class="card-title">Registrar movimiento</div>'
     +'<div class="tipo-selector" style="margin-bottom:12px;">'
-    +'<div class="tipo-opt selected" id="efTipoEnt" onclick="selEfTipo(\'entrada\')">💵 Entrada</div>'
-    +'<div class="tipo-opt" id="efTipoSal" onclick="selEfTipo(\'salida\')">💸 Salida</div>'
+    +'<div class="tipo-opt selected" id="efTipoEnt" onclick="selEfTipo(\'ingreso\')">💵 Entrada (ingreso)</div>'
+    +'<div class="tipo-opt" id="efTipoSal" onclick="selEfTipo(\'gasto\')">💸 Salida (gasto)</div>'
     +'</div>'
     +'<label class="inp-label">Descripción</label>'
-    +'<input class="inp" id="efDesc" placeholder="Ej: Cobré trabajo, Gasté en mercado...">'
-    +'<div class="form-row"><div><label class="inp-label">Monto ($)</label><input class="inp" id="efMonto" type="number" inputmode="decimal" placeholder="0.00"></div>'
-    +'<div><label class="inp-label">Fecha</label><input class="inp" id="efFecha" type="date" value="'+today()+'"></div></div>'
+    +'<input class="inp" id="efDesc" placeholder="Ej: Cobré trabajo / Compré despensa" autocomplete="off">'
+    +'<div class="form-row">'
+    +'<div><label class="inp-label">Monto ($)</label><input class="inp" id="efMonto" type="number" inputmode="decimal" placeholder="0.00"></div>'
+    +'<div><label class="inp-label">Categoría</label>'
+    +'<select class="inp" id="efCat">'
+    + catEnt.map(function(c){ return '<option>'+c+'</option>'; }).join('')
+    +'</select></div>'
+    +'</div>'
+    +'<label class="inp-label">Fecha</label>'
+    +'<input class="inp" id="efFecha" type="date" value="'+today()+'">'
     +'<button class="btn-main" onclick="guardarMovEfectivo()">💾 Guardar</button>'
     +'</div>'
-    +'<div class="card"><div class="card-title">Movimientos</div>'+items+'</div>';
+    +'<div class="card"><div class="card-title">Movimientos ('+txs.length+')</div>'+items+'</div>';
 }
 function selEfTipo(t){
-  document.getElementById('efTipoEnt').classList.toggle('selected',t==='entrada');
-  document.getElementById('efTipoSal').classList.toggle('selected',t==='salida');
+  var esEnt = t==='ingreso';
+  document.getElementById('efTipoEnt').classList.toggle('selected', esEnt);
+  document.getElementById('efTipoSal').classList.toggle('selected', !esEnt);
+  var cats = esEnt
+    ? ['Salario','Freelance','Negocio','Venta','Regalo','Otros ingresos']
+    : ['Alimentación','Transporte','Servicios','Compras','Pagos','Entretenimiento','Otros gastos'];
+  var sel = document.getElementById('efCat');
+  if(sel) sel.innerHTML = cats.map(function(c){ return '<option>'+c+'</option>'; }).join('');
 }
 function guardarMovEfectivo(){
-  var desc=document.getElementById('efDesc').value.trim();
-  var monto=parseFloat(document.getElementById('efMonto').value);
-  var fecha=document.getElementById('efFecha').value||today();
-  var tipo=document.getElementById('efTipoEnt').classList.contains('selected')?'entrada':'salida';
+  var desc  = document.getElementById('efDesc').value.trim();
+  var monto = parseFloat(document.getElementById('efMonto').value);
+  var fecha = document.getElementById('efFecha').value||today();
+  var cat   = document.getElementById('efCat').value;
+  var tipo  = document.getElementById('efTipoEnt').classList.contains('selected')?'ingreso':'gasto';
   if(!desc||!monto||monto<=0){ showToast('⚠ Completa descripción y monto'); return; }
-  var c=getCuentas();
-  c.movEfectivo=c.movEfectivo||[];
-  c.movEfectivo.push({desc:desc,monto:monto,fecha:fecha,tipo:tipo});
-  c.efectivo=(c.efectivo||0)+(tipo==='entrada'?monto:-monto);
-  saveCuentas(c); showToast('✓ Guardado'); goSub('efectivo');
+  // Crear transacción real vinculada a efectivo
+  var id = Date.now();
+  var txs = getTxs();
+  txs.push({id:id, tipo:tipo, desc:desc, monto:monto, cat:cat, fecha:fecha, cuenta:'efectivo'});
+  saveTxs(txs);
+  // Actualizar saldo efectivo
+  var c = getCuentas();
+  c.efectivo = (c.efectivo||0) + (tipo==='ingreso'?monto:-monto);
+  saveCuentas(c);
+  showToast('✓ '+(tipo==='ingreso'?'Ingreso':'Gasto')+' registrado en Efectivo');
+  goSub('efectivo');
 }
-function borrarMovEfectivo(i){
-  if(!confirm('¿Eliminar este movimiento?')) return;
-  var c=getCuentas(); c.movEfectivo=c.movEfectivo||[];
-  var m=c.movEfectivo[i];
-  c.efectivo=(c.efectivo||0)-(m.tipo==='entrada'?m.monto:-m.monto);
-  c.movEfectivo.splice(i,1); saveCuentas(c); goSub('efectivo');
-}
+
 
 // ── CHEQUES / BANCO ──
 function renderCheques(){
   var c=getCuentas(); var cuentas=c.cheques||[];
   var total=cuentas.reduce(function(s,x){ return s+Number(x.saldo||0); },0);
-  var items=cuentas.map(function(ct,i){
-    return '<div class="cred-item">'
-      +'<div class="cred-top"><div><div class="cred-persona">'+ct.banco+'</div>'
-      +'<div class="cred-desc">'+ct.tipo+(ct.numCuenta?' · ***'+ct.numCuenta.slice(-4):'')+'</div></div>'
-      +'<div style="font-size:1rem;font-weight:900;color:var(--accent);">'+fmt(ct.saldo||0)+'</div></div>'
-      +(ct.nota?'<div style="font-size:0.72rem;color:var(--dim);margin-top:4px;">📝 '+ct.nota+'</div>':'')
-      +'<div class="cred-btns">'
-      +'<button class="cred-btn success" onclick="abonarCuenta('+i+')">± Actualizar</button>'
-      +'<button class="cred-btn" onclick="editarCuenta('+i+')">✏️</button>'
-      +'<button class="cred-btn danger" onclick="borrarCuenta('+i+')">🗑️</button>'
-      +'</div></div>';
-  }).join('')||'<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin cuentas registradas</div>';
 
-  return '<div class="page-header">'+backBtn('cuentas',4)+'<div class="page-title">🏧 Cheques / Banco</div></div>'
-    +'<div class="card" style="text-align:center;padding:20px;margin-bottom:14px;">'
-    +'<div style="font-size:0.7rem;font-weight:700;color:var(--dim);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Total en bancos</div>'
+  // Sub-vista por banco seleccionado o lista
+  var items=cuentas.length ? cuentas.map(function(ct,i){
+    var cval='cheque_'+i;
+    var txsCuenta=getTxs().filter(function(t){ return t.cuenta===cval; });
+    var ultMov=txsCuenta.length ? txsCuenta[txsCuenta.length-1] : null;
+    return '<div class="cred-item" onclick="goSub(\'banco_\'+'+i+')" style="cursor:pointer;">'
+      +'<div class="cred-top"><div><div class="cred-persona">🏧 '+ct.banco+'</div>'
+      +'<div class="cred-desc">'+ct.tipo+(ct.numCuenta?' · ***'+ct.numCuenta.slice(-4):'')+(ultMov?' · Último mov: '+ultMov.fecha:'')+'</div></div>'
+      +'<div><div style="font-size:1.1rem;font-weight:900;color:var(--accent);">'+fmt(ct.saldo||0)+'</div>'
+      +'<div style="font-size:0.62rem;color:var(--dim);text-align:right;">'+txsCuenta.length+' mov.</div></div></div>'
+      +(ct.nota?'<div style="font-size:0.72rem;color:var(--dim);margin-top:2px;">📝 '+ct.nota+'</div>':'')
+      +'</div>';
+  }).join('') : '<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin cuentas bancarias. Agrega una abajo.</div>';
+
+  return '<div class="page-header">'+backBtn('cuentas',1)+'<div class="page-title">🏧 Mis Bancos</div></div>'
+    +'<div class="card" style="text-align:center;padding:18px;margin-bottom:14px;">'
+    +'<div style="font-size:0.65rem;font-weight:700;color:var(--dim);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Total en bancos</div>'
     +'<div style="font-size:2rem;font-weight:900;color:var(--accent);">'+fmt(total)+'</div>'
     +'</div>'
-    +'<div class="card" style="margin-bottom:14px;" id="chequesForm">'
-    +'<div class="card-title" id="chFormTitle">+ Nueva cuenta</div>'
+    + items
+    +'<div class="card" style="margin-top:14px;" id="chequesForm">'
+    +'<div class="card-title" id="chFormTitle">+ Agregar cuenta bancaria</div>'
     +'<label class="inp-label">Banco / Institución</label>'
     +'<input class="inp" id="chBanco" placeholder="Ej: BBVA, Santander, HSBC...">'
     +'<div class="form-row">'
     +'<div><label class="inp-label">Tipo</label>'
     +'<select class="inp" id="chTipo"><option>Débito</option><option>Ahorro</option><option>Nómina</option><option>Inversión</option><option>Otro</option></select></div>'
-    +'<div><label class="inp-label">Saldo ($)</label><input class="inp" id="chSaldo" type="number" inputmode="decimal" placeholder="0.00"></div>'
+    +'<div><label class="inp-label">Saldo inicial ($)</label><input class="inp" id="chSaldo" type="number" inputmode="decimal" placeholder="0.00"></div>'
     +'</div>'
-    +'<label class="inp-label">No. de cuenta (últimos 4 dígitos)</label>'
+    +'<label class="inp-label">No. cuenta (últimos 4 dígitos)</label>'
     +'<input class="inp" id="chNum" placeholder="Ej: 4521" maxlength="4" inputmode="numeric">'
     +'<label class="inp-label">Nota (opcional)</label>'
     +'<input class="inp" id="chNota" placeholder="Ej: Cuenta de nómina principal">'
-    +'<button class="btn-main" id="chSaveBtn" onclick="guardarCuenta()">💾 Guardar</button>'
-    +'</div>'
-    +items;
+    +'<button class="btn-main" id="chSaveBtn" onclick="guardarCuenta()">💾 Guardar cuenta</button>'
+    +'</div>';
 }
+
+// Vista detalle de un banco específico con sus movimientos
+function renderBancoDetalle(idx){
+  var c=getCuentas(); var ct=c.cheques[idx];
+  if(!ct) return renderCheques();
+  var cval='cheque_'+idx;
+  var txs=getTxs().filter(function(t){ return t.cuenta===cval; });
+  var catEnt=['Salario','Depósito','Transferencia recibida','Nómina','Inversión','Otros ingresos'];
+  var catSal=['Pago de servicio','Transferencia enviada','Compra','Retiro','Otros gastos'];
+  var items=txs.slice().reverse().map(function(t){
+    return '<div class="tx-item">'
+      +'<div class="tx-ico">'+(t.tipo==='ingreso'?'📥':'📤')+'</div>'
+      +'<div class="tx-info"><div class="tx-name">'+t.desc+'</div>'
+      +'<div class="tx-date">'+t.fecha+' · '+t.cat+'</div></div>'
+      +'<div class="tx-right"><div class="tx-amt '+(t.tipo==='ingreso'?'ing':'gas')+'">'
+      +(t.tipo==='ingreso'?'+':'-')+fmt(t.monto)+'</div>'
+      +'<button class="ic-btn" onclick="borrarTxBanco('+t.id+','+idx+')">🗑️</button></div></div>';
+  }).join('')||'<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin movimientos</div>';
+
+  return '<div class="page-header">'+backBtn('cheques',1)+'<div class="page-title">🏧 '+ct.banco+'</div></div>'
+    +'<div class="card" style="text-align:center;padding:18px;margin-bottom:14px;">'
+    +'<div style="font-size:0.65rem;font-weight:700;color:var(--dim);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">Saldo</div>'
+    +'<div style="font-size:2.2rem;font-weight:900;color:var(--accent);">'+fmt(ct.saldo||0)+'</div>'
+    +'<div style="font-size:0.7rem;color:var(--dim);margin-top:4px;">'+ct.tipo+(ct.numCuenta?' · ***'+ct.numCuenta:'')+'</div>'
+    +'<div style="display:flex;gap:8px;justify-content:center;margin-top:10px;">'
+    +'<button class="cred-btn" onclick="editarCuenta('+idx+');goSub(\'cheques\')">✏️ Editar</button>'
+    +'<button class="cred-btn danger" onclick="borrarCuenta('+idx+')">🗑️ Eliminar</button>'
+    +'</div></div>'
+    +'<div class="card" style="margin-bottom:14px;">'
+    +'<div class="card-title">Registrar movimiento</div>'
+    +'<div class="tipo-selector" style="margin-bottom:12px;">'
+    +'<div class="tipo-opt selected" id="bkTipoEnt" onclick="selBkTipo(\'ingreso\','+idx+')">📥 Entrada</div>'
+    +'<div class="tipo-opt" id="bkTipoSal" onclick="selBkTipo(\'gasto\','+idx+')">📤 Salida</div>'
+    +'</div>'
+    +'<label class="inp-label">Descripción</label>'
+    +'<input class="inp" id="bkDesc" placeholder="Ej: Nómina quincenal / Pago luz" autocomplete="off">'
+    +'<div class="form-row">'
+    +'<div><label class="inp-label">Monto ($)</label><input class="inp" id="bkMonto" type="number" inputmode="decimal" placeholder="0.00"></div>'
+    +'<div><label class="inp-label">Categoría</label>'
+    +'<select class="inp" id="bkCat">'
+    +catEnt.map(function(c){ return '<option>'+c+'</option>'; }).join('')
+    +'</select></div></div>'
+    +'<label class="inp-label">Fecha</label>'
+    +'<input class="inp" id="bkFecha" type="date" value="'+today()+'">'
+    +'<button class="btn-main" onclick="guardarMovBanco('+idx+')">💾 Guardar</button>'
+    +'</div>'
+    +'<div class="card"><div class="card-title">Movimientos ('+txs.length+')</div>'+items+'</div>';
+}
+function selBkTipo(t, idx){
+  var esEnt=t==='ingreso';
+  document.getElementById('bkTipoEnt').classList.toggle('selected',esEnt);
+  document.getElementById('bkTipoSal').classList.toggle('selected',!esEnt);
+  var cats=esEnt?['Salario','Depósito','Transferencia recibida','Nómina','Inversión','Otros ingresos']:['Pago de servicio','Transferencia enviada','Compra','Retiro','Otros gastos'];
+  var sel=document.getElementById('bkCat'); if(sel) sel.innerHTML=cats.map(function(c){ return '<option>'+c+'</option>'; }).join('');
+}
+function guardarMovBanco(idx){
+  var desc=document.getElementById('bkDesc').value.trim();
+  var monto=parseFloat(document.getElementById('bkMonto').value);
+  var fecha=document.getElementById('bkFecha').value||today();
+  var cat=document.getElementById('bkCat').value;
+  var tipo=document.getElementById('bkTipoEnt').classList.contains('selected')?'ingreso':'gasto';
+  if(!desc||!monto||monto<=0){ showToast('⚠ Completa descripción y monto'); return; }
+  var cval='cheque_'+idx;
+  var id=Date.now(); var txs=getTxs();
+  txs.push({id:id,tipo:tipo,desc:desc,monto:monto,cat:cat,fecha:fecha,cuenta:cval});
+  saveTxs(txs);
+  var c=getCuentas();
+  c.cheques[idx].saldo=(c.cheques[idx].saldo||0)+(tipo==='ingreso'?monto:-monto);
+  saveCuentas(c);
+  showToast('✓ '+(tipo==='ingreso'?'Ingreso':'Gasto')+' en '+c.cheques[idx].banco);
+  goSub('banco_'+idx);
+}
+function borrarTxBanco(id,idx){
+  if(!confirm('¿Eliminar este movimiento?')) return;
+  var txs=getTxs(); var t=txs.find(function(x){ return x.id===id; });
+  if(t){
+    var c=getCuentas();
+    c.cheques[idx].saldo=(c.cheques[idx].saldo||0)-(t.tipo==='ingreso'?t.monto:-t.monto);
+    saveCuentas(c);
+    saveTxs(txs.filter(function(x){ return x.id!==id; }));
+  }
+  showToast('✓ Movimiento eliminado'); goSub('banco_'+idx);
+}
+
 var _editCuentaIdx=null;
 function guardarCuenta(){
   var banco=document.getElementById('chBanco').value.trim();
@@ -1899,10 +2014,10 @@ function guardarCuenta(){
   var c=getCuentas(); c.cheques=c.cheques||[];
   if(_editCuentaIdx!==null){
     c.cheques[_editCuentaIdx]=Object.assign(c.cheques[_editCuentaIdx],{banco:banco,tipo:tipo,saldo:saldo,numCuenta:num,nota:nota});
-    _editCuentaIdx=null; showToast('✓ Actualizado');
+    _editCuentaIdx=null; showToast('✓ Cuenta actualizada');
   } else {
     c.cheques.push({banco:banco,tipo:tipo,saldo:saldo,numCuenta:num,nota:nota});
-    showToast('✓ Cuenta guardada');
+    showToast('✓ Cuenta bancaria agregada');
   }
   saveCuentas(c); goSub('cheques');
 }
@@ -1912,18 +2027,95 @@ function abonarCuenta(i){
 }
 function editarCuenta(i){
   var c=getCuentas(); var ct=c.cheques[i]; _editCuentaIdx=i;
-  document.getElementById('chBanco').value=ct.banco;
-  document.getElementById('chTipo').value=ct.tipo;
-  document.getElementById('chSaldo').value=ct.saldo||0;
-  document.getElementById('chNum').value=ct.numCuenta||'';
-  document.getElementById('chNota').value=ct.nota||'';
-  document.getElementById('chFormTitle').textContent='✏️ Editar cuenta';
-  document.getElementById('chSaveBtn').textContent='💾 Guardar cambios';
-  document.getElementById('chequesForm').scrollIntoView({behavior:'smooth'});
+  goSub('cheques');
+  setTimeout(function(){
+    document.getElementById('chBanco').value=ct.banco;
+    document.getElementById('chTipo').value=ct.tipo;
+    document.getElementById('chSaldo').value=ct.saldo||0;
+    document.getElementById('chNum').value=ct.numCuenta||'';
+    document.getElementById('chNota').value=ct.nota||'';
+    document.getElementById('chFormTitle').textContent='✏️ Editar cuenta';
+    document.getElementById('chSaveBtn').textContent='💾 Guardar cambios';
+    document.getElementById('chequesForm').scrollIntoView({behavior:'smooth'});
+  },100);
 }
 function borrarCuenta(i){
-  if(!confirm('¿Eliminar esta cuenta?')) return;
+  if(!confirm('¿Eliminar esta cuenta bancaria?\nSus movimientos quedarán sin cuenta asignada.')) return;
   var c=getCuentas(); c.cheques.splice(i,1); saveCuentas(c); goSub('cheques');
+}
+
+// ══════════════════════════════════════════
+// REPORTES (reemplaza Ingresos y Gastos)
+// ══════════════════════════════════════════
+function renderReportes(){
+  var txs = getTxs();
+  var ing = txs.filter(function(t){ return t.tipo==='ingreso'; }).reduce(function(s,t){ return s+Number(t.monto); },0);
+  var gas = txs.filter(function(t){ return t.tipo==='gasto'; }).reduce(function(s,t){ return s+Number(t.monto); },0);
+
+  // Agrupar gastos por categoría
+  var porCat = {};
+  txs.filter(function(t){ return t.tipo==='gasto'; }).forEach(function(t){
+    porCat[t.cat] = (porCat[t.cat]||0) + Number(t.monto);
+  });
+  var catItems = Object.keys(porCat).sort(function(a,b){ return porCat[b]-porCat[a]; }).map(function(cat){
+    var pct = gas>0 ? Math.round((porCat[cat]/gas)*100) : 0;
+    return '<div style="margin-bottom:10px;">'
+      +'<div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:4px;">'
+      +'<span style="font-weight:700;">'+cat+'</span>'
+      +'<span>'+fmt(porCat[cat])+' ('+pct+'%)</span></div>'
+      +'<div class="prog-wrap"><div class="prog-bar" style="width:'+pct+'%;background:var(--danger);"></div></div>'
+      +'</div>';
+  }).join('')||'<div style="color:var(--dim);font-size:0.83rem;">Sin gastos registrados</div>';
+
+  // Agrupar ingresos por categoría
+  var porCatIng = {};
+  txs.filter(function(t){ return t.tipo==='ingreso'; }).forEach(function(t){
+    porCatIng[t.cat] = (porCatIng[t.cat]||0) + Number(t.monto);
+  });
+  var catIngItems = Object.keys(porCatIng).sort(function(a,b){ return porCatIng[b]-porCatIng[a]; }).map(function(cat){
+    var pct = ing>0 ? Math.round((porCatIng[cat]/ing)*100) : 0;
+    return '<div style="margin-bottom:10px;">'
+      +'<div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:4px;">'
+      +'<span style="font-weight:700;">'+cat+'</span>'
+      +'<span>'+fmt(porCatIng[cat])+' ('+pct+'%)</span></div>'
+      +'<div class="prog-wrap"><div class="prog-bar" style="width:'+pct+'%;background:var(--accent2);"></div></div>'
+      +'</div>';
+  }).join('')||'<div style="color:var(--dim);font-size:0.83rem;">Sin ingresos registrados</div>';
+
+  // Últimas txs completas
+  var ultimas = txs.slice().reverse().slice(0,10).map(function(t){ return txItem(t,true); }).join('')
+    ||'<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin movimientos</div>';
+
+  return '<div style="font-size:1.05rem;font-weight:900;margin-bottom:4px;padding-top:4px;">📊 Reportes</div>'
+    +'<div style="font-size:0.74rem;color:var(--dim);margin-bottom:14px;">Resumen de todos tus movimientos</div>'
+    // Resumen
+    +'<div class="stat-grid" style="margin-bottom:14px;">'
+    +'<div class="stat-card"><div class="stat-label">💰 Total ingresos</div><div class="stat-val">'+fmt(ing)+'</div></div>'
+    +'<div class="stat-card"><div class="stat-label">💸 Total gastos</div><div class="stat-val red">'+fmt(gas)+'</div></div>'
+    +'<div class="stat-card full" style="background:'+(ing-gas>=0?'rgba(45,158,95,0.08)':'rgba(229,57,53,0.06)')+';border:1.5px solid '+(ing-gas>=0?'rgba(45,158,95,0.2)':'rgba(229,57,53,0.2)')+';">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+    +'<div><div class="stat-label">⚖️ Flujo neto</div><div style="font-size:0.68rem;color:var(--dim);">Ingresos − Gastos</div></div>'
+    +'<div style="font-size:1.4rem;font-weight:900;color:'+(ing-gas>=0?'var(--accent2)':'var(--danger)')+';">'+(ing-gas>=0?'+':'')+fmt(ing-gas)+'</div>'
+    +'</div></div>'
+    +'</div>'
+    // Gastos por categoría
+    +'<div class="card" style="margin-bottom:14px;">'
+    +'<div class="card-title">💸 Gastos por categoría</div>'
+    + catItems
+    +'</div>'
+    // Ingresos por categoría
+    +'<div class="card" style="margin-bottom:14px;">'
+    +'<div class="card-title">💰 Ingresos por fuente</div>'
+    + catIngItems
+    +'</div>'
+    // Historial completo
+    +'<div class="card">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'
+    +'<div class="card-title" style="margin:0;">Últimos movimientos</div>'
+    +'<button onclick="goSub(\'historial\')" style="font-size:0.72rem;color:var(--accent);background:none;border:none;cursor:pointer;font-weight:700;">Ver todos ›</button>'
+    +'</div>'
+    + ultimas
+    +'</div>';
 }
 
 // ── TARJETAS DE CRÉDITO ──
@@ -1976,7 +2168,7 @@ function renderTarjetasCredito(){
       +'</div></div>';
   }).join('')||'<div style="text-align:center;padding:24px;color:var(--dim);font-size:0.83rem;">Sin tarjetas registradas</div>';
 
-  return '<div class="page-header">'+backBtn('cuentas',4)+'<div class="page-title">💳 Tarjetas de Crédito</div></div>'
+  return '<div class="page-header">'+backBtn('cuentas',1)+'<div class="page-title">💳 Tarjetas de Crédito</div></div>'
     +items
     +'<div style="height:80px;"></div>'
     +'<div style="position:fixed;bottom:75px;left:12px;right:12px;z-index:40;">'
@@ -1986,7 +2178,7 @@ function renderTarjetasCredito(){
 
 function renderFormTC(data){
   var d=data||{}; var titulo=d.banco?'Editar tarjeta':'Nueva Tarjeta';
-  return '<div class="page-header">'+backBtn('cuentas',4)+'<div class="page-title">💳 '+titulo+'</div></div>'
+  return '<div class="page-header">'+backBtn('cuentas',1)+'<div class="page-title">💳 '+titulo+'</div></div>'
     +'<div class="card">'
     +'<label class="inp-label">Banco / Emisor</label>'
     +'<input class="inp" id="tcBanco" placeholder="Ej: BBVA, Santander, Citibanamex..." value="'+(d.banco||'')+'">'
@@ -2066,7 +2258,7 @@ function menuAccion(accion){
   var nbs = document.querySelectorAll('.nb');
   function irMas(sub){
     nbs.forEach(function(b){ b.classList.remove('active'); });
-    nbs[5].classList.add('active');
+    nbs[4].classList.add('active');
     S.tab='mas'; S.subtab=sub;
     var renders = {config:renderConfig, codigos:renderCodigos, noticias:renderNoticias};
     document.getElementById('mainContent').innerHTML = renders[sub] ? renders[sub]() : '';
@@ -2113,7 +2305,7 @@ var FAQS = [
 ];
 
 function renderAyuda(){
-  var html = '<div class="page-header">'+backBtn('mas',5)+'<div class="page-title">❓ Ayuda</div></div>'
+  var html = '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">❓ Ayuda</div></div>'
     +'<div style="position:relative;margin-bottom:14px;">'
     +'<input class="inp" id="ayudaBusca" placeholder="🔍 Buscar en la ayuda..." oninput="filtrarAyuda()" style="padding-left:16px;">'
     +'</div>'
