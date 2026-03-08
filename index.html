@@ -641,6 +641,25 @@ function guardarTx(){
   saveTxs(txs); cerrarTxModal(); renderTab(S.tab);
 }
 
+function guardarTxInline(tipo, cat){
+  var sufijo = tipo==='ingreso' ? 'ingreso' : cat;
+  var desc = document.getElementById('inDesc_'+sufijo).value.trim();
+  var monto = parseFloat(document.getElementById('inMonto_'+sufijo).value);
+  var fecha = document.getElementById('inFecha_'+sufijo).value || today();
+  var catFinal = tipo==='ingreso'
+    ? document.getElementById('inCat_ingreso').value
+    : cat;
+  if(!desc || !monto){ showToast('⚠ Completa descripción y monto'); return; }
+  var txs = getTxs();
+  txs.push({id:Date.now(), tipo:tipo, desc:desc, monto:monto, cat:catFinal, fecha:fecha});
+  saveTxs(txs);
+  showToast('✓ Guardado');
+  // Refrescar la misma pantalla
+  var mapSub = { Pagos:'pagos', Compras:'compras', Servicios:'servicios', ingreso:'activos' };
+  var sub = mapSub[cat] || mapSub[tipo];
+  if(sub) goSub(sub);
+}
+
 function borrarTx(id){
   if(!confirm('¿Eliminar esta transacción?')) return;
   var txs = getTxs(); var eli = txs.find(function(t){ return t.id===id; });
@@ -692,7 +711,13 @@ function renderSubTxs(titulo, icono, cat){
   var items = txs.slice().reverse().map(function(t){ return txItem(t,true); }).join('') || '<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin registros</div>';
   return '<div class="page-header">'+backSubBtn()+'<div class="page-title">'+icono+' '+titulo+'</div></div>'
     +'<div class="card" style="margin-bottom:12px;"><div class="stat-label">Total gastado</div><div class="stat-val red">'+fmt(total)+'</div></div>'
-    +'<button onclick="abrirTxModal(\'gasto\')" style="width:100%;padding:14px;background:var(--accent);color:var(--navtext);border:none;border-radius:12px;font-family:\'Outfit\',sans-serif;font-weight:700;cursor:pointer;margin-bottom:14px;">+ Agregar gasto</button>'
+    +'<div class="card" style="margin-bottom:14px;" id="formInline_'+cat+'">'
+    +'<div class="card-title">+ Agregar gasto</div>'
+    +'<label class="inp-label">Descripción</label><input class="inp" id="inDesc_'+cat+'" placeholder="Ej: Supermercado">'
+    +'<label class="inp-label">Monto ($)</label><input class="inp" id="inMonto_'+cat+'" type="number" placeholder="0.00">'
+    +'<label class="inp-label">Fecha</label><input class="inp" id="inFecha_'+cat+'" type="date" value="'+today()+'">'
+    +'<button class="btn-main" onclick="guardarTxInline(\'gasto\',\''+cat+'\')">💾 Guardar</button>'
+    +'</div>'
     +'<div class="card"><div class="card-title">Registros</div>'+items+'</div>';
 }
 function renderPagos(){ return renderSubTxs('Pagos','💵','Pagos'); }
@@ -706,7 +731,6 @@ function renderIngresos(){
   return '<div class="page-header" style="padding-top:4px;margin-bottom:16px;"><div style="font-size:1.05rem;font-weight:800;">💰 Ingresos</div></div>'
     +'<div class="mod-list">'
     +'<div class="mod-item" onclick="goSub(\'activos\')"><div class="mod-icon">📥</div><div><div class="mod-label">Activos</div><div class="mod-sub">Salario, rentas, negocios</div></div><div class="mod-arrow">›</div></div>'
-    +'<div class="mod-item" onclick="goSub(\'cxc\')"><div class="mod-icon">📋</div><div><div class="mod-label">Cuentas por Cobrar</div><div class="mod-sub">Pagos pendientes a favor</div></div><div class="mod-arrow">›</div></div>'
     +'</div>';
 }
 function renderActivos(){
@@ -715,7 +739,14 @@ function renderActivos(){
   var items = txs.slice().reverse().map(function(t){ return txItem(t,true); }).join('') || '<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin ingresos aún</div>';
   return '<div class="page-header">'+backSubBtn()+'<div class="page-title">📥 Activos</div></div>'
     +'<div class="card" style="margin-bottom:12px;"><div class="stat-label">Total ingresos</div><div class="stat-val">'+fmt(total)+'</div></div>'
-    +'<button onclick="abrirTxModal(\'ingreso\')" style="width:100%;padding:14px;background:var(--accent);color:var(--navtext);border:none;border-radius:12px;font-family:\'Outfit\',sans-serif;font-weight:700;cursor:pointer;margin-bottom:14px;">+ Agregar ingreso</button>'
+    +'<div class="card" style="margin-bottom:14px;">'
+    +'<div class="card-title">+ Agregar ingreso</div>'
+    +'<label class="inp-label">Descripción</label><input class="inp" id="inDesc_ingreso" placeholder="Ej: Salario quincenal">'
+    +'<div class="form-row"><div><label class="inp-label">Monto ($)</label><input class="inp" id="inMonto_ingreso" type="number" placeholder="0.00"></div>'
+    +'<div><label class="inp-label">Categoría</label><select class="inp" id="inCat_ingreso"><option>Salario</option><option>Activos</option><option>Freelance</option><option>Renta</option><option>Inversión</option><option>Otros</option></select></div></div>'
+    +'<label class="inp-label">Fecha</label><input class="inp" id="inFecha_ingreso" type="date" value="'+today()+'">'
+    +'<button class="btn-main" onclick="guardarTxInline(\'ingreso\',\'ingreso\')">💾 Guardar</button>'
+    +'</div>'
     +'<div class="card"><div class="card-title">Registros</div>'+items+'</div>';
 }
 function renderCxC(){
