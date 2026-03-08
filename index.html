@@ -304,7 +304,9 @@ select.inp{appearance:none;-webkit-appearance:none;}
       <div class="access-logo">USALA</div>
       <div style="font-size:0.75rem;color:var(--dim);">Finanzas Personales</div>
     </div>
-    <div class="access-card">
+
+    <!-- Panel: Ingresar con código -->
+    <div class="access-card" id="panelCodigo">
       <div class="access-icon" style="text-align:center;">🔑</div>
       <div class="access-title" style="text-align:center;">Código de acceso</div>
       <div class="access-sub" style="text-align:center;">Ingresa el código que te compartieron</div>
@@ -314,7 +316,41 @@ select.inp{appearance:none;-webkit-appearance:none;}
       <label class="inp-label">Código</label>
       <input class="inp" id="accCodigo" placeholder="Ej: FIN-2026" autocomplete="off" style="font-family:'JetBrains Mono',monospace;letter-spacing:0.08em;" onkeydown="if(event.key==='Enter')verificarCodigo()">
       <button class="btn-main" onclick="verificarCodigo()">Verificar acceso →</button>
+      <!-- Separador -->
+      <div style="display:flex;align-items:center;gap:10px;margin:16px 0 4px;">
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+        <span style="font-size:0.7rem;color:var(--dim);font-weight:600;">¿No tienes código?</span>
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+      </div>
+      <button onclick="mostrarPanelSolicitud()" style="width:100%;padding:13px;border:2px dashed var(--accent);background:rgba(45,106,255,0.06);color:var(--accent);border-radius:14px;font-family:'Outfit',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;margin-top:6px;">
+        📩 Solicitar acceso al administrador
+      </button>
     </div>
+
+    <!-- Panel: Solicitar acceso -->
+    <div class="access-card" id="panelSolicitud" style="display:none;">
+      <div class="access-icon" style="text-align:center;">📩</div>
+      <div class="access-title" style="text-align:center;">Solicitar acceso</div>
+      <div class="access-sub" style="text-align:center;">El administrador recibirá tu solicitud y te enviará un código si la aprueba</div>
+      <div id="solicitudMsg" class="access-err" style="display:none;"></div>
+      <label class="inp-label">Tu nombre completo</label>
+      <input class="inp" id="solNombre" placeholder="¿Cómo te llamas?" autocomplete="off">
+      <label class="inp-label">¿Para qué quieres usar USALA?</label>
+      <textarea class="inp" id="solMotivo" placeholder="Ej: Quiero llevar control de mis gastos personales..." style="height:80px;resize:none;"></textarea>
+      <label class="inp-label">Tu contacto (WhatsApp, email, etc.)</label>
+      <input class="inp" id="solContacto" placeholder="Para que el admin te envíe el código">
+      <button class="btn-main" onclick="enviarSolicitud()">📩 Enviar solicitud</button>
+      <button onclick="mostrarPanelCodigo()" style="width:100%;padding:12px;background:none;border:none;color:var(--dim);font-family:'Outfit',sans-serif;font-size:0.83rem;cursor:pointer;margin-top:4px;">← Ya tengo un código</button>
+    </div>
+
+    <!-- Panel: Solicitud enviada -->
+    <div class="access-card" id="panelEnviada" style="display:none;text-align:center;padding:32px 20px;">
+      <div style="font-size:3rem;margin-bottom:12px;">✅</div>
+      <div class="access-title">¡Solicitud enviada!</div>
+      <div class="access-sub" style="margin-top:8px;">El administrador revisará tu solicitud y te contactará para darte acceso.<br><br>Cuando tengas tu código, regresa aquí e ingrésalo.</div>
+      <button onclick="mostrarPanelCodigo()" style="margin-top:20px;width:100%;padding:13px;background:var(--accent);color:var(--navtext);border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;">← Volver al login</button>
+    </div>
+
     <div class="admin-link" onclick="abrirAdminModal()">¿Eres el administrador? Acceso admin</div>
   </div>
 </div>
@@ -340,6 +376,10 @@ select.inp{appearance:none;-webkit-appearance:none;}
   <div class="topbar">
     <div class="top-logo">USALA <span class="top-ver" id="verBadge"></span></div>
     <div id="topUserName" style="font-size:0.72rem;font-weight:700;color:var(--dim);flex:1;text-align:right;padding-right:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+    <button class="top-icon" id="btnSolicitudes" onclick="goTab('mas',document.querySelectorAll('.nb')[4]);setTimeout(function(){goSub('codigos');},50);" title="Solicitudes" style="display:none;position:relative;">
+      📩
+      <span id="badgeSolicitudes" style="position:absolute;top:2px;right:2px;background:#ff3b30;color:#fff;font-size:0.45rem;font-weight:800;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;"></span>
+    </button>
     <button class="top-icon" onclick="abrirCalc()" title="Calculadora">🔢</button>
     <button class="top-icon" onclick="goTab('mas',document.querySelectorAll('.nb')[4]);setTimeout(function(){goSub('ayuda');},50);" title="Ayuda">❓</button>
   </div>
@@ -486,6 +526,40 @@ function confirmarTema(){
 // ══════════════════════════════════════════
 // ACCESO
 // ══════════════════════════════════════════
+function mostrarPanelCodigo(){
+  document.getElementById('panelCodigo').style.display='block';
+  document.getElementById('panelSolicitud').style.display='none';
+  document.getElementById('panelEnviada').style.display='none';
+}
+function mostrarPanelSolicitud(){
+  document.getElementById('panelCodigo').style.display='none';
+  document.getElementById('panelSolicitud').style.display='block';
+  document.getElementById('panelEnviada').style.display='none';
+  document.getElementById('solicitudMsg').style.display='none';
+}
+function enviarSolicitud(){
+  var nombre   = document.getElementById('solNombre').value.trim();
+  var motivo   = document.getElementById('solMotivo').value.trim();
+  var contacto = document.getElementById('solContacto').value.trim();
+  var msg = document.getElementById('solicitudMsg');
+  if(!nombre || !motivo || !contacto){
+    msg.textContent='⚠ Completa todos los campos';
+    msg.style.display='block'; msg.style.color='var(--danger)'; return;
+  }
+  var solicitudes = JSON.parse(localStorage.getItem('usala_solicitudes')||'[]');
+  solicitudes.push({
+    id: Date.now(),
+    nombre: nombre,
+    motivo: motivo,
+    contacto: contacto,
+    fecha: today(),
+    estado: 'pendiente'
+  });
+  localStorage.setItem('usala_solicitudes', JSON.stringify(solicitudes));
+  document.getElementById('panelSolicitud').style.display='none';
+  document.getElementById('panelEnviada').style.display='block';
+}
+
 function verificarCodigo(){
   var nombre = document.getElementById('accNombre').value.trim();
   var codigo = document.getElementById('accCodigo').value.trim().toUpperCase();
@@ -545,7 +619,22 @@ function initDashboard(){
   var un = document.getElementById('topUserName');
   if(un) un.textContent = u.isAdmin ? '⚙️ Admin' : '👤 ' + u.nombre;
   var vb = document.getElementById('verBadge'); if(vb) vb.textContent = 'v' + APP_VERSION;
+  // Mostrar badge de solicitudes si es admin y hay pendientes
+  if(u.isAdmin){
+    actualizarBadgeSolicitudes();
+  }
   goTab('inicio', document.querySelector('.nb'));
+}
+
+function actualizarBadgeSolicitudes(){
+  var solicitudes = JSON.parse(localStorage.getItem('usala_solicitudes')||'[]');
+  var pendientes = solicitudes.filter(function(s){ return s.estado==='pendiente'; }).length;
+  var btn = document.getElementById('btnSolicitudes');
+  var badge = document.getElementById('badgeSolicitudes');
+  if(btn){
+    btn.style.display = pendientes > 0 ? 'flex' : 'none';
+    if(badge) badge.textContent = pendientes > 0 ? pendientes : '';
+  }
 }
 
 function showScreen(id){
@@ -1499,24 +1588,89 @@ function renderCodigos(){
   var codigos=JSON.parse(localStorage.getItem('usala_codigos')||'[]');
   var activos=codigos.filter(function(c){ return c.activo && new Date(c.vencimiento.split('-').join('/'))>=new Date(); });
   var usados=codigos.filter(function(c){ return c.usado; });
-  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">🔑 Códigos de Acceso</div></div>'
+  var solicitudes=JSON.parse(localStorage.getItem('usala_solicitudes')||'[]');
+  var pendientes=solicitudes.filter(function(s){ return s.estado==='pendiente'; });
+
+  // Bloque solicitudes pendientes (arriba de todo si hay)
+  var solBlock = '';
+  if(pendientes.length){
+    var solItems = pendientes.map(function(s,i){
+      var idx = solicitudes.indexOf(s);
+      return '<div style="border:1.5px solid rgba(255,159,10,0.3);border-radius:12px;padding:12px;margin-bottom:8px;background:rgba(255,159,10,0.05);">'
+        +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
+        +'<div style="flex:1;">'
+        +'<div style="font-weight:800;font-size:0.88rem;">👤 '+s.nombre+'</div>'
+        +'<div style="font-size:0.72rem;color:var(--dim);margin-top:3px;">📅 '+s.fecha+'</div>'
+        +'<div style="font-size:0.75rem;margin-top:5px;color:var(--text);">💬 '+s.motivo+'</div>'
+        +'<div style="font-size:0.72rem;margin-top:3px;color:var(--accent);">📞 '+s.contacto+'</div>'
+        +'</div>'
+        +'</div>'
+        +'<div style="display:flex;gap:8px;margin-top:10px;">'
+        +'<button onclick="aprobarSolicitud('+idx+')" style="flex:1;padding:9px;background:var(--accent2);color:#fff;border:none;border-radius:10px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:0.8rem;cursor:pointer;">✅ Aprobar y generar código</button>'
+        +'<button onclick="rechazarSolicitud('+idx+')" style="padding:9px 12px;background:rgba(229,57,53,0.1);color:var(--danger);border:1px solid rgba(229,57,53,0.2);border-radius:10px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:0.8rem;cursor:pointer;">✕</button>'
+        +'</div></div>';
+    }).join('');
+    solBlock = '<div class="card" style="margin-bottom:14px;border:1.5px solid rgba(255,159,10,0.35);">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'
+      +'<div style="background:#ff9f0a;color:#fff;font-size:0.65rem;font-weight:800;padding:3px 8px;border-radius:20px;">'+pendientes.length+' NUEVA'+(pendientes.length>1?'S':'')+'</div>'
+      +'<div class="card-title" style="margin:0;">📩 Solicitudes de acceso</div>'
+      +'</div>'
+      + solItems
+      +'</div>';
+  }
+
+  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">🔑 Códigos de Acceso'+(pendientes.length?' <span style="background:#ff9f0a;color:#fff;font-size:0.55rem;font-weight:800;padding:2px 7px;border-radius:20px;vertical-align:middle;">'+pendientes.length+'</span>':'')+'</div></div>'
+    + solBlock
     +'<div class="card" style="margin-bottom:14px;">'
+    +'<div class="card-title">+ Generar código manualmente</div>'
     +'<label class="inp-label">Prefijo del código</label><input class="inp" id="codPrefijo" placeholder="Ej: FIN" value="FIN">'
+    +'<label class="inp-label">Para quién es (nombre)</label><input class="inp" id="codNota" placeholder="Ej: María García">'
     +'<label class="inp-label">Vence en</label>'
     +'<select class="inp" id="codVence"><option value="7">7 días</option><option value="15">15 días</option><option value="30" selected>1 mes</option><option value="90">3 meses</option><option value="365">1 año</option></select>'
-    +'<label class="inp-label">Nota (opcional)</label><input class="inp" id="codNota" placeholder="Para quién es...">'
-    +'<button class="btn-main" onclick="generarCodigo()">🔑 Generar código</button>'
+    +'<button class="btn-main" onclick="generarCodigo()">🔑 Generar y copiar código</button>'
     +'</div>'
-    +'<div class="card" style="margin-bottom:12px;"><div class="card-title">Activos ('+activos.length+')</div>'
-    +activos.map(function(c,i){
-      return '<div class="code-item"><div><div class="code-text">'+c.codigo+'</div><div class="code-info">Vence: '+c.vencimiento+(c.nota?' · '+c.nota:'')+'</div></div>'
+    +'<div class="card" style="margin-bottom:12px;"><div class="card-title">✅ Códigos activos ('+activos.length+')</div>'
+    +activos.map(function(c){
+      return '<div class="code-item"><div><div class="code-text">'+c.codigo+'</div><div class="code-info">Vence: '+c.vencimiento+(c.nota?' · '+c.nota:'')+(c.nombreUsuario?' · '+c.nombreUsuario:'')+'</div></div>'
         +'<button class="ic-btn" onclick="copiarCodigo(\''+c.codigo+'\')">📋</button>'
         +'<button class="ic-btn" onclick="desactivarCodigo(\''+c.codigo+'\')">🗑️</button>'
         +'</div>';
     }).join('')||'<div style="text-align:center;padding:14px;color:var(--dim);font-size:0.83rem;">Sin códigos activos</div>'
     +'</div>'
-    +(usados.length?'<div class="card"><div class="card-title">Usados ('+usados.length+')</div>'+usados.map(function(c){ return '<div class="code-item"><div><div class="code-text" style="opacity:0.5;">'+c.codigo+'</div><div class="code-info">'+(c.nombreUsuario||'Sin nombre')+' · '+c.fechaUso+'</div></div></div>'; }).join('')+'</div>':'');
+    +(usados.length?'<div class="card"><div class="card-title">📋 Usados ('+usados.length+')</div>'+usados.map(function(c){ return '<div class="code-item"><div><div class="code-text" style="opacity:0.5;">'+c.codigo+'</div><div class="code-info">'+(c.nombreUsuario||'Sin nombre')+' · '+c.fechaUso+'</div></div></div>'; }).join('')+'</div>':'');
 }
+
+function aprobarSolicitud(idx){
+  var solicitudes=JSON.parse(localStorage.getItem('usala_solicitudes')||'[]');
+  var s=solicitudes[idx]; if(!s) return;
+  // Generar código automático con nombre
+  var prefijo=(s.nombre.split(' ')[0]).substring(0,4).toUpperCase()||'USR';
+  var rand=Math.random().toString(36).substring(2,5).toUpperCase();
+  var codigo=prefijo+'-'+rand;
+  var venc=new Date(); venc.setDate(venc.getDate()+30);
+  var vencStr=venc.toISOString().split('T')[0];
+  var codigos=JSON.parse(localStorage.getItem('usala_codigos')||'[]');
+  codigos.push({codigo:codigo,vencimiento:vencStr,nota:s.nombre,activo:true,usado:false,creado:today()});
+  localStorage.setItem('usala_codigos',JSON.stringify(codigos));
+  // Marcar solicitud como aprobada
+  solicitudes[idx].estado='aprobada';
+  solicitudes[idx].codigoGenerado=codigo;
+  localStorage.setItem('usala_solicitudes',JSON.stringify(solicitudes));
+  // Copiar código al portapapeles
+  navigator.clipboard.writeText(codigo).catch(function(){});
+  showToast('✅ Código '+codigo+' generado y copiado — compártelo con '+s.nombre);
+  goSub('codigos');
+}
+
+function rechazarSolicitud(idx){
+  if(!confirm('¿Rechazar esta solicitud?')) return;
+  var solicitudes=JSON.parse(localStorage.getItem('usala_solicitudes')||'[]');
+  solicitudes[idx].estado='rechazada';
+  localStorage.setItem('usala_solicitudes',JSON.stringify(solicitudes));
+  showToast('✓ Solicitud rechazada');
+  goSub('codigos');
+}
+
 function generarCodigo(){
   var prefijo=document.getElementById('codPrefijo').value.trim().toUpperCase()||'FIN';
   var dias=parseInt(document.getElementById('codVence').value);
