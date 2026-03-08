@@ -329,9 +329,8 @@ select.inp{appearance:none;-webkit-appearance:none;}
 <div class="screen" id="dashboard">
   <div class="topbar">
     <div class="top-logo">USALA <span class="top-ver" id="verBadge"></span></div>
-    <button class="top-icon" onclick="abrirAyuda()" title="Ayuda">❓</button>
-    <div id="adminTag" style="display:none;"></div>
-    <div class="top-avatar" id="topAvatar" onclick="abrirMenu()">A</div>
+    <div id="topUserName" style="font-size:0.72rem;font-weight:700;color:var(--dim);flex:1;text-align:right;padding-right:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+    <button class="top-icon" onclick="goTab('mas',document.querySelectorAll('.nb')[4]);setTimeout(function(){goSub('ayuda');},50);" title="Ayuda">❓</button>
   </div>
   <div class="content" id="mainContent"></div>
   <nav class="bot-nav">
@@ -372,17 +371,7 @@ select.inp{appearance:none;-webkit-appearance:none;}
   </div>
 </div>
 
-<!-- ══ MENÚ USUARIO ══ -->
-<div class="modal" id="menuModal">
-  <div style="position:absolute;inset:0;" onclick="cerrarMenu()"></div>
-  <div class="modal-box">
-    <div class="modal-header">
-      <div class="modal-title" id="menuNombre">Menú</div>
-      <button class="modal-close" onclick="cerrarMenu()">✕</button>
-    </div>
-    <div id="menuItems"></div>
-  </div>
-</div>
+<!-- menuModal eliminado - acciones disponibles en Configuración -->
 
 <script>
 // ══════════════════════════════════════════
@@ -492,10 +481,9 @@ function recuperarAdmin(){
 function initDashboard(){
   showScreen('dashboard');
   var u = S.user;
-  document.getElementById('topAvatar').textContent = (u.nombre || 'A')[0].toUpperCase();
+  var un = document.getElementById('topUserName');
+  if(un) un.textContent = u.isAdmin ? '⚙️ Admin' : '👤 ' + u.nombre;
   var vb = document.getElementById('verBadge'); if(vb) vb.textContent = 'v' + APP_VERSION;
-  // adminTag ya no se usa, solo el avatar
-  document.getElementById('adminTag').style.display = 'none';
   goTab('inicio', document.querySelector('.nb'));
 }
 
@@ -1347,5 +1335,3 @@ function toggleFaq(id){
 </script>
 </body>
 </html>
-
-
