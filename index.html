@@ -2350,6 +2350,7 @@ function renderTarjetasCredito(){
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.68rem;margin-bottom:8px;">'
       +(t.fechaCorte?'<div style="background:var(--inp);border-radius:8px;padding:8px;"><div style="color:var(--dim);">✂️ Fecha de corte</div><div style="font-weight:700;margin-top:2px;">'+t.fechaCorte+'</div></div>':'')
       +(t.diaPago?'<div style="background:rgba(229,57,53,0.06);border-radius:8px;padding:8px;"><div style="color:var(--dim);">📅 Día de pago</div><div style="font-weight:700;color:var(--danger);margin-top:2px;">Día '+t.diaPago+'</div></div>':'')
+      +(t.saldoCorte?'<div style="background:rgba(245,124,0,0.07);border-radius:8px;padding:8px;"><div style="color:var(--dim);">📋 Saldo al corte</div><div style="font-weight:700;color:#f57c00;margin-top:2px;">'+fmt(t.saldoCorte)+'</div></div>':'')
       +(t.pagoMinimo?'<div style="background:var(--inp);border-radius:8px;padding:8px;"><div style="color:var(--dim);">💳 Pago mínimo</div><div style="font-weight:700;margin-top:2px;">'+fmt(t.pagoMinimo)+'</div></div>':'')
       +(t.pagoTotal?'<div style="background:var(--inp);border-radius:8px;padding:8px;"><div style="color:var(--dim);">💰 Para no pagar int.</div><div style="font-weight:700;margin-top:2px;">'+fmt(t.pagoTotal)+'</div></div>':'')
       +'</div>'
@@ -2396,8 +2397,12 @@ function renderFormTC(data){
     +'<label class="inp-label">Fecha de corte</label>'
     +'<input class="inp" id="tcFechaCorte" type="date" value="'+(d.fechaCorte||'')+'">'
     +'<div class="form-row">'
+    +'<div><label class="inp-label">Saldo al corte ($)</label><input class="inp" id="tcSaldoCorte" type="number" inputmode="decimal" placeholder="0.00" value="'+(d.saldoCorte||'')+'" ></div>'
     +'<div><label class="inp-label">Pago mínimo ($)</label><input class="inp" id="tcPagoMin" type="number" inputmode="decimal" placeholder="0.00" value="'+(d.pagoMinimo||'')+'" ></div>'
+    +'</div>'
+    +'<div class="form-row">'
     +'<div><label class="inp-label">Para no pagar interés ($)</label><input class="inp" id="tcPagoTotal" type="number" inputmode="decimal" placeholder="0.00" value="'+(d.pagoTotal||'')+'" ></div>'
+    +'<div></div>'
     +'</div>'
     +'<div style="display:flex;align-items:center;gap:10px;padding:12px 0;">'
     +'<input type="checkbox" id="tcPagoPend" style="width:18px;height:18px;accent-color:var(--accent);"'+(d.pagoPendiente?' checked':'')+'>'
@@ -2422,6 +2427,7 @@ function guardarTC(){
     fechaCorte:document.getElementById('tcFechaCorte').value,
     pagoMinimo:parseFloat(document.getElementById('tcPagoMin').value)||0,
     pagoTotal:parseFloat(document.getElementById('tcPagoTotal').value)||0,
+    saldoCorte:parseFloat(document.getElementById('tcSaldoCorte').value)||0,
     pagoPendiente:document.getElementById('tcPagoPend').checked
   };
   var c=getCuentas(); c.tarjetas=c.tarjetas||[];
