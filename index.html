@@ -1226,7 +1226,7 @@ function abrirAyuda(){ goTab('mas',document.querySelectorAll('.nb')[4]); setTime
 // ══════════════════════════════════════════
 function abrirMenu(){
   var u=S.user;
-  document.getElementById('menuNombre').textContent=(u.isAdmin?'⚙️ Admin':'👤 ')+u.nombre;
+  document.getElementById('menuNombre').textContent=(u.isAdmin?'⚙️ Admin':'👤 '+u.nombre);
   var items='<div class="set-item" onclick="menuAccion(\'tema\')"><div class="set-label">🎨 Cambiar tema</div><div class="set-arrow">›</div></div>'
     +'<div class="set-item" onclick="menuAccion(\'config\')"><div class="set-label">⚙️ Configuración</div><div class="set-arrow">›</div></div>'
     +(S.user.isAdmin?'<div class="set-item" onclick="menuAccion(\'codigos\')"><div class="set-label">🔑 Códigos de acceso</div><div class="set-arrow">›</div></div>':'')
@@ -1235,16 +1235,99 @@ function abrirMenu(){
   document.getElementById('menuModal').classList.add('open');
 }
 function menuAccion(accion){
-  cerrarMenu();
-  setTimeout(function(){
-    if(accion==='tema'){ pickTema(); }
-    else if(accion==='salir'){ cerrarSesion(); }
-    else if(accion==='config'){ goTab('mas',document.querySelectorAll('.nb')[4]); setTimeout(function(){ goSub('config'); },50); }
-    else if(accion==='codigos'){ goTab('mas',document.querySelectorAll('.nb')[4]); setTimeout(function(){ goSub('codigos'); },50); }
-  },200);
+  document.getElementById('menuModal').classList.remove('open');
+  var nbs = document.querySelectorAll('.nb');
+  function irMas(sub){
+    nbs.forEach(function(b){ b.classList.remove('active'); });
+    nbs[4].classList.add('active');
+    S.tab='mas'; S.subtab=sub;
+    document.getElementById('mainContent').innerHTML = sub==='config' ? renderConfig() : renderCodigos();
+  }
+  if(accion==='tema'){ pickTema(); }
+  else if(accion==='salir'){ cerrarSesion(); }
+  else if(accion==='config'){ irMas('config'); }
+  else if(accion==='codigos'){ irMas('codigos'); }
 }
 function cerrarMenu(){ document.getElementById('menuModal').classList.remove('open'); }
+
+// ══════════════════════════════════════════
+// AYUDA COMPLETA CON BUSCADOR
+// ══════════════════════════════════════════
+var FAQS = [
+  {cat:'🏠 Inicio', q:'¿Qué muestra la pantalla de Inicio?', a:'Muestra un resumen de tus ingresos, gastos, balance neto y créditos. También aparecen tus últimas transacciones. Desde aquí puedes tocar cada tarjeta para ir al módulo correspondiente.'},
+  {cat:'🏠 Inicio', q:'¿Cómo agrego una transacción rápida?', a:'Toca el botón "+ Transacción" en la pantalla de Inicio. Se abrirá un formulario donde eliges si es Gasto o Ingreso, escribes la descripción, monto, categoría y fecha.'},
+  {cat:'💳 Gastos', q:'¿Cómo registro un gasto?', a:'Ve a la pestaña Gastos en la barra inferior. Elige la categoría: Pagos, Compras o Servicios. Dentro de cada una verás el formulario directo para capturar descripción, monto y fecha.'},
+  {cat:'💳 Gastos', q:'¿Qué diferencia hay entre Pagos, Compras y Servicios?', a:'Pagos: facturas, rentas, colegiaturas. Compras: productos físicos, supermercado, ropa. Servicios: luz, agua, internet, suscripciones.'},
+  {cat:'💳 Gastos', q:'¿Puedo editar o borrar un gasto?', a:'Sí. En la lista de cada categoría aparecen los íconos ✏️ (editar) y 🗑️ (eliminar) junto a cada registro. Al borrar tienes 6 segundos para deshacer.'},
+  {cat:'💰 Ingresos', q:'¿Cómo registro un ingreso?', a:'Ve a la pestaña Ingresos → Activos. Ahí encontrarás el formulario con descripción, monto, categoría (Salario, Freelance, Renta, etc.) y fecha.'},
+  {cat:'💰 Ingresos', q:'¿Qué categorías de ingreso existen?', a:'Salario, Activos, Freelance, Renta, Inversión y Otros. Puedes elegir la que mejor describa tu fuente de ingreso.'},
+  {cat:'🤝 Créditos', q:'¿Qué son los Créditos?', a:'El módulo de Créditos tiene dos secciones: "Mis Deudas" (dinero que tú pediste prestado a alguien) y "Créditos por Cobrar" (dinero que tú prestaste a otra persona).'},
+  {cat:'🤝 Créditos', q:'¿Cómo registro una deuda?', a:'Ve a Créditos → Mis Deudas → + Nueva deuda. Llena el nombre de la persona, descripción, monto, interés (opcional) y fecha límite.'},
+  {cat:'🤝 Créditos', q:'¿Cómo abono a una deuda o préstamo?', a:'En la lista de créditos toca el botón "+ Abonar". Escribe el monto del abono. La barra de progreso se actualizará automáticamente. Cuando llegue al 100% se marca como pagado.'},
+  {cat:'🤝 Créditos', q:'¿Qué significa el ícono ✅ en un crédito?', a:'Al tocarlo marcas ese crédito como completamente pagado, sin necesidad de abonar monto a monto.'},
+  {cat:'🤝 Créditos', q:'¿Qué significan los colores de estado?', a:'⏳ Amarillo = Pendiente (aún en plazo). 🔴 Rojo = Vencido (pasó la fecha límite). ✅ Verde = Pagado.'},
+  {cat:'🎯 Metas', q:'¿Cómo creo una meta de ahorro?', a:'Ve a Más → Metas de Ahorro. Escribe el nombre, el monto objetivo y cuánto ya tienes ahorrado. Luego puedes abonar periódicamente para ir avanzando.'},
+  {cat:'🎯 Metas', q:'¿Qué pasa cuando alcanzo la meta?', a:'La barra se pone verde y aparece un mensaje de felicitación "🎉 ¡Meta alcanzada!" La meta queda registrada como completada.'},
+  {cat:'📊 Presupuesto', q:'¿Cómo funciona el presupuesto mensual?', a:'Ve a Más → Presupuesto Mensual. Ahí puedes poner un límite de gasto para cada categoría (Pagos, Compras, Servicios, etc.). La barra de progreso te muestra cuánto llevas gastado vs tu límite. Rojo = te pasaste, naranja = cerca del límite.'},
+  {cat:'🔔 Alertas', q:'¿Para qué sirven las alertas de gasto?', a:'Las alertas son recordatorios con fecha y hora. Por ejemplo: "No gastar más de $500 en ropa esta semana". Aparecen con indicador de estado: 🟡 pendiente, ⚡ hoy, 🔴 vencida.'},
+  {cat:'🔔 Alertas', q:'¿Cómo edito una alerta?', a:'Toca el ícono ✏️ junto a la alerta. Los campos se llenarán en el formulario de arriba. Modifica lo que necesitas y toca "Guardar cambios".'},
+  {cat:'📋 Historial', q:'¿Qué muestra el Historial?', a:'El Historial (Más → Historial) muestra TODAS tus transacciones de ingresos y gastos ordenadas de más reciente a más antigua. Puedes editar o borrar cualquier registro desde aquí.'},
+  {cat:'📋 Historial', q:'¿Puedo ver el historial filtrado por tipo?', a:'Por ahora el historial muestra todo junto. Para ver solo gastos o solo ingresos, ve directamente a las pestañas Gastos o Ingresos donde cada categoría tiene su propio listado.'},
+  {cat:'💱 Conversor', q:'¿Cómo uso el conversor de monedas?', a:'Ve a Más → Conversor. Escribe el monto, elige la moneda de origen (MXN, USD, EUR, CNY) y la de destino. El resultado aparece automáticamente. Nota: las tasas son de referencia aproximada.'},
+  {cat:'🔑 Acceso', q:'¿Cómo entran otras personas a la app?', a:'El administrador genera un código de acceso en Más → Códigos de Acceso (o desde el menú del Avatar). Ese código se le comparte al usuario. Al entrar, el usuario escribe su nombre y el código.'},
+  {cat:'🔑 Acceso', q:'¿Los datos de cada usuario son privados?', a:'Sí. Cada usuario tiene su propio espacio de datos. El administrador no ve la información de los invitados y viceversa.'},
+  {cat:'🔑 Acceso', q:'¿Cómo genero un código de acceso?', a:'Ve al menú del Avatar → Códigos de acceso. Escribe un prefijo, elige por cuánto tiempo es válido y opcionalmente una nota de para quién es. Toca "Generar código" y se copia automáticamente.'},
+  {cat:'🔑 Acceso', q:'¿Qué pasa si un código vence?', a:'El usuario no podrá entrar con ese código. El administrador puede generar uno nuevo y desactivar el antiguo desde la sección de Códigos de Acceso.'},
+  {cat:'⚙️ Config', q:'¿Cómo cambio mi contraseña de administrador?', a:'Ve al menú Avatar → Configuración. En la sección Admin encontrarás los campos para escribir y confirmar una nueva contraseña. Mínimo 4 caracteres.'},
+  {cat:'⚙️ Config', q:'¿Cómo cambio el tema visual?', a:'Desde el menú Avatar → Cambiar tema, o desde Más → Configuración → Cambiar tema. Hay 5 temas: Verde Natural, Oscuro Pro, Dorado Élite, Océano y Rosa Elegante.'},
+  {cat:'⚙️ Config', q:'¿Cómo borro mis datos?', a:'Ve a Más → Configuración → Zona de peligro. Puedes borrar solo las transacciones o restablecer toda tu cuenta. Esta acción no se puede deshacer.'},
+  {cat:'↩️ General', q:'¿Puedo deshacer un borrado?', a:'Sí. Tienes 6 segundos después de eliminar cualquier dato (transacción, meta, alerta, crédito) para tocar "Deshacer" en la barra verde que aparece en la parte inferior.'},
+  {cat:'↩️ General', q:'¿La app guarda los datos automáticamente?', a:'Sí. Todo se guarda automáticamente en tu dispositivo (localStorage). No necesitas tocar ningún botón extra de guardado. Los datos persisten aunque cierres el navegador.'},
+  {cat:'↩️ General', q:'¿Funciona sin internet?', a:'Sí. Una vez que cargaste la app, funciona completamente sin conexión. Los datos se guardan localmente en tu dispositivo.'},
+];
+
+function renderAyuda(){
+  var html = '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">❓ Ayuda</div></div>'
+    +'<div style="position:relative;margin-bottom:14px;">'
+    +'<input class="inp" id="ayudaBusca" placeholder="🔍 Buscar en la ayuda..." oninput="filtrarAyuda()" style="padding-left:16px;">'
+    +'</div>'
+    +'<div id="ayudaLista">'+renderFaqs('')+'</div>';
+  return html;
+}
+function renderFaqs(q){
+  var term = q.toLowerCase().trim();
+  var filtrados = FAQS.filter(function(f){
+    return !term || f.q.toLowerCase().includes(term) || f.a.toLowerCase().includes(term) || f.cat.toLowerCase().includes(term);
+  });
+  if(!filtrados.length) return '<div style="text-align:center;padding:24px;color:var(--dim);font-size:0.83rem;">No se encontraron resultados para "'+q+'"</div>';
+  var porCat = {};
+  filtrados.forEach(function(f){ if(!porCat[f.cat]) porCat[f.cat]=[]; porCat[f.cat].push(f); });
+  return Object.keys(porCat).map(function(cat){
+    return '<div style="font-size:0.65rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);margin:14px 0 6px;">'+cat+'</div>'
+      + porCat[cat].map(function(f,i){
+          var id='faq_'+cat.replace(/\W/g,'')+'_'+i;
+          return '<div class="card" style="margin-bottom:6px;cursor:pointer;" onclick="toggleFaq(\''+id+'\')">'
+            +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+            +'<div style="font-weight:700;font-size:0.85rem;flex:1;padding-right:8px;">'+f.q+'</div>'
+            +'<div id="arr_'+id+'" style="color:var(--dim);font-size:1rem;flex-shrink:0;">›</div>'
+            +'</div>'
+            +'<div id="'+id+'" style="display:none;font-size:0.78rem;color:var(--dim);line-height:1.6;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">'+f.a+'</div>'
+            +'</div>';
+        }).join('');
+  }).join('');
+}
+function filtrarAyuda(){
+  var q=document.getElementById('ayudaBusca').value;
+  document.getElementById('ayudaLista').innerHTML=renderFaqs(q);
+}
+function toggleFaq(id){
+  var el=document.getElementById(id);
+  var arr=document.getElementById('arr_'+id);
+  if(!el) return;
+  var open=el.style.display==='block';
+  el.style.display=open?'none':'block';
+  arr.textContent=open?'›':'↓';
+}
 </script>
 </body>
 </html>
-
