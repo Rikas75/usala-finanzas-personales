@@ -507,6 +507,7 @@ function goSub(sub){
     metas: renderMetas, presupuesto: renderPresupuesto, alertas: renderAlertas,
     historial: renderHistorial, conversor: renderConversor,
     codigos: renderCodigos, config: renderConfig, ayuda: renderAyuda, version: renderVersion,
+    noticias: renderNoticias,
     creditos_debo: renderCreditosDebo, creditos_cobrar: renderCreditosCobrar,
     nueva_deuda: function(){ return renderFormCredito('deuda', null); },
     nuevo_prestamo: function(){ return renderFormCredito('prestamo', null); }
@@ -667,8 +668,44 @@ function renderInicio(){
   var creds = load('creditos',[]);
   var debo = creds.filter(function(c){ return c.tipo==='deuda'&&c.estado!=='pagado'; }).reduce(function(s,c){ return s+Number(c.monto-(c.abonado||0)); },0);
   var meDebn = creds.filter(function(c){ return c.tipo==='prestamo'&&c.estado!=='pagado'; }).reduce(function(s,c){ return s+Number(c.monto-(c.abonado||0)); },0);
-  var adminBanner = S.user.isAdmin ? '<div class="admin-banner">👤 Sesión de administrador — Los invitados pueden entrar con su código</div>' : '';
-  return adminBanner
+
+  // Tarjeta invitados (solo admin)
+  var invCard = '';
+  if(S.user.isAdmin){
+    var codigos = JSON.parse(localStorage.getItem('usala_codigos')||'[]');
+    var hoy = new Date();
+    var activos = codigos.filter(function(c){ return c.activo && new Date(c.vencimiento.split('-').join('/'))>=hoy; });
+    var usados  = codigos.filter(function(c){ return c.usado; });
+    invCard = '<div class="stat-card full" style="cursor:pointer;margin-bottom:0;" onclick="goSub(\'codigos\')">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+      +'<div><div class="stat-label">👥 Invitados ›</div>'
+      +'<div style="font-size:0.75rem;margin-top:4px;">'
+      +'<span style="color:var(--accent2);">✅ '+usados.length+' conectados</span>'
+      +'&nbsp;&nbsp;<span style="color:var(--dim);">🔑 '+activos.length+' códigos activos</span>'
+      +'</div></div>'
+      +'<div style="font-size:1.4rem;">›</div>'
+      +'</div></div>';
+  }
+
+  // Noticias para invitados
+  var noticiasBanner = '';
+  if(!S.user.isAdmin){
+    var noticias = JSON.parse(localStorage.getItem('usala_noticias')||'[]');
+    var sinLeer = noticias.filter(function(n){
+      var leidas = JSON.parse(localStorage.getItem('usala_leidas_'+S.user.codigo)||'[]');
+      return leidas.indexOf(n.id) === -1;
+    });
+    if(sinLeer.length){
+      noticiasBanner = '<div style="background:rgba(45,158,95,0.1);border:1.5px solid rgba(45,158,95,0.3);border-radius:14px;padding:14px;margin-bottom:12px;cursor:pointer;" onclick="goSub(\'noticias\')">'
+        +'<div style="display:flex;align-items:center;gap:8px;">'
+        +'<span style="font-size:1.2rem;">📢</span>'
+        +'<div><div style="font-weight:800;font-size:0.85rem;">'+sinLeer.length+' mensaje'+(sinLeer.length>1?'s':'')+' nuevo'+(sinLeer.length>1?'s':'')+' del administrador</div>'
+        +'<div style="font-size:0.72rem;color:var(--dim);margin-top:2px;">Toca para leer →</div></div>'
+        +'</div></div>';
+    }
+  }
+
+  return noticiasBanner
     +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-top:4px;">'
     +'<div><div style="font-size:1.3rem;font-weight:900;">Hola 👋 '+S.user.nombre.split(' ')[0]+'</div><div style="font-size:0.74rem;color:var(--dim);">Tus finanzas personales</div></div>'
     +'<button onclick="abrirTxModal()" style="padding:10px 16px;background:var(--accent);color:var(--navtext);border:none;border-radius:12px;font-family:\'Outfit\',sans-serif;font-weight:700;cursor:pointer;font-size:0.82rem;">+ Transacción</button>'
@@ -677,6 +714,7 @@ function renderInicio(){
     +'<div class="stat-card" onclick="goTab(\'ingresos\',document.querySelectorAll(\'.nb\')[2])"><div class="stat-label">Ingresos ›</div><div class="stat-val">'+fmt(ing)+'</div></div>'
     +'<div class="stat-card" onclick="goTab(\'gastos\',document.querySelectorAll(\'.nb\')[1])"><div class="stat-label">Gastos ›</div><div class="stat-val red">'+fmt(gas)+'</div></div>'
     +'<div class="stat-card full" onclick="goTab(\'creditos\',document.querySelectorAll(\'.nb\')[3])"><div style="display:flex;justify-content:space-between;"><div><div class="stat-label">🤝 Créditos ›</div><div style="font-size:0.75rem;margin-top:4px;"><span style="color:var(--danger);">Debo '+fmt(debo)+'</span> &nbsp; <span style="color:var(--accent2);">Me deben '+fmt(meDebn)+'</span></div></div><div class="stat-val gold">'+fmt(ing-gas)+'</div></div></div>'
+    +(invCard ? invCard : '')
     +'</div>'
     +'<div class="card"><div class="card-title">Últimas transacciones</div>'+rec+'</div>';
 }
@@ -908,6 +946,7 @@ function renderMas(){
     +'<div class="mod-item" onclick="goSub(\'historial\')"><div class="mod-icon">📋</div><div><div class="mod-label">Historial</div><div class="mod-sub">Todas las transacciones</div></div><div class="mod-arrow">›</div></div>'
     +'<div class="mod-item" onclick="goSub(\'conversor\')"><div class="mod-icon">💱</div><div><div class="mod-label">Conversor de Monedas</div></div><div class="mod-arrow">›</div></div>'
     +(isAdmin?'<div class="mod-item" onclick="goSub(\'codigos\')"><div class="mod-icon">🔑</div><div><div class="mod-label">Códigos de Acceso</div><div class="mod-sub">Solo administrador</div></div><div class="mod-arrow">›</div></div>':'')
+    +(isAdmin?'<div class="mod-item" onclick="goSub(\'noticias\')"><div class="mod-icon">📢</div><div><div class="mod-label">Centro de Mensajes</div><div class="mod-sub">Noticias para tus invitados</div></div><div class="mod-arrow">›</div></div>':'')
     +'<div class="mod-item" onclick="goSub(\'config\')"><div class="mod-icon">⚙️</div><div><div class="mod-label">Configuración</div></div><div class="mod-arrow">›</div></div>'
     +'</div>';
 }
@@ -1238,6 +1277,108 @@ function abrirMenu(){
 
   document.getElementById('menuModal').classList.add('open');
 }
+// ══════════════════════════════════════════
+// NOTICIAS / CENTRO DE MENSAJES
+// ══════════════════════════════════════════
+function getNoticias(){ return JSON.parse(localStorage.getItem('usala_noticias')||'[]'); }
+function saveNoticias(n){ localStorage.setItem('usala_noticias', JSON.stringify(n)); }
+
+function renderNoticias(){
+  var isAdmin = S.user && S.user.isAdmin;
+  var noticias = getNoticias();
+
+  if(isAdmin){
+    // Vista admin: crear y gestionar mensajes
+    var lista = noticias.length ? noticias.slice().reverse().map(function(n,i){
+      var ri = noticias.length - 1 - i;
+      var leidas = JSON.parse(localStorage.getItem('usala_leidas_count_'+n.id)||'0');
+      return '<div class="card" style="margin-bottom:8px;">'
+        +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
+        +'<div style="flex:1;">'
+        +'<div style="font-weight:800;font-size:0.88rem;">'+n.titulo+'</div>'
+        +'<div style="font-size:0.75rem;color:var(--dim);margin-top:4px;line-height:1.5;">'+n.mensaje+'</div>'
+        +'<div style="font-size:0.65rem;color:var(--dim);margin-top:6px;">📅 '+n.fecha+' &nbsp; 👁️ '+leidas+' lecturas</div>'
+        +'</div>'
+        +'<button class="ic-btn" onclick="borrarNoticia('+ri+')" style="flex-shrink:0;">🗑️</button>'
+        +'</div></div>';
+    }).join('') : '<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin mensajes enviados</div>';
+
+    return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">📢 Centro de Mensajes</div></div>'
+      +'<div class="card" style="margin-bottom:14px;">'
+      +'<div class="card-title">✍️ Nuevo mensaje</div>'
+      +'<label class="inp-label">Título</label>'
+      +'<input class="inp" id="notTitulo" placeholder="Ej: Nueva actualización disponible">'
+      +'<label class="inp-label">Mensaje</label>'
+      +'<textarea class="inp" id="notMensaje" rows="4" placeholder="Escribe aquí las novedades, mejoras o información importante para tus invitados..." style="resize:none;line-height:1.5;"></textarea>'
+      +'<label class="inp-label">Tipo</label>'
+      +'<select class="inp" id="notTipo">'
+      +'<option value="📢">📢 Anuncio general</option>'
+      +'<option value="🆕">🆕 Nueva función</option>'
+      +'<option value="🔧">🔧 Mejora / corrección</option>'
+      +'<option value="⚠️">⚠️ Aviso importante</option>'
+      +'<option value="🎉">🎉 Celebración</option>'
+      +'</select>'
+      +'<button class="btn-main" onclick="publicarNoticia()">📤 Publicar para todos los invitados</button>'
+      +'</div>'
+      +'<div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--dim);margin-bottom:8px;">Mensajes publicados ('+noticias.length+')</div>'
+      + lista;
+
+  } else {
+    // Vista invitado: leer mensajes
+    var leidas = JSON.parse(localStorage.getItem('usala_leidas_'+S.user.codigo)||'[]');
+    var items = noticias.length ? noticias.slice().reverse().map(function(n){
+      var yaLeida = leidas.indexOf(n.id) !== -1;
+      // Marcar como leída
+      if(!yaLeida){
+        leidas.push(n.id);
+        localStorage.setItem('usala_leidas_'+S.user.codigo, JSON.stringify(leidas));
+        // Contar lecturas
+        var cnt = parseInt(localStorage.getItem('usala_leidas_count_'+n.id)||'0');
+        localStorage.setItem('usala_leidas_count_'+n.id, cnt+1);
+      }
+      return '<div class="card" style="margin-bottom:10px;'+(yaLeida?'':'border-left:3px solid var(--accent);')+'">'
+        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">'
+        +'<span style="font-size:1.2rem;">'+n.tipo+'</span>'
+        +'<div style="font-weight:800;font-size:0.9rem;flex:1;">'+n.titulo+'</div>'
+        +(yaLeida?'':'<span style="font-size:0.6rem;background:var(--accent);color:var(--navtext);padding:2px 7px;border-radius:10px;font-weight:700;">NUEVO</span>')
+        +'</div>'
+        +'<div style="font-size:0.8rem;color:var(--dim);line-height:1.6;">'+n.mensaje+'</div>'
+        +'<div style="font-size:0.65rem;color:var(--dim);margin-top:8px;">'+n.fecha+'</div>'
+        +'</div>';
+    }).join('') : '<div style="text-align:center;padding:30px;color:var(--dim);font-size:0.83rem;">📭 No hay mensajes aún</div>';
+
+    return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">📢 Mensajes</div></div>'
+      + items;
+  }
+}
+
+function publicarNoticia(){
+  var titulo = document.getElementById('notTitulo').value.trim();
+  var mensaje = document.getElementById('notMensaje').value.trim();
+  var tipo = document.getElementById('notTipo').value;
+  if(!titulo || !mensaje){ showToast('⚠ Escribe título y mensaje'); return; }
+  var noticias = getNoticias();
+  noticias.push({
+    id: Date.now(),
+    titulo: titulo,
+    mensaje: mensaje,
+    tipo: tipo,
+    fecha: today()
+  });
+  saveNoticias(noticias);
+  showToast('✅ Mensaje publicado para todos los invitados');
+  goSub('noticias');
+}
+
+function borrarNoticia(i){
+  if(!confirm('¿Eliminar este mensaje?')) return;
+  var noticias = getNoticias();
+  noticias.splice(i, 1);
+  saveNoticias(noticias);
+  showToast('✓ Eliminado');
+  goSub('noticias');
+}
+
 function menuAccion(accion){
   document.getElementById('menuModal').classList.remove('open');
   var nbs = document.querySelectorAll('.nb');
@@ -1245,17 +1386,16 @@ function menuAccion(accion){
     nbs.forEach(function(b){ b.classList.remove('active'); });
     nbs[4].classList.add('active');
     S.tab='mas'; S.subtab=sub;
-    document.getElementById('mainContent').innerHTML = sub==='config' ? renderConfig() : renderCodigos();
+    var renders = {config:renderConfig, codigos:renderCodigos, noticias:renderNoticias};
+    document.getElementById('mainContent').innerHTML = renders[sub] ? renders[sub]() : '';
   }
   if(accion==='tema'){ pickTema(); }
   else if(accion==='salir'){ cerrarSesion(); }
   else if(accion==='config'){ irMas('config'); }
   else if(accion==='codigos'){ irMas('codigos'); }
+  else if(accion==='noticias'){ irMas('noticias'); }
 }
-function cerrarMenu(){ document.getElementById('menuModal').classList.remove('open'); }
-
-// ══════════════════════════════════════════
-// AYUDA COMPLETA CON BUSCADOR
+function cerrarMenu(){ var m=document.getElementById('menuModal'); if(m) m.classList.remove('open'); }
 // ══════════════════════════════════════════
 var FAQS = [
   {cat:'🏠 Inicio', q:'¿Qué muestra la pantalla de Inicio?', a:'Muestra un resumen de tus ingresos, gastos, balance neto y créditos. También aparecen tus últimas transacciones. Desde aquí puedes tocar cada tarjeta para ir al módulo correspondiente.'},
