@@ -2313,16 +2313,44 @@ function renderReportes(){
 // ── TARJETAS DE CRÉDITO ──
 function renderTarjetasCredito(){
   var c=getCuentas(); var tcs=c.tarjetas||[];
+  var txs=getTxs();
+
   var items=tcs.map(function(t,i){
     var pct=t.limite>0?Math.min(100,Math.round((t.balance/t.limite)*100)):0;
     var disp=Math.max(0,(t.limite||0)-(t.balance||0));
     var color=pct>=90?'var(--danger)':pct>=70?'#f57c00':'var(--accent)';
     var hoy=new Date(); var diasCorte='';
+
+    // ── Calcular saldo al corte automáticamente ──
+    // Suma todas las compras con esta TC (cuenta='tc_i') hechas hasta la fecha de corte
+    var saldoAutoCorte = 0;
     if(t.fechaCorte){
       var fc=new Date(t.fechaCorte.split('-').join('/'));
       var diff=Math.ceil((fc-hoy)/(1000*60*60*24));
       diasCorte=diff>0?diff+' días para corte':'Cortó hace '+Math.abs(diff)+' días';
+
+      // Buscar el inicio del período anterior (fecha de corte menos 1 mes aprox)
+      var fcPrev = new Date(fc);
+      fcPrev.setMonth(fcPrev.getMonth()-1);
+
+      txs.forEach(function(tx){
+        if(tx.cuenta==='tc_'+i && tx.tipo==='gasto'){
+          var txDate = new Date(tx.fecha.split('-').join('/'));
+          // Sumar compras del período actual: desde corte anterior hasta corte actual
+          if(txDate >= fcPrev && txDate <= fc){
+            saldoAutoCorte += Number(tx.monto);
+          }
+        }
+      });
+    } else {
+      // Sin fecha de corte: sumar todas las compras de esta TC
+      txs.forEach(function(tx){
+        if(tx.cuenta==='tc_'+i && tx.tipo==='gasto'){
+          saldoAutoCorte += Number(tx.monto);
+        }
+      });
     }
+
     return '<div class="cred-item">'
       +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'
       +'<div style="width:42px;height:28px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:#fff;font-weight:800;">'+t.banco.substring(0,4).toUpperCase()+'</div>'
@@ -2346,11 +2374,19 @@ function renderTarjetasCredito(){
       +'</div>'
       +'<div class="prog-wrap"><div class="prog-bar" style="width:'+pct+'%;background:'+color+';"></div></div>'
       +'<div style="display:flex;justify-content:space-between;font-size:0.68rem;color:var(--dim);margin-top:4px;margin-bottom:8px;">'
-      +'<span>Usado: '+pct+'%</span><span>'+( diasCorte||'')+'</span></div>'
+      +'<span>Usado: '+pct+'%</span><span>'+(diasCorte||'')+'</span></div>'
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.68rem;margin-bottom:8px;">'
       +(t.fechaCorte?'<div style="background:var(--inp);border-radius:8px;padding:8px;"><div style="color:var(--dim);">✂️ Fecha de corte</div><div style="font-weight:700;margin-top:2px;">'+t.fechaCorte+'</div></div>':'')
       +(t.diaPago?'<div style="background:rgba(229,57,53,0.06);border-radius:8px;padding:8px;"><div style="color:var(--dim);">📅 Día de pago</div><div style="font-weight:700;color:var(--danger);margin-top:2px;">Día '+t.diaPago+'</div></div>':'')
-      +(t.saldoCorte?'<div style="background:rgba(245,124,0,0.07);border-radius:8px;padding:8px;"><div style="color:var(--dim);">📋 Saldo al corte</div><div style="font-weight:700;color:#f57c00;margin-top:2px;">'+fmt(t.saldoCorte)+'</div></div>':'')
+      // Saldo al corte automático — naranja con badge "AUTO"
+      +'<div style="background:rgba(245,124,0,0.07);border-radius:8px;padding:8px;grid-column:1/-1;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+      +'<div style="color:var(--dim);">📋 Saldo al corte</div>'
+      +'<span style="font-size:0.55rem;background:rgba(245,124,0,0.2);color:#f57c00;padding:2px 6px;border-radius:8px;font-weight:800;">AUTO</span>'
+      +'</div>'
+      +'<div style="font-weight:900;font-size:1rem;color:#f57c00;margin-top:3px;">'+fmt(saldoAutoCorte)+'</div>'
+      +(saldoAutoCorte===0?'<div style="font-size:0.6rem;color:var(--dim);margin-top:2px;">Sin compras registradas en este período</div>':'')
+      +'</div>'
       +(t.pagoMinimo?'<div style="background:var(--inp);border-radius:8px;padding:8px;"><div style="color:var(--dim);">💳 Pago mínimo</div><div style="font-weight:700;margin-top:2px;">'+fmt(t.pagoMinimo)+'</div></div>':'')
       +(t.pagoTotal?'<div style="background:var(--inp);border-radius:8px;padding:8px;"><div style="color:var(--dim);">💰 Para no pagar int.</div><div style="font-weight:700;margin-top:2px;">'+fmt(t.pagoTotal)+'</div></div>':'')
       +'</div>'
