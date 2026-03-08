@@ -947,10 +947,18 @@ function renderInicio(){
   var txs = getTxs();
   var ing = txs.filter(function(t){ return t.tipo==='ingreso'; }).reduce(function(s,t){ return s+Number(t.monto); },0);
   var gas = txs.filter(function(t){ return t.tipo==='gasto'; }).reduce(function(s,t){ return s+Number(t.monto); },0);
+  var bal = ing - gas;
   var rec = txs.slice(-5).reverse().map(function(t){ return txItem(t,true); }).join('') || '<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin transacciones aún</div>';
   var creds = load('creditos',[]);
-  var debo = creds.filter(function(c){ return c.tipo==='deuda'&&c.estado!=='pagado'; }).reduce(function(s,c){ return s+Number(c.monto-(c.abonado||0)); },0);
+  var debo   = creds.filter(function(c){ return c.tipo==='deuda'&&c.estado!=='pagado'; }).reduce(function(s,c){ return s+Number(c.monto-(c.abonado||0)); },0);
   var meDebn = creds.filter(function(c){ return c.tipo==='prestamo'&&c.estado!=='pagado'; }).reduce(function(s,c){ return s+Number(c.monto-(c.abonado||0)); },0);
+
+  // Datos de cuentas reales
+  var cu = getCuentas();
+  var efec = cu.efectivo || 0;
+  var banco = (cu.cheques||[]).reduce(function(s,x){ return s+Number(x.saldo||0); },0);
+  var deudaTC = (cu.tarjetas||[]).reduce(function(s,t){ return s+Number(t.balance||0); },0);
+  var totalDisp = efec + banco;
 
   // Tarjeta invitados (solo admin)
   var invCard = '';
@@ -959,14 +967,13 @@ function renderInicio(){
     var hoy = new Date();
     var activos = codigos.filter(function(c){ return c.activo && new Date(c.vencimiento.split('-').join('/'))>=hoy; });
     var usados  = codigos.filter(function(c){ return c.usado; });
-    invCard = '<div class="stat-card full" style="cursor:pointer;margin-bottom:0;" onclick="goSub(\'codigos\')">'
+    invCard = '<div class="stat-card full" style="cursor:pointer;" onclick="goSub(\'codigos\')">'
       +'<div style="display:flex;justify-content:space-between;align-items:center;">'
       +'<div><div class="stat-label">👥 Invitados ›</div>'
       +'<div style="font-size:0.75rem;margin-top:4px;">'
       +'<span style="color:var(--accent2);">✅ '+usados.length+' conectados</span>'
       +'&nbsp;&nbsp;<span style="color:var(--dim);">🔑 '+activos.length+' códigos activos</span>'
-      +'</div></div>'
-      +'<div style="font-size:1.4rem;">›</div>'
+      +'</div></div><div style="font-size:1.4rem;">›</div>'
       +'</div></div>';
   }
 
@@ -980,32 +987,70 @@ function renderInicio(){
     });
     if(sinLeer.length){
       noticiasBanner = '<div style="background:rgba(45,158,95,0.1);border:1.5px solid rgba(45,158,95,0.3);border-radius:14px;padding:14px;margin-bottom:12px;cursor:pointer;" onclick="goSub(\'noticias\')">'
-        +'<div style="display:flex;align-items:center;gap:8px;">'
-        +'<span style="font-size:1.2rem;">📢</span>'
+        +'<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:1.2rem;">📢</span>'
         +'<div><div style="font-weight:800;font-size:0.85rem;">'+sinLeer.length+' mensaje'+(sinLeer.length>1?'s':'')+' nuevo'+(sinLeer.length>1?'s':'')+' del administrador</div>'
         +'<div style="font-size:0.72rem;color:var(--dim);margin-top:2px;">Toca para leer →</div></div>'
         +'</div></div>';
     }
   }
 
+  // ── Sección 1: Flujo (Ingresos / Gastos / Balance) ──
+  var secFlujo = ''
+    +'<div style="font-size:0.62rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--dim);margin-bottom:8px;">📊 Flujo de dinero</div>'
+    +'<div class="stat-grid" style="margin-bottom:6px;">'
+    +'<div class="stat-card" onclick="goTab(\'ingresos\',document.querySelectorAll(\'.nb\')[2])">'
+    +'<div class="stat-label">💰 Ingresos ›</div><div class="stat-val">'+fmt(ing)+'</div></div>'
+    +'<div class="stat-card" onclick="goTab(\'gastos\',document.querySelectorAll(\'.nb\')[1])">'
+    +'<div class="stat-label">💳 Gastos ›</div><div class="stat-val red">'+fmt(gas)+'</div></div>'
+    // Balance neto ancho completo
+    +'<div class="stat-card full" style="background:'+(bal>=0?'rgba(45,158,95,0.08)':'rgba(229,57,53,0.06)')+';border:1.5px solid '+(bal>=0?'rgba(45,158,95,0.25)':'rgba(229,57,53,0.25)')+';">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+    +'<div><div class="stat-label">⚖️ Balance Neto</div>'
+    +'<div style="font-size:0.68rem;color:var(--dim);margin-top:2px;">Ingresos − Gastos del período</div></div>'
+    +'<div style="text-align:right;">'
+    +'<div style="font-size:1.45rem;font-weight:900;color:'+(bal>=0?'var(--accent2)':'var(--danger)')+';">'+(bal>=0?'+':'')+fmt(bal)+'</div>'
+    +'<div style="font-size:0.62rem;margin-top:2px;color:'+(bal>=0?'var(--accent2)':'var(--danger)')+';">'+(bal>=0?'✅ Positivo':'⚠️ Negativo')+'</div>'
+    +'</div></div></div>'
+    +'</div>';
+
+  // ── Sección 2: Dónde está tu dinero ──
+  var secCuentas = ''
+    +'<div style="font-size:0.62rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--dim);margin-bottom:8px;margin-top:4px;">🏦 Dónde está tu dinero</div>'
+    +'<div class="stat-grid" style="margin-bottom:6px;">'
+    +'<div class="stat-card" onclick="goSub(\'efectivo\');goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[4])">'
+    +'<div class="stat-label">💵 Efectivo ›</div><div class="stat-val">'+fmt(efec)+'</div></div>'
+    +'<div class="stat-card" onclick="goSub(\'cheques\');goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[4])">'
+    +'<div class="stat-label">🏧 Banco ›</div><div class="stat-val">'+fmt(banco)+'</div></div>'
+    // Total disponible
+    +'<div class="stat-card" onclick="goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[4])" style="background:rgba(45,158,95,0.07);border:1.5px solid rgba(45,158,95,0.2);">'
+    +'<div class="stat-label">✅ Total disponible</div><div class="stat-val" style="color:var(--accent2);">'+fmt(totalDisp)+'</div></div>'
+    // Deuda TC
+    +'<div class="stat-card" onclick="goSub(\'tarjetas_credito\');goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[4])" style="background:rgba(229,57,53,0.05);">'
+    +'<div class="stat-label">💳 Deuda TC ›</div><div class="stat-val red">'+fmt(deudaTC)+'</div></div>'
+    +'</div>';
+
+  // ── Sección 3: Créditos e invitados ──
+  var secExtra = ''
+    +'<div class="stat-grid" style="margin-bottom:6px;">'
+    +'<div class="stat-card full" onclick="goTab(\'creditos\',document.querySelectorAll(\'.nb\')[3])">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+    +'<div><div class="stat-label">🤝 Créditos ›</div>'
+    +'<div style="font-size:0.72rem;margin-top:4px;">'
+    +'<span style="color:var(--danger);">Debo '+fmt(debo)+'</span>'
+    +'&nbsp;&nbsp;<span style="color:var(--accent2);">Me deben '+fmt(meDebn)+'</span>'
+    +'</div></div></div></div>'
+    +(invCard||'')
+    +'</div>';
+
   return noticiasBanner
     +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-top:4px;">'
-    +'<div><div style="font-size:1.3rem;font-weight:900;">Hola 👋 '+S.user.nombre.split(' ')[0]+'</div><div style="font-size:0.74rem;color:var(--dim);">Tus finanzas personales</div></div>'
+    +'<div><div style="font-size:1.3rem;font-weight:900;">Hola 👋 '+S.user.nombre.split(' ')[0]+'</div>'
+    +'<div style="font-size:0.74rem;color:var(--dim);">Tus finanzas personales</div></div>'
     +'<button onclick="abrirTxModal()" style="padding:10px 16px;background:var(--accent);color:var(--navtext);border:none;border-radius:12px;font-family:\'Outfit\',sans-serif;font-weight:700;cursor:pointer;font-size:0.82rem;">+ Transacción</button>'
     +'</div>'
-    +'<div class="stat-grid">'
-    +'<div class="stat-card" onclick="goTab(\'ingresos\',document.querySelectorAll(\'.nb\')[2])"><div class="stat-label">💰 Ingresos ›</div><div class="stat-val">'+fmt(ing)+'</div></div>'
-    +'<div class="stat-card" onclick="goTab(\'gastos\',document.querySelectorAll(\'.nb\')[1])"><div class="stat-label">💳 Gastos ›</div><div class="stat-val red">'+fmt(gas)+'</div></div>'
-    +'<div class="stat-card full" style="background:'+(ing-gas>=0?'rgba(45,158,95,0.08)':'rgba(229,57,53,0.06)')+';border:1.5px solid '+(ing-gas>=0?'rgba(45,158,95,0.2)':'rgba(229,57,53,0.2)')+';">'
-    +'<div style="display:flex;justify-content:space-between;align-items:center;">'
-    +'<div><div class="stat-label">⚖️ Balance Neto</div><div style="font-size:0.7rem;color:var(--dim);margin-top:3px;">Ingresos − Gastos</div></div>'
-    +'<div style="text-align:right;">'
-    +'<div style="font-size:1.4rem;font-weight:900;color:'+(ing-gas>=0?'var(--accent2)':'var(--danger)')+';">'+(ing-gas>=0?'+':'')+fmt(ing-gas)+'</div>'
-    +'<div style="font-size:0.65rem;color:var(--dim);margin-top:2px;">'+(ing-gas>=0?'✅ Positivo':'⚠️ Negativo')+'</div>'
-    +'</div></div></div>'
-    +'<div class="stat-card full" onclick="goTab(\'creditos\',document.querySelectorAll(\'.nb\')[3])"><div style="display:flex;justify-content:space-between;"><div><div class="stat-label">🤝 Créditos ›</div><div style="font-size:0.75rem;margin-top:4px;"><span style="color:var(--danger);">Debo '+fmt(debo)+'</span> &nbsp; <span style="color:var(--accent2);">Me deben '+fmt(meDebn)+'</span></div></div></div></div>'
-    +(invCard ? invCard : '')
-    +'</div>'
+    + secFlujo
+    + secCuentas
+    + secExtra
     +'<div class="card"><div class="card-title">Últimas transacciones</div>'+rec+'</div>';
 }
 
