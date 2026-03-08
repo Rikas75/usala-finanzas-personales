@@ -1003,19 +1003,13 @@ function renderInicio(){
     }
   }
 
-  // ── Sección 1: Flujo (Ingresos / Gastos / Balance) ──
+  // ── Sección 1: Solo Balance Neto ──
   var secFlujo = ''
-    +'<div style="font-size:0.62rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--dim);margin-bottom:8px;">📊 Flujo de dinero</div>'
     +'<div class="stat-grid" style="margin-bottom:6px;">'
-    +'<div class="stat-card" onclick="goTab(\'reportes\',document.querySelectorAll(\'.nb\')[3])">'
-    +'<div class="stat-label">💰 Ingresos ›</div><div class="stat-val">'+fmt(ing)+'</div></div>'
-    +'<div class="stat-card" onclick="goTab(\'reportes\',document.querySelectorAll(\'.nb\')[3])">'
-    +'<div class="stat-label">💸 Gastos ›</div><div class="stat-val red">'+fmt(gas)+'</div></div>'
-    // Balance neto ancho completo
-    +'<div class="stat-card full" style="background:'+(bal>=0?'rgba(45,158,95,0.08)':'rgba(229,57,53,0.06)')+';border:1.5px solid '+(bal>=0?'rgba(45,158,95,0.25)':'rgba(229,57,53,0.25)')+';">'
+    +'<div class="stat-card full" onclick="goTab(\'reportes\',document.querySelectorAll(\'.nb\')[3])" style="background:'+(bal>=0?'rgba(45,158,95,0.08)':'rgba(229,57,53,0.06)')+';border:1.5px solid '+(bal>=0?'rgba(45,158,95,0.25)':'rgba(229,57,53,0.25)')+';">'
     +'<div style="display:flex;justify-content:space-between;align-items:center;">'
-    +'<div><div class="stat-label">⚖️ Balance Neto</div>'
-    +'<div style="font-size:0.68rem;color:var(--dim);margin-top:2px;">Ingresos − Gastos del período</div></div>'
+    +'<div><div class="stat-label">⚖️ Balance Neto ›</div>'
+    +'<div style="font-size:0.68rem;color:var(--dim);margin-top:2px;">Ver reporte detallado</div></div>'
     +'<div style="text-align:right;">'
     +'<div style="font-size:1.45rem;font-weight:900;color:'+(bal>=0?'var(--accent2)':'var(--danger)')+';">'+(bal>=0?'+':'')+fmt(bal)+'</div>'
     +'<div style="font-size:0.62rem;margin-top:2px;color:'+(bal>=0?'var(--accent2)':'var(--danger)')+';">'+(bal>=0?'✅ Positivo':'⚠️ Negativo')+'</div>'
@@ -1052,10 +1046,9 @@ function renderInicio(){
     +'</div>';
 
   return noticiasBanner
-    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-top:4px;">'
-    +'<div><div style="font-size:1.3rem;font-weight:900;">Hola 👋 '+S.user.nombre.split(' ')[0]+'</div>'
-    +'<div style="font-size:0.74rem;color:var(--dim);">Tus finanzas personales</div></div>'
-    +'<button onclick="goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[1])" style="padding:10px 16px;background:var(--accent);color:var(--navtext);border:none;border-radius:12px;font-family:\'Outfit\',sans-serif;font-weight:700;cursor:pointer;font-size:0.82rem;">+ Registrar</button>'
+    +'<div style="margin-bottom:16px;padding-top:4px;">'
+    +'<div style="font-size:1.3rem;font-weight:900;">Hola 👋 '+S.user.nombre.split(' ')[0]+'</div>'
+    +'<div style="font-size:0.74rem;color:var(--dim);">Tus finanzas personales</div>'
     +'</div>'
     + secFlujo
     + secCuentas
