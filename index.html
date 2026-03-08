@@ -1382,6 +1382,7 @@ function pickTema(){
   showScreen('themePicker');
 }
 function cerrarSesion(){
+  if(!confirm('¿Seguro que quieres cerrar sesión?\n\nTus datos quedan guardados y podrás volver a entrar con tu código.')) return;
   S.user=null; S.tab='inicio';
   document.getElementById('accNombre').value='';
   document.getElementById('accCodigo').value='';
