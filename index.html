@@ -1795,18 +1795,6 @@ function guardarVersion(){
 // ══════════════════════════════════════════
 // AYUDA
 // ══════════════════════════════════════════
-function renderAyuda(){
-  var faqs=[
-    ['¿Cómo entro a la app?','El administrador te da un código de acceso. Escríbelo junto con tu nombre en la pantalla de acceso.'],
-    ['¿Mis datos son privados?','Sí. Cada usuario solo ve su propia información.'],
-    ['¿Cómo agrego una transacción?','Toca el botón + Transacción en Inicio, o entra a Gastos/Ingresos.'],
-    ['¿Cómo cambio el tema?','Ve a Más → Configuración → Cambiar tema.'],
-    ['¿Qué es Créditos?','Son los préstamos: lo que tú debes a otros (Mis Deudas) y lo que otros te deben a ti (Créditos por Cobrar).'],
-    ['¿Puedo deshacer un borrado?','Sí, tienes 6 segundos para tocar "Deshacer" después de eliminar algo.'],
-  ];
-  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">❓ Ayuda</div></div>'
-    +faqs.map(function(f){ return '<div class="card" style="margin-bottom:8px;"><div style="font-weight:700;font-size:0.88rem;margin-bottom:6px;">'+f[0]+'</div><div style="font-size:0.78rem;color:var(--dim);line-height:1.5;">'+f[1]+'</div></div>'; }).join('');
-}
 function abrirAyuda(){ goTab('mas',document.querySelectorAll('.nb')[4]); setTimeout(function(){ goSub('ayuda'); },10); }
 
 // ══════════════════════════════════════════
@@ -2506,36 +2494,99 @@ function menuAccion(accion){
 function cerrarMenu(){ var m=document.getElementById('menuModal'); if(m) m.classList.remove('open'); }
 // ══════════════════════════════════════════
 var FAQS = [
-  {cat:'🏠 Inicio', q:'¿Qué muestra la pantalla de Inicio?', a:'Muestra un resumen de tus ingresos, gastos, balance neto y créditos. También aparecen tus últimas transacciones. Desde aquí puedes tocar cada tarjeta para ir al módulo correspondiente.'},
-  {cat:'🏠 Inicio', q:'¿Cómo agrego una transacción rápida?', a:'Toca el botón "+ Transacción" en la pantalla de Inicio. Se abrirá un formulario donde eliges si es Gasto o Ingreso, escribes la descripción, monto, categoría y fecha.'},
-  {cat:'💳 Gastos', q:'¿Cómo registro un gasto?', a:'Ve a la pestaña Gastos en la barra inferior. Elige la categoría: Pagos, Compras o Servicios. Dentro de cada una verás el formulario directo para capturar descripción, monto y fecha.'},
-  {cat:'💳 Gastos', q:'¿Qué diferencia hay entre Pagos, Compras y Servicios?', a:'Pagos: facturas, rentas, colegiaturas. Compras: productos físicos, supermercado, ropa. Servicios: luz, agua, internet, suscripciones.'},
-  {cat:'💳 Gastos', q:'¿Puedo editar o borrar un gasto?', a:'Sí. En la lista de cada categoría aparecen los íconos ✏️ (editar) y 🗑️ (eliminar) junto a cada registro. Al borrar tienes 6 segundos para deshacer.'},
-  {cat:'💰 Ingresos', q:'¿Cómo registro un ingreso?', a:'Ve a la pestaña Ingresos → Activos. Ahí encontrarás el formulario con descripción, monto, categoría (Salario, Freelance, Renta, etc.) y fecha.'},
-  {cat:'💰 Ingresos', q:'¿Qué categorías de ingreso existen?', a:'Salario, Activos, Freelance, Renta, Inversión y Otros. Puedes elegir la que mejor describa tu fuente de ingreso.'},
-  {cat:'🤝 Créditos', q:'¿Qué son los Créditos?', a:'El módulo de Créditos tiene dos secciones: "Mis Deudas" (dinero que tú pediste prestado a alguien) y "Créditos por Cobrar" (dinero que tú prestaste a otra persona).'},
-  {cat:'🤝 Créditos', q:'¿Cómo registro una deuda?', a:'Ve a Créditos → Mis Deudas → + Nueva deuda. Llena el nombre de la persona, descripción, monto, interés (opcional) y fecha límite.'},
-  {cat:'🤝 Créditos', q:'¿Cómo abono a una deuda o préstamo?', a:'En la lista de créditos toca el botón "+ Abonar". Escribe el monto del abono. La barra de progreso se actualizará automáticamente. Cuando llegue al 100% se marca como pagado.'},
-  {cat:'🤝 Créditos', q:'¿Qué significa el ícono ✅ en un crédito?', a:'Al tocarlo marcas ese crédito como completamente pagado, sin necesidad de abonar monto a monto.'},
-  {cat:'🤝 Créditos', q:'¿Qué significan los colores de estado?', a:'⏳ Amarillo = Pendiente (aún en plazo). 🔴 Rojo = Vencido (pasó la fecha límite). ✅ Verde = Pagado.'},
-  {cat:'🎯 Metas', q:'¿Cómo creo una meta de ahorro?', a:'Ve a Más → Metas de Ahorro. Escribe el nombre, el monto objetivo y cuánto ya tienes ahorrado. Luego puedes abonar periódicamente para ir avanzando.'},
-  {cat:'🎯 Metas', q:'¿Qué pasa cuando alcanzo la meta?', a:'La barra se pone verde y aparece un mensaje de felicitación "🎉 ¡Meta alcanzada!" La meta queda registrada como completada.'},
-  {cat:'📊 Presupuesto', q:'¿Cómo funciona el presupuesto mensual?', a:'Ve a Más → Presupuesto Mensual. Ahí puedes poner un límite de gasto para cada categoría (Pagos, Compras, Servicios, etc.). La barra de progreso te muestra cuánto llevas gastado vs tu límite. Rojo = te pasaste, naranja = cerca del límite.'},
-  {cat:'🔔 Alertas', q:'¿Para qué sirven las alertas de gasto?', a:'Las alertas son recordatorios con fecha y hora. Por ejemplo: "No gastar más de $500 en ropa esta semana". Aparecen con indicador de estado: 🟡 pendiente, ⚡ hoy, 🔴 vencida.'},
-  {cat:'🔔 Alertas', q:'¿Cómo edito una alerta?', a:'Toca el ícono ✏️ junto a la alerta. Los campos se llenarán en el formulario de arriba. Modifica lo que necesitas y toca "Guardar cambios".'},
-  {cat:'📋 Historial', q:'¿Qué muestra el Historial?', a:'El Historial (Más → Historial) muestra TODAS tus transacciones de ingresos y gastos ordenadas de más reciente a más antigua. Puedes editar o borrar cualquier registro desde aquí.'},
-  {cat:'📋 Historial', q:'¿Puedo ver el historial filtrado por tipo?', a:'Por ahora el historial muestra todo junto. Para ver solo gastos o solo ingresos, ve directamente a las pestañas Gastos o Ingresos donde cada categoría tiene su propio listado.'},
-  {cat:'💱 Conversor', q:'¿Cómo uso el conversor de monedas?', a:'Ve a Más → Conversor. Escribe el monto, elige la moneda de origen (MXN, USD, EUR, CNY) y la de destino. El resultado aparece automáticamente. Nota: las tasas son de referencia aproximada.'},
-  {cat:'🔑 Acceso', q:'¿Cómo entran otras personas a la app?', a:'El administrador genera un código de acceso en Más → Códigos de Acceso (o desde el menú del Avatar). Ese código se le comparte al usuario. Al entrar, el usuario escribe su nombre y el código.'},
-  {cat:'🔑 Acceso', q:'¿Los datos de cada usuario son privados?', a:'Sí. Cada usuario tiene su propio espacio de datos. El administrador no ve la información de los invitados y viceversa.'},
-  {cat:'🔑 Acceso', q:'¿Cómo genero un código de acceso?', a:'Ve al menú del Avatar → Códigos de acceso. Escribe un prefijo, elige por cuánto tiempo es válido y opcionalmente una nota de para quién es. Toca "Generar código" y se copia automáticamente.'},
-  {cat:'🔑 Acceso', q:'¿Qué pasa si un código vence?', a:'El usuario no podrá entrar con ese código. El administrador puede generar uno nuevo y desactivar el antiguo desde la sección de Códigos de Acceso.'},
-  {cat:'⚙️ Config', q:'¿Cómo cambio mi contraseña de administrador?', a:'Ve al menú Avatar → Configuración. En la sección Admin encontrarás los campos para escribir y confirmar una nueva contraseña. Mínimo 4 caracteres.'},
-  {cat:'⚙️ Config', q:'¿Cómo cambio el tema visual?', a:'Desde el menú Avatar → Cambiar tema, o desde Más → Configuración → Cambiar tema. Hay 5 temas: Verde Natural, Oscuro Pro, Dorado Élite, Océano y Rosa Elegante.'},
-  {cat:'⚙️ Config', q:'¿Cómo borro mis datos?', a:'Ve a Más → Configuración → Zona de peligro. Puedes borrar solo las transacciones o restablecer toda tu cuenta. Esta acción no se puede deshacer.'},
-  {cat:'↩️ General', q:'¿Puedo deshacer un borrado?', a:'Sí. Tienes 6 segundos después de eliminar cualquier dato (transacción, meta, alerta, crédito) para tocar "Deshacer" en la barra verde que aparece en la parte inferior.'},
-  {cat:'↩️ General', q:'¿La app guarda los datos automáticamente?', a:'Sí. Todo se guarda automáticamente en tu dispositivo (localStorage). No necesitas tocar ningún botón extra de guardado. Los datos persisten aunque cierres el navegador.'},
-  {cat:'↩️ General', q:'¿Funciona sin internet?', a:'Sí. Una vez que cargaste la app, funciona completamente sin conexión. Los datos se guardan localmente en tu dispositivo.'},
+  // ── INICIO ──
+  {cat:'🏠 Inicio', q:'¿Qué muestra la pantalla de Inicio?',
+   a:'Muestra tu balance neto, el resumen de tus cuentas (Efectivo, Banco, Total disponible, Deuda TC), Créditos, Invitados (solo admin) y las últimas transacciones. Toca cualquier tarjeta para ir al módulo correspondiente.'},
+  {cat:'🏠 Inicio', q:'¿Cómo registro un ingreso o gasto?',
+   a:'Ya no hay pestaña separada de Gastos/Ingresos. Todo se registra desde 🏦 Cuentas: entra a Efectivo o al banco que corresponda y usa el formulario de Entrada/Salida. Si es con tarjeta de crédito, regístralo desde Cuentas → Tarjetas de Crédito.'},
+  {cat:'🏠 Inicio', q:'¿Qué es el Balance Neto?',
+   a:'Es la suma de todos tus ingresos menos todos tus gastos registrados. Tócalo para ir a la pantalla de Reportes y ver el detalle completo.'},
+
+  // ── CUENTAS ──
+  {cat:'🏦 Cuentas', q:'¿Qué módulos tiene Cuentas?',
+   a:'Tiene 3 secciones: 💵 Efectivo (tu dinero en mano), 🏧 Banco (tus cuentas bancarias) y 💳 Tarjetas de Crédito. Cada una tiene su propio registro de movimientos.'},
+  {cat:'🏦 Cuentas', q:'¿Cómo registro un movimiento de Efectivo?',
+   a:'Ve a Cuentas → Efectivo. Elige Entrada (ingreso) o Salida (gasto), escribe la descripción, monto, categoría y fecha. Al guardar se actualiza tu saldo de efectivo y se crea la transacción automáticamente.'},
+  {cat:'🏦 Cuentas', q:'¿Cómo registro un movimiento bancario?',
+   a:'Ve a Cuentas → Banco → toca el banco específico. Verás sus movimientos y un formulario igual al de efectivo. Cada movimiento actualiza el saldo de esa cuenta bancaria.'},
+  {cat:'🏦 Cuentas', q:'¿Cómo agrego una cuenta bancaria?',
+   a:'Ve a Cuentas → Banco → llena el formulario al final: nombre del banco, tipo de cuenta, saldo inicial y número de cuenta (opcional). Toca Guardar.'},
+  {cat:'🏦 Cuentas', q:'¿Las compras con tarjeta de crédito afectan mi efectivo?',
+   a:'No. Las compras con tarjeta de crédito solo aumentan la deuda de esa TC. Tu saldo de efectivo y banco NO se ven afectados. El efectivo solo cambia cuando registras un movimiento directamente en Efectivo o Banco.'},
+
+  // ── TARJETAS DE CRÉDITO ──
+  {cat:'💳 Tarjetas de Crédito', q:'¿Qué información puedo registrar de mi TC?',
+   a:'Banco, tipo (Visa/Mastercard/Amex), últimos 4 dígitos, límite de crédito, saldo usado, interés anual, día de pago, fecha de corte, pago mínimo y monto para no pagar intereses.'},
+  {cat:'💳 Tarjetas de Crédito', q:'¿Qué es el Saldo al Corte?',
+   a:'Es el total de compras realizadas con esa tarjeta en el período actual (desde el corte anterior hasta la fecha de corte). Se calcula automáticamente sumando todas las transacciones registradas con esa TC en ese período. Aparece con el badge "AUTO".'},
+  {cat:'💳 Tarjetas de Crédito', q:'¿Cómo registro un pago de TC?',
+   a:'En la tarjeta toca "💳 Registrar pago". Ingresa el monto pagado. El saldo usado se reducirá automáticamente. Si llega a $0 se marca como "Al corriente".'},
+  {cat:'💳 Tarjetas de Crédito', q:'¿Cómo registro una compra con TC?',
+   a:'Ve a Cuentas → Tarjetas de Crédito → toca la tarjeta → Registrar compra (o desde el historial de esa TC). La compra aumenta tu deuda pero NO afecta tu efectivo ni banco.'},
+
+  // ── REPORTES ──
+  {cat:'📊 Reportes', q:'¿Qué muestra la pantalla de Reportes?',
+   a:'Muestra un resumen de ingresos totales, gastos totales y flujo neto del período. También muestra gastos por categoría con barras de progreso, ingresos por fuente, y los últimos movimientos con acceso al historial completo.'},
+  {cat:'📊 Reportes', q:'¿Cómo llego a Reportes?',
+   a:'Toca la pestaña 📊 Reportes en la barra de navegación inferior (cuarto ícono). También puedes llegar tocando el Balance Neto en la pantalla de Inicio.'},
+
+  // ── CRÉDITOS ──
+  {cat:'🤝 Créditos', q:'¿Qué son los Créditos?',
+   a:'El módulo de Créditos tiene dos secciones: "Mis Deudas" (dinero que tú pediste prestado a alguien) y "Créditos por Cobrar" (dinero que tú le prestaste a otra persona).'},
+  {cat:'🤝 Créditos', q:'¿Cómo abono a una deuda o préstamo?',
+   a:'En la lista de créditos toca "+ Abonar". Escribe el monto. La barra de progreso se actualiza automáticamente. Al llegar al 100% se marca como pagado.'},
+  {cat:'🤝 Créditos', q:'¿Qué significan los colores de estado?',
+   a:'⏳ Amarillo = Pendiente (en plazo). 🔴 Rojo = Vencido (pasó la fecha límite). ✅ Verde = Pagado completamente.'},
+
+  // ── HISTORIAL ──
+  {cat:'📋 Historial', q:'¿Qué muestra el Historial?',
+   a:'Ve a Más → Historial. Muestra TODAS tus transacciones con resumen de ingresos y gastos totales. Puedes filtrar por Todos, 💰 Ingresos o 💸 Gastos. Cada registro muestra la cuenta/bolsillo de origen y tiene botones de editar y eliminar.'},
+  {cat:'📋 Historial', q:'¿Puedo filtrar el historial?',
+   a:'Sí. En la parte superior del Historial hay tres botones: "Todos", "💰 Ingresos" y "💸 Gastos". Toca el que necesites para filtrar la lista.'},
+
+  // ── METAS ──
+  {cat:'🎯 Metas', q:'¿Cómo creo una meta de ahorro?',
+   a:'Ve a Más → Metas de Ahorro. Escribe el nombre, el monto objetivo y cuánto ya tienes ahorrado. Luego puedes ir abonando para avanzar hacia la meta.'},
+  {cat:'🎯 Metas', q:'¿Qué pasa cuando alcanzo la meta?',
+   a:'La barra se pone verde y aparece "🎉 ¡Meta alcanzada!". La meta queda marcada como completada.'},
+
+  // ── PRESUPUESTO ──
+  {cat:'📊 Presupuesto', q:'¿Cómo funciona el presupuesto mensual?',
+   a:'Ve a Más → Presupuesto Mensual. Asigna un límite de gasto por categoría. La barra de progreso muestra cuánto llevas vs tu límite. Naranja = cerca del límite, rojo = te pasaste.'},
+
+  // ── ALERTAS ──
+  {cat:'🔔 Alertas', q:'¿Para qué sirven las alertas de gasto?',
+   a:'Para vigilar cuánto gastas en una categoría específica. Crea una alerta con nombre de categoría, límite en $ y fecha. La app muestra una barra de progreso comparando lo gastado vs el límite. 🟢 normal · ⚡ al 75% · 🔴 excedido.'},
+  {cat:'🔔 Alertas', q:'¿Las alertas se vinculan automáticamente a mis gastos?',
+   a:'Sí. El nombre de la alerta debe coincidir con una categoría de gasto (ej: "Alimentación"). La app suma automáticamente todos los gastos de esa categoría y los compara con tu límite.'},
+
+  // ── ACCESO ──
+  {cat:'🔑 Acceso', q:'¿Cómo entran otras personas a la app?',
+   a:'Hay dos formas: (1) El administrador genera un código en Más → Códigos de Acceso y lo comparte. (2) El visitante toca "📩 Solicitar acceso" en la pantalla de login, llena su nombre, motivo y contacto. El admin recibe la solicitud y puede aprobarla generando un código automáticamente.'},
+  {cat:'🔑 Acceso', q:'¿Cómo apruebo una solicitud de acceso?',
+   a:'Cuando alguien envía una solicitud, aparece un badge 🔴 en el topbar. Tócalo para ir a Códigos de Acceso. Ahí verás las solicitudes pendientes con nombre, motivo y contacto. Toca "✅ Aprobar" para generar un código automáticamente y copiarlo al portapapeles.'},
+  {cat:'🔑 Acceso', q:'¿Los datos de cada usuario son privados?',
+   a:'Sí. Cada usuario tiene su propio espacio aislado. Los invitados no ven datos del administrador ni entre ellos.'},
+  {cat:'🔑 Acceso', q:'¿Qué hago si olvidé mi contraseña de admin?',
+   a:'En la pantalla de login toca "🔐 Acceso administrador", luego toca "¿Olvidaste tu contraseña? Restablecer". Esto borrará la contraseña guardada y podrás usar la clave maestra admin1234.'},
+
+  // ── CONFIGURACIÓN ──
+  {cat:'⚙️ Config', q:'¿Cómo cambio el tema visual?',
+   a:'Ve a Más → Configuración → Cambiar tema. Hay 5 temas disponibles: Verde Natural, Oscuro Pro, Dorado Élite, Océano y Rosa Elegante.'},
+  {cat:'⚙️ Config', q:'¿Cómo cambio mi contraseña de administrador?',
+   a:'Ve a Más → Configuración. En la sección Admin escribe y confirma tu nueva contraseña (mínimo 4 caracteres).'},
+  {cat:'⚙️ Config', q:'¿Cómo borro mis datos?',
+   a:'Ve a Más → Configuración → Zona de peligro. Puedes borrar solo las transacciones o restablecer toda tu cuenta. Esta acción no se puede deshacer.'},
+
+  // ── GENERAL ──
+  {cat:'↩️ General', q:'¿Puedo deshacer un borrado?',
+   a:'Sí. Tienes 6 segundos después de eliminar cualquier dato para tocar "Deshacer" en la barra verde que aparece abajo.'},
+  {cat:'↩️ General', q:'¿La app guarda los datos automáticamente?',
+   a:'Sí. Todo se guarda automáticamente en tu dispositivo. No necesitas presionar ningún botón extra de guardado.'},
+  {cat:'↩️ General', q:'¿Funciona sin internet?',
+   a:'Sí. Una vez cargada, la app funciona completamente sin conexión. Los datos se guardan localmente en tu dispositivo.'},
+  {cat:'↩️ General', q:'¿Cómo uso la calculadora?',
+   a:'Toca el ícono 🔢 en la barra superior. La calculadora flotante se puede arrastrar a cualquier posición de la pantalla. Funciona en paralelo mientras usas cualquier parte de la app.'},
 ];
 
 function renderAyuda(){
