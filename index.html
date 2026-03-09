@@ -2106,14 +2106,12 @@ function actualizarUMenu(){
 }
 
 function irACuenta(sub){
-  // Cerrar menú
   var menu = document.getElementById('uFabMenu');
   var btn  = document.getElementById('uFabBtn');
-  if(menu){ menu.style.opacity='0'; menu.style.transform='scale(0.8) translateY(20px)'; setTimeout(function(){ menu.style.display='none'; },200); }
+  if(menu){ menu.style.opacity='0'; menu.style.transform='scale(0.85) translateY(-10px)'; setTimeout(function(){ menu.style.display='none'; },200); }
   if(btn) btn.style.transform='rotate(0deg)';
-  // Navegar
   goTab('cuentas', document.querySelectorAll('.nb')[1]);
-  setTimeout(function(){ goSub(sub); }, 60);
+  setTimeout(function(){ goSub(sub); }, 120);
 }
 
 function cerrarSesion(){
@@ -2953,98 +2951,105 @@ var FAQS = [
   // ── INICIO ──
   {cat:'🏠 Inicio', q:'¿Qué muestra la pantalla de Inicio?',
    a:'Muestra tu balance neto, el resumen de tus cuentas (Efectivo, Banco, Total disponible, Deuda TC), Créditos, Invitados (solo admin) y las últimas transacciones. Toca cualquier tarjeta para ir al módulo correspondiente.'},
-  {cat:'🏠 Inicio', q:'¿Cómo registro un ingreso o gasto?',
-   a:'Ya no hay pestaña separada de Gastos/Ingresos. Todo se registra desde 🏦 Cuentas: entra a Efectivo o al banco que corresponda y usa el formulario de Entrada/Salida. Si es con tarjeta de crédito, regístralo desde Cuentas → Tarjetas de Crédito.'},
+  {cat:'🏠 Inicio', q:'¿Cómo registro un ingreso o gasto rápido?',
+   a:'Todo se registra desde 🏦 Cuentas. Usa el botón U azul en la barra superior para acceder en un toque a Efectivo, Banco o Tarjetas de Crédito desde cualquier pantalla.'},
   {cat:'🏠 Inicio', q:'¿Qué es el Balance Neto?',
    a:'Es la suma de todos tus ingresos menos todos tus gastos registrados. Tócalo para ir a la pantalla de Reportes y ver el detalle completo.'},
 
+  // ── BOTÓN U ──
+  {cat:'🔵 Botón U', q:'¿Para qué sirve el botón U azul en la barra superior?',
+   a:'Es un acceso rápido a tus 3 cuentas principales. Tócalo y aparece un menú con Efectivo, Cheques/Banco y Tarjetas de Crédito, cada uno mostrando el saldo actual. Toca cualquiera y vas directo a esa sección.'},
+  {cat:'🔵 Botón U', q:'¿Desde dónde funciona el botón U?',
+   a:'Desde cualquier pantalla del dashboard. No importa en qué pestaña estés — el botón U siempre está en la barra superior y te lleva directo a la cuenta que necesites.'},
+
   // ── CUENTAS ──
   {cat:'🏦 Cuentas', q:'¿Qué módulos tiene Cuentas?',
-   a:'Tiene 3 secciones: 💵 Efectivo (tu dinero en mano), 🏧 Banco (tus cuentas bancarias) y 💳 Tarjetas de Crédito. Cada una tiene su propio registro de movimientos.'},
+   a:'Tiene 3 secciones: 💵 Efectivo (tu dinero en mano), 🏧 Cheques/Banco (tus cuentas bancarias) y 💳 Tarjetas de Crédito. Cada una tiene su propio registro de movimientos.'},
   {cat:'🏦 Cuentas', q:'¿Cómo registro un movimiento de Efectivo?',
-   a:'Ve a Cuentas → Efectivo. Elige Entrada (ingreso) o Salida (gasto), escribe la descripción, monto, categoría y fecha. Al guardar se actualiza tu saldo de efectivo y se crea la transacción automáticamente.'},
+   a:'Ve a Cuentas → Efectivo (o usa el botón U). Elige Entrada o Salida, escribe descripción, monto, categoría y fecha. Al guardar se actualiza tu saldo automáticamente.'},
   {cat:'🏦 Cuentas', q:'¿Cómo registro un movimiento bancario?',
-   a:'Ve a Cuentas → Banco → toca el banco específico. Verás sus movimientos y un formulario igual al de efectivo. Cada movimiento actualiza el saldo de esa cuenta bancaria.'},
+   a:'Ve a Cuentas → Cheques/Banco → toca el banco específico. Verás sus movimientos y un formulario de entrada/salida. Cada movimiento actualiza el saldo de esa cuenta.'},
   {cat:'🏦 Cuentas', q:'¿Cómo agrego una cuenta bancaria?',
-   a:'Ve a Cuentas → Banco → llena el formulario al final: nombre del banco, tipo de cuenta, saldo inicial y número de cuenta (opcional). Toca Guardar.'},
-  {cat:'🏦 Cuentas', q:'¿Las compras con tarjeta de crédito afectan mi efectivo?',
-   a:'No. Las compras con tarjeta de crédito solo aumentan la deuda de esa TC. Tu saldo de efectivo y banco NO se ven afectados. El efectivo solo cambia cuando registras un movimiento directamente en Efectivo o Banco.'},
+   a:'Ve a Cuentas → Cheques/Banco → llena el formulario: nombre del banco, tipo de cuenta, saldo inicial. Toca Guardar.'},
+  {cat:'🏦 Cuentas', q:'¿Las compras con TC afectan mi efectivo?',
+   a:'No. Las compras con tarjeta solo aumentan la deuda de esa TC. Tu efectivo y banco NO se ven afectados.'},
 
-  // ── TARJETAS DE CRÉDITO ──
+  // ── TARJETAS ──
   {cat:'💳 Tarjetas de Crédito', q:'¿Qué información puedo registrar de mi TC?',
-   a:'Banco, tipo (Visa/Mastercard/Amex), últimos 4 dígitos, límite de crédito, saldo usado, interés anual, día de pago, fecha de corte, pago mínimo y monto para no pagar intereses.'},
-  {cat:'💳 Tarjetas de Crédito', q:'¿Qué es el Saldo al Corte?',
-   a:'Es el total de compras realizadas con esa tarjeta en el período actual (desde el corte anterior hasta la fecha de corte). Se calcula automáticamente sumando todas las transacciones registradas con esa TC en ese período. Aparece con el badge "AUTO".'},
-  {cat:'💳 Tarjetas de Crédito', q:'¿Cómo registro un pago de TC?',
-   a:'En la tarjeta toca "💳 Registrar pago". Ingresa el monto pagado. El saldo usado se reducirá automáticamente. Si llega a $0 se marca como "Al corriente".'},
+   a:'Banco, tipo (Visa/Mastercard/Amex), últimos 4 dígitos, límite, saldo usado, interés anual, día de pago, fecha de corte, pago mínimo y monto para no pagar intereses.'},
+  {cat:'💳 Tarjetas de Crédito', q:'¿Qué es el Saldo al Corte AUTO?',
+   a:'Se calcula automáticamente sumando todas las compras registradas con esa TC en el período actual. Aparece con badge naranja "AUTO". No necesitas calcularlo manualmente.'},
   {cat:'💳 Tarjetas de Crédito', q:'¿Cómo registro una compra con TC?',
-   a:'Ve a Cuentas → Tarjetas de Crédito → toca la tarjeta → Registrar compra (o desde el historial de esa TC). La compra aumenta tu deuda pero NO afecta tu efectivo ni banco.'},
+   a:'En la tarjeta toca "🛒 Registrar compra". Llena descripción, monto, categoría y fecha. La deuda aumenta pero NO afecta tu efectivo ni banco.'},
+  {cat:'💳 Tarjetas de Crédito', q:'¿Cómo registro un pago de TC?',
+   a:'Toca "💳 Pago" en la tarjeta. Ingresa el monto pagado. El saldo se reduce automáticamente. Si llega a $0 se marca como "Al corriente".'},
 
   // ── REPORTES ──
   {cat:'📊 Reportes', q:'¿Qué muestra la pantalla de Reportes?',
-   a:'Muestra un resumen de ingresos totales, gastos totales y flujo neto del período. También muestra gastos por categoría con barras de progreso, ingresos por fuente, y los últimos movimientos con acceso al historial completo.'},
+   a:'Ingresos totales, gastos totales y flujo neto del período. Gastos por categoría con barras de progreso, ingresos por fuente y últimos movimientos.'},
   {cat:'📊 Reportes', q:'¿Cómo llego a Reportes?',
-   a:'Toca la pestaña 📊 Reportes en la barra de navegación inferior (cuarto ícono). También puedes llegar tocando el Balance Neto en la pantalla de Inicio.'},
+   a:'Toca 📊 Reportes en la barra inferior (cuarto ícono). También puedes llegar tocando el Balance Neto en Inicio.'},
 
   // ── CRÉDITOS ──
   {cat:'🤝 Créditos', q:'¿Qué son los Créditos?',
-   a:'El módulo de Créditos tiene dos secciones: "Mis Deudas" (dinero que tú pediste prestado a alguien) y "Créditos por Cobrar" (dinero que tú le prestaste a otra persona).'},
-  {cat:'🤝 Créditos', q:'¿Cómo abono a una deuda o préstamo?',
-   a:'En la lista de créditos toca "+ Abonar". Escribe el monto. La barra de progreso se actualiza automáticamente. Al llegar al 100% se marca como pagado.'},
-  {cat:'🤝 Créditos', q:'¿Qué significan los colores de estado?',
-   a:'⏳ Amarillo = Pendiente (en plazo). 🔴 Rojo = Vencido (pasó la fecha límite). ✅ Verde = Pagado completamente.'},
+   a:'"Mis Deudas" = dinero que tú pediste prestado. "Créditos por Cobrar" = dinero que tú prestaste. Ambos llevan seguimiento de abonos y fechas.'},
+  {cat:'🤝 Créditos', q:'¿Cómo abono a una deuda?',
+   a:'Toca "+ Abonar" en el crédito. La barra de progreso se actualiza al instante. Al llegar al 100% se marca como pagado.'},
+  {cat:'🤝 Créditos', q:'¿Qué significan los colores?',
+   a:'⏳ Amarillo = Pendiente (en plazo). 🔴 Rojo = Vencido. ✅ Verde = Pagado completamente.'},
 
   // ── HISTORIAL ──
   {cat:'📋 Historial', q:'¿Qué muestra el Historial?',
-   a:'Ve a Más → Historial. Muestra TODAS tus transacciones con resumen de ingresos y gastos totales. Puedes filtrar por Todos, 💰 Ingresos o 💸 Gastos. Cada registro muestra la cuenta/bolsillo de origen y tiene botones de editar y eliminar.'},
+   a:'Ve a Más → Historial. Todas tus transacciones con resumen de ingresos y gastos. Filtra por Todos, 💰 Ingresos o 💸 Gastos. Cada registro muestra la cuenta de origen y tiene botones de editar y eliminar.'},
   {cat:'📋 Historial', q:'¿Puedo filtrar el historial?',
-   a:'Sí. En la parte superior del Historial hay tres botones: "Todos", "💰 Ingresos" y "💸 Gastos". Toca el que necesites para filtrar la lista.'},
+   a:'Sí. Tres botones al inicio: "Todos", "💰 Ingresos" y "💸 Gastos". Toca el que necesites.'},
 
-  // ── METAS ──
-  {cat:'🎯 Metas', q:'¿Cómo creo una meta de ahorro?',
-   a:'Ve a Más → Metas de Ahorro. Escribe el nombre, el monto objetivo y cuánto ya tienes ahorrado. Luego puedes ir abonando para avanzar hacia la meta.'},
-  {cat:'🎯 Metas', q:'¿Qué pasa cuando alcanzo la meta?',
-   a:'La barra se pone verde y aparece "🎉 ¡Meta alcanzada!". La meta queda marcada como completada.'},
+  // ── LOGIN ──
+  {cat:'🔐 Login', q:'¿Cómo entro más rápido la próxima vez?',
+   a:'La app recuerda tu sesión automáticamente. La próxima vez que abras USALA verás tu nombre y un botón "¡Continuar! →". Un solo toque y estás adentro.'},
+  {cat:'🔐 Login', q:'¿Puedo cerrar sesión y entrar con otro código?',
+   a:'Sí. En la pantalla de sesión recordada toca "No soy yo — ingresar con otro código". También puedes cerrar sesión desde Más → Configuración → Cerrar sesión.'},
 
-  // ── PRESUPUESTO ──
-  {cat:'📊 Presupuesto', q:'¿Cómo funciona el presupuesto mensual?',
-   a:'Ve a Más → Presupuesto Mensual. Asigna un límite de gasto por categoría. La barra de progreso muestra cuánto llevas vs tu límite. Naranja = cerca del límite, rojo = te pasaste.'},
-
-  // ── ALERTAS ──
-  {cat:'🔔 Alertas', q:'¿Para qué sirven las alertas de gasto?',
-   a:'Para vigilar cuánto gastas en una categoría específica. Crea una alerta con nombre de categoría, límite en $ y fecha. La app muestra una barra de progreso comparando lo gastado vs el límite. 🟢 normal · ⚡ al 75% · 🔴 excedido.'},
-  {cat:'🔔 Alertas', q:'¿Las alertas se vinculan automáticamente a mis gastos?',
-   a:'Sí. El nombre de la alerta debe coincidir con una categoría de gasto (ej: "Alimentación"). La app suma automáticamente todos los gastos de esa categoría y los compara con tu límite.'},
+  // ── VOZ ──
+  {cat:'🎙️ Comandos de Voz', q:'¿Cómo activo los comandos de voz?',
+   a:'Toca el ícono 🎙️ en la barra superior. Habla claramente tu comando. La app lo procesa y ejecuta la acción automáticamente.'},
+  {cat:'🎙️ Comandos de Voz', q:'¿Qué comandos de voz puedo usar?',
+   a:'Puedes decir: "ir a efectivo", "ir a banco", "ir a tarjetas", "ir a créditos", "ir a reportes", "ir a inicio", "abrir calculadora", "ir a historial", "ir a metas", "ir a presupuesto". También puedes decir "ayuda" para abrir esta pantalla.'},
+  {cat:'🎙️ Comandos de Voz', q:'¿En qué idioma funcionan los comandos?',
+   a:'En español. Habla de forma natural y corta. Por ejemplo: "efectivo", "banco", "tarjetas", "inicio". La app reconoce la palabra clave dentro de lo que dices.'},
+  {cat:'🎙️ Comandos de Voz', q:'¿Funciona en todos los teléfonos?',
+   a:'Funciona en la mayoría de navegadores modernos (Chrome, Edge, Safari en iOS 15+). Si tu navegador no soporta reconocimiento de voz, el botón no aparecerá.'},
 
   // ── ACCESO ──
-  {cat:'🔑 Acceso', q:'¿Cómo entran otras personas a la app?',
-   a:'Hay dos formas: (1) El administrador genera un código en Más → Códigos de Acceso y lo comparte. (2) El visitante toca "📩 Solicitar acceso" en la pantalla de login, llena su nombre, motivo y contacto. El admin recibe la solicitud y puede aprobarla generando un código automáticamente.'},
-  {cat:'🔑 Acceso', q:'¿Cómo apruebo una solicitud de acceso?',
-   a:'Cuando alguien envía una solicitud, aparece un badge 🔴 en el topbar. Tócalo para ir a Códigos de Acceso. Ahí verás las solicitudes pendientes con nombre, motivo y contacto. Toca "✅ Aprobar" para generar un código automáticamente y copiarlo al portapapeles.'},
+  {cat:'🔑 Acceso', q:'¿Cómo entran otras personas?',
+   a:'El admin genera un código en Más → Códigos de Acceso y lo comparte. O el visitante toca "📩 Solicitar acceso" en el login y el admin aprueba generando el código automáticamente.'},
+  {cat:'🔑 Acceso', q:'¿Cómo apruebo una solicitud?',
+   a:'Aparece un badge 🔴 en el topbar. Tócalo → Códigos de Acceso → Solicitudes pendientes. Toca "✅ Aprobar" para generar el código y copiarlo al portapapeles.'},
   {cat:'🔑 Acceso', q:'¿Los datos de cada usuario son privados?',
-   a:'Sí. Cada usuario tiene su propio espacio aislado. Los invitados no ven datos del administrador ni entre ellos.'},
-  {cat:'🔑 Acceso', q:'¿Qué hago si olvidé mi contraseña de admin?',
-   a:'En la pantalla de login toca "🔐 Acceso administrador", luego toca "¿Olvidaste tu contraseña? Restablecer". Esto borrará la contraseña guardada y podrás usar la clave maestra admin1234.'},
+   a:'Sí. Cada usuario tiene su propio espacio aislado. Los invitados no ven datos del admin ni entre ellos.'},
+  {cat:'🔑 Acceso', q:'¿Olvidé mi contraseña de admin?',
+   a:'En el login toca "🔐 Admin" → "¿Olvidaste tu contraseña? Restablecer". Podrás usar la clave maestra admin1234.'},
 
-  // ── CONFIGURACIÓN ──
+  // ── CONFIG ──
   {cat:'⚙️ Config', q:'¿Cómo cambio el tema visual?',
-   a:'Ve a Más → Configuración → Cambiar tema. Hay 5 temas disponibles: Verde Natural, Oscuro Pro, Dorado Élite, Océano y Rosa Elegante.'},
-  {cat:'⚙️ Config', q:'¿Cómo cambio mi contraseña de administrador?',
-   a:'Ve a Más → Configuración. En la sección Admin escribe y confirma tu nueva contraseña (mínimo 4 caracteres).'},
+   a:'Más → Configuración → Cambiar tema. 5 temas: Verde Natural, Oscuro Pro, Dorado Élite, Océano y Rosa Elegante.'},
+  {cat:'⚙️ Config', q:'¿Cómo cambio mi contraseña?',
+   a:'Más → Configuración → escribe y confirma tu nueva contraseña (mínimo 4 caracteres).'},
   {cat:'⚙️ Config', q:'¿Cómo borro mis datos?',
-   a:'Ve a Más → Configuración → Zona de peligro. Puedes borrar solo las transacciones o restablecer toda tu cuenta. Esta acción no se puede deshacer.'},
+   a:'Más → Configuración → Zona de peligro. Puedes borrar solo las transacciones o restablecer toda tu cuenta. No se puede deshacer.'},
 
   // ── GENERAL ──
   {cat:'↩️ General', q:'¿Puedo deshacer un borrado?',
-   a:'Sí. Tienes 6 segundos después de eliminar cualquier dato para tocar "Deshacer" en la barra verde que aparece abajo.'},
-  {cat:'↩️ General', q:'¿La app guarda los datos automáticamente?',
-   a:'Sí. Todo se guarda automáticamente en tu dispositivo. No necesitas presionar ningún botón extra de guardado.'},
+   a:'Sí. Tienes 6 segundos después de eliminar para tocar "Deshacer" en la barra verde que aparece abajo.'},
+  {cat:'↩️ General', q:'¿La app guarda automáticamente?',
+   a:'Sí. Todo se guarda automáticamente en tu dispositivo al instante.'},
   {cat:'↩️ General', q:'¿Funciona sin internet?',
-   a:'Sí. Una vez cargada, la app funciona completamente sin conexión. Los datos se guardan localmente en tu dispositivo.'},
+   a:'Sí. Una vez cargada funciona completamente sin conexión. Los datos se guardan localmente.'},
   {cat:'↩️ General', q:'¿Cómo uso la calculadora?',
-   a:'Toca el ícono 🔢 en la barra superior. La calculadora flotante se puede arrastrar a cualquier posición de la pantalla. Funciona en paralelo mientras usas cualquier parte de la app.'},
+   a:'Toca 🔢 en la barra superior. Puedes arrastrarla, minimizarla con el botón amarillo (−) sin perder tus cálculos, o cerrarla con el botón rojo (✕).'},
 ];
 
+function renderAyuda(){
 function renderAyuda(){
   var html = '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">❓ Ayuda</div></div>'
     +'<div style="position:relative;margin-bottom:14px;">'
