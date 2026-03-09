@@ -2152,15 +2152,16 @@ function _getMonedaEstado(){
 
 function restablecerMic(){
   localStorage.removeItem('usala_mic_permiso');
-  // Restablecer también en el navegador si es posible
-  showToast('🎤 Permiso de micrófono restablecido. Abre el asistente 🎙️ para solicitarlo de nuevo.');
-  // Refrescar el label
+  // Limpiar historial del asistente para que arranque desde cero
+  _iaHistorial = [];
+  _iaAbierto = false;
+  var p = document.getElementById('iaPanel');
+  if(p){ p.classList.remove('visible'); }
+  var bub = document.getElementById('iaBubbles');
+  if(bub) bub.innerHTML = '';
+  showToast('🎤 Restablecido. Abre el asistente 🎙️ para solicitarlo de nuevo.');
   var el = document.getElementById('micEstadoLabel');
   if(el) el.textContent = 'No solicitado aún';
-  // Si el navegador soporta revocar permisos
-  if(navigator.permissions && navigator.permissions.revoke){
-    navigator.permissions.revoke({name:'microphone'}).catch(function(){});
-  }
 }
 
 function restablecerMonedaIA(){
@@ -3286,31 +3287,40 @@ function abrirIA(){
   if(_iaHistorial.length === 0){
     var permiso = localStorage.getItem('usala_mic_permiso');
 
-    // ── Pedir permiso mic PRIMERO si nunca se ha pedido ──
     if(!permiso && navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+      // ── PASO 1: Pedir permiso mic — NO llamar _saludoIA aquí ──
       agregarMensajeIA('👋 ¡Hola ' + S.user.nombre.split(' ')[0] + '! Para escucharte necesito acceso al micrófono. Toca "Permitir" cuando aparezca el mensaje 👆', 'ia');
-      hablarIA('Hola, necesito acceso al micrófono. Toca Permitir cuando aparezca el mensaje.');
+      hablarIA('Hola, necesito acceso al micrófono. Toca Permitir cuando aparezca.');
       setTimeout(function(){
         navigator.mediaDevices.getUserMedia({audio:true})
           .then(function(stream){
             stream.getTracks().forEach(function(t){ t.stop(); });
             localStorage.setItem('usala_mic_permiso','granted');
-            agregarMensajeIA('✅ ¡Perfecto! Ya puedo escucharte. Toca 🎤 y habla con naturalidad.', 'ia');
-            hablarIA('Perfecto, ya puedo escucharte. Toca el micrófono y habla.');
-            // Ahora mostrar saludo o moneda
-            setTimeout(function(){ _saludoIA(); }, 1500);
+            agregarMensajeIA('✅ ¡Listo! Ya puedo escucharte. Toca 🎤 y habla.', 'ia');
+            hablarIA('Listo. Toca el micrófono y habla.');
+            // ── PASO 2: Solo después pedir moneda si no está configurada ──
+            setTimeout(function(){
+              var monedaGuardada = localStorage.getItem(_iaMonedaKey());
+              if(!monedaGuardada){
+                var nom = S.user.nombre.split(' ')[0];
+                agregarMensajeIA('Una última cosa: ¿en qué moneda trabajas ' + nom + '?', 'ia');
+                hablarIA('¿En qué moneda trabajas?');
+                mostrarBotonesMoneda();
+              }
+              // Si ya tiene moneda, no hacer nada — el usuario toca 🎤 cuando quiera
+            }, 1800);
           })
           .catch(function(err){
             localStorage.setItem('usala_mic_permiso','denied');
-            agregarMensajeIA('❌ Permiso denegado. Ve a Chrome ⋮ → Configuración → Privacidad y seguridad → Configuración del sitio → Micrófono → permite esta página. Luego recarga la app.', 'ia');
-            hablarIA('Permiso denegado. Ve a la configuración del navegador para permitir el micrófono.');
+            agregarMensajeIA('❌ Permiso denegado. Chrome ⋮ → Configuración del sitio → Micrófono → permite esta página → recarga.', 'ia');
+            hablarIA('Permiso denegado. Actívalo en configuración del navegador.');
           });
       }, 800);
-      return;
-    }
 
-    // Permiso ya dado o no disponible — saludo directo
-    _saludoIA();
+    } else {
+      // Permiso ya dado — ir directo al saludo
+      _saludoIA();
+    }
   }
 }
 
@@ -3715,4 +3725,4 @@ function ejecutarAccionIA(resp){
   }
 }
 }
-      </script>
+</script>
