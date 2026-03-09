@@ -96,9 +96,9 @@ html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--bg);color
 
 /* ── ACCESS SCREEN ── */
 #accessScreen{
-  align-items:center;justify-content:center;padding:32px 20px;
+  align-items:center;justify-content:start;padding:24px 20px 40px;
   background:linear-gradient(160deg,#dceeff 0%,#eef5ff 60%,#f5f9ff 100%) !important;
-  min-height:100vh;
+  min-height:100vh;overflow-y:auto;
 }
 .access-logo{
   font-size:3.4rem;font-weight:900;
@@ -360,7 +360,7 @@ select.inp{appearance:none;-webkit-appearance:none;}
 
 <!-- ══ ACCESS SCREEN ══ -->
 <div class="screen active" id="accessScreen">
-  <div style="width:100%;max-width:420px;margin:auto;padding:0 0 40px;">
+  <div style="width:100%;max-width:420px;margin:0 auto;padding:16px 0 60px;">
     <!-- Logo USALA -->
     <div style="text-align:center;">
       <div class="access-logo">USALA</div>
@@ -409,8 +409,8 @@ select.inp{appearance:none;-webkit-appearance:none;}
       <button onclick="mostrarPanelSolicitud()" style="width:100%;padding:16px;border:2.5px dashed #2355c9;background:rgba(35,85,201,0.04);color:#2355c9;border-radius:18px;font-family:'Outfit',sans-serif;font-size:0.92rem;font-weight:800;cursor:pointer;letter-spacing:0.01em;">
         📩 Solicitar acceso al administrador
       </button>
-      <div style="text-align:center;margin-top:18px;">
-        <span onclick="abrirAdminModal()" style="font-size:0.82rem;color:#5a7abf;cursor:pointer;text-decoration:underline;text-underline-offset:3px;font-weight:600;">🔒 Acceso administrador</span>
+      <div style="text-align:center;margin-top:20px;padding:14px;background:rgba(35,85,201,0.06);border-radius:14px;">
+        <span onclick="abrirAdminModal()" style="font-size:0.9rem;color:#2355c9;cursor:pointer;font-weight:700;letter-spacing:0.01em;">🔒 Acceso administrador</span>
       </div>
     </div>
 
@@ -3345,7 +3345,40 @@ function toggleVoz(){
 // Micrófono
 function toggleMicIA(){
   if(_iaActivo){ detenerMicIA(); return; }
-  iniciarMicIA();
+  // Si nunca se pidió permiso, pedirlo primero con dialogo claro
+  var permiso = localStorage.getItem('usala_mic_permiso');
+  if(!permiso){
+    pedirPermisoMic();
+  } else if(permiso === 'granted'){
+    iniciarMicIA();
+  } else {
+    // Denegado — mostrar instrucciones
+    agregarMensajeIA('🔒 El micrófono está bloqueado. En Chrome: toca los 3 puntos ⋮ arriba → Configuración → Privacidad y seguridad → Configuración del sitio → Micrófono → busca esta página y cambia a Permitir. Luego recarga la app.', 'ia');
+    hablarIA('El micrófono está bloqueado. Ve a la configuración del navegador para permitirlo.');
+  }
+}
+
+function pedirPermisoMic(){
+  // Mostrar mensaje antes del popup del navegador
+  agregarMensajeIA('📋 Voy a pedir acceso al micrófono. Cuando aparezca el mensaje del navegador, toca "Permitir" 👆', 'ia');
+  hablarIA('Voy a pedir acceso al micrófono. Toca Permitir cuando aparezca el mensaje.');
+  setTimeout(function(){
+    navigator.mediaDevices.getUserMedia({audio:true})
+      .then(function(stream){
+        stream.getTracks().forEach(function(t){ t.stop(); });
+        localStorage.setItem('usala_mic_permiso','granted');
+        agregarMensajeIA('✅ ¡Perfecto! Micrófono activado. Ahora toca el botón 🎤 y habla.', 'ia');
+        hablarIA('Perfecto, micrófono activado. Toca el botón y habla.');
+      })
+      .catch(function(err){
+        localStorage.setItem('usala_mic_permiso','denied');
+        var msg = err.name === 'NotAllowedError'
+          ? '❌ Permiso denegado. Ve a Chrome ⋮ → Configuración → Privacidad y seguridad → Configuración del sitio → Micrófono → permite esta página. Luego recarga.'
+          : '❌ No se pudo acceder al micrófono: ' + err.message;
+        agregarMensajeIA(msg, 'ia');
+        hablarIA('No se pudo activar el micrófono. Revisa los permisos en configuración.');
+      });
+  }, 1200);
 }
 function iniciarMicIA(){
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -3619,4 +3652,4 @@ function ejecutarAccionIA(resp){
   }
 }
 }
-  </script>
+        </script>
