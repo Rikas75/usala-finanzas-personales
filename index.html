@@ -95,18 +95,18 @@ html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--bg);color
 .tp-btn{margin-top:24px;width:100%;padding:16px;background:var(--accent);color:var(--navtext);border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;letter-spacing:0.02em;}
 
 /* ── ACCESS SCREEN ── */
-#accessScreen{align-items:center;justify-content:center;padding:32px 24px;}
-.access-logo{font-size:2rem;font-weight:900;color:var(--accent);margin-bottom:4px;}
-.access-icon{font-size:3rem;margin-bottom:16px;}
-.access-card{background:var(--card);border-radius:var(--radius);padding:28px 24px;width:100%;box-shadow:var(--shadow);}
-.access-title{font-size:1.1rem;font-weight:800;margin-bottom:4px;}
-.access-sub{font-size:0.76rem;color:var(--dim);margin-bottom:20px;}
-.inp-label{font-size:0.72rem;font-weight:600;color:var(--accent);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;display:block;}
-.inp{width:100%;padding:14px 16px;background:var(--inp);border:1.5px solid var(--border);border-radius:12px;font-family:'Outfit',sans-serif;font-size:0.95rem;color:var(--text);outline:none;margin-bottom:14px;}
-.inp:focus{border-color:var(--accent);}
-.btn-main{width:100%;padding:15px;background:var(--accent);color:var(--navtext);border:none;border-radius:12px;font-family:'Outfit',sans-serif;font-size:0.95rem;font-weight:700;cursor:pointer;margin-top:4px;}
-.btn-main:active{opacity:0.85;}
-.access-err{display:none;padding:10px 14px;background:rgba(229,57,53,0.08);border:1px solid rgba(229,57,53,0.25);border-radius:10px;font-size:0.78rem;color:var(--danger);margin-bottom:12px;}
+#accessScreen{align-items:center;justify-content:flex-start;padding:0;overflow-y:auto;}
+.access-logo{font-size:2.8rem;font-weight:900;color:var(--accent);margin-bottom:2px;letter-spacing:-0.02em;}
+.access-icon{font-size:2.2rem;margin-bottom:8px;}
+.access-card{background:var(--card);border-radius:24px;padding:28px 24px 24px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,0.08);}
+.access-title{font-size:1.15rem;font-weight:900;margin-bottom:4px;color:var(--text);}
+.access-sub{font-size:0.78rem;color:var(--dim);margin-bottom:20px;line-height:1.5;}
+.inp-label{font-size:0.72rem;font-weight:700;color:var(--accent);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;display:block;}
+.inp{width:100%;padding:16px 18px;background:var(--inp);border:1.5px solid transparent;border-radius:16px;font-family:'Outfit',sans-serif;font-size:1rem;color:var(--text);outline:none;margin-bottom:16px;transition:border-color 0.2s;}
+.inp:focus{border-color:var(--accent);background:var(--card);}
+.btn-main{width:100%;padding:17px;background:var(--accent);color:var(--navtext);border:none;border-radius:16px;font-family:'Outfit',sans-serif;font-size:1rem;font-weight:800;cursor:pointer;margin-top:4px;letter-spacing:0.01em;box-shadow:0 4px 16px rgba(45,106,255,0.3);}
+.btn-main:active{opacity:0.88;transform:scale(0.98);}
+.access-err{display:none;padding:10px 14px;background:rgba(229,57,53,0.08);border:1px solid rgba(229,57,53,0.25);border-radius:12px;font-size:0.8rem;color:var(--danger);margin-bottom:14px;}
 .admin-link{text-align:center;margin-top:16px;font-size:0.72rem;color:var(--dim);cursor:pointer;text-decoration:underline;}
 .admin-modal{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.5);align-items:flex-end;}
 .admin-modal.open{display:flex;}
@@ -304,18 +304,24 @@ select.inp{appearance:none;-webkit-appearance:none;}
 
 <!-- ══ ACCESS SCREEN ══ -->
 <div class="screen" id="accessScreen">
-  <div style="width:100%;max-width:420px;margin:auto;padding:24px 24px 70px;">
-    <div style="text-align:center;margin-bottom:24px;">
-      <!-- Admin link ARRIBA, siempre visible -->
-      <div style="text-align:right;margin-bottom:8px;">
-        <span onclick="abrirAdminModal()" style="font-size:0.75rem;color:var(--dim);cursor:pointer;background:var(--card);padding:6px 12px;border-radius:20px;border:1px solid var(--border);display:inline-flex;align-items:center;gap:4px;">🔐 Admin</span>
-      </div>
-      <div class="access-logo">USALA</div>
-      <div style="font-size:0.75rem;color:var(--dim);">Finanzas Personales</div>
-      <div style="margin-top:10px;">
-        <span onclick="abrirAdminModal()" style="font-size:0.75rem;color:var(--dim);cursor:pointer;text-decoration:underline;text-underline-offset:3px;opacity:0.6;">🔐 Acceso administrador</span>
+  <div style="width:100%;max-width:420px;margin:0 auto;padding:0 0 40px;min-height:100vh;display:flex;flex-direction:column;">
+
+    <!-- Header con fondo degradado suave -->
+    <div style="background:linear-gradient(160deg,var(--accent) 0%,var(--accent2,#4f8ef7) 100%);padding:52px 28px 40px;text-align:center;border-radius:0 0 36px 36px;position:relative;overflow:hidden;">
+      <!-- Círculos decorativos -->
+      <div style="position:absolute;top:-30px;right:-30px;width:120px;height:120px;background:rgba(255,255,255,0.08);border-radius:50%;"></div>
+      <div style="position:absolute;bottom:-20px;left:-20px;width:80px;height:80px;background:rgba(255,255,255,0.06);border-radius:50%;"></div>
+      <!-- Logo -->
+      <div style="font-size:3rem;font-weight:900;color:#fff;letter-spacing:-0.03em;line-height:1;">USALA</div>
+      <div style="font-size:0.8rem;color:rgba(255,255,255,0.8);margin-top:4px;font-weight:500;">Finanzas Personales</div>
+      <!-- Botón admin en esquina -->
+      <div style="position:absolute;top:16px;right:16px;">
+        <button onclick="abrirAdminModal()" style="background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:6px 14px;border-radius:20px;font-family:'Outfit',sans-serif;font-size:0.72rem;font-weight:700;cursor:pointer;">🔐 Admin</button>
       </div>
     </div>
+
+    <!-- Contenido de los panels -->
+    <div style="padding:24px 20px 0;flex:1;">
 
     <!-- ── PANEL: Sesión recordada ── -->
     <div class="access-card" id="panelSesion" style="display:none;">
@@ -337,12 +343,11 @@ select.inp{appearance:none;-webkit-appearance:none;}
 
     <!-- ── PANEL: Código ── -->
     <div class="access-card" id="panelCodigo" style="display:none;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-        <span style="font-size:1.3rem;">🔑</span>
-        <div>
-          <div style="font-size:1rem;font-weight:900;color:var(--text);">Código de acceso</div>
-          <div style="font-size:0.75rem;color:var(--dim);">Ingresa el código que te compartieron</div>
-        </div>
+      <!-- Ícono + título centrado -->
+      <div style="text-align:center;margin-bottom:20px;">
+        <div style="font-size:2.4rem;margin-bottom:10px;">🔑</div>
+        <div style="font-size:1.15rem;font-weight:900;color:var(--text);">Código de acceso</div>
+        <div style="font-size:0.78rem;color:var(--dim);margin-top:4px;">Ingresa el código que te compartieron</div>
       </div>
       <div id="accessErr" class="access-err">Código incorrecto o vencido</div>
       <label class="inp-label">Tu nombre</label>
@@ -350,16 +355,16 @@ select.inp{appearance:none;-webkit-appearance:none;}
       <label class="inp-label">Código</label>
       <input class="inp" id="accCodigo" placeholder="Ej: FIN-2026" autocomplete="off" style="font-family:'JetBrains Mono',monospace;letter-spacing:0.08em;" onkeydown="if(event.key==='Enter')verificarCodigo()">
       <button class="btn-main" onclick="verificarCodigo()">Entrar →</button>
-      <div style="display:flex;align-items:center;gap:10px;margin:16px 0 4px;">
+      <div style="display:flex;align-items:center;gap:10px;margin:20px 0 8px;">
         <div style="flex:1;height:1px;background:var(--border);"></div>
         <span style="font-size:0.7rem;color:var(--dim);font-weight:600;">¿No tienes código?</span>
         <div style="flex:1;height:1px;background:var(--border);"></div>
       </div>
-      <button onclick="mostrarPanelSolicitud()" style="width:100%;padding:13px;border:2px dashed var(--accent);background:rgba(45,106,255,0.06);color:var(--accent);border-radius:14px;font-family:'Outfit',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;margin-top:6px;">
+      <button onclick="mostrarPanelSolicitud()" style="width:100%;padding:14px;border:2px dashed var(--accent);background:rgba(45,106,255,0.05);color:var(--accent);border-radius:16px;font-family:'Outfit',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;">
         📩 Solicitar acceso al administrador
       </button>
-      <div style="text-align:center;margin-top:16px;">
-        <span onclick="abrirAdminModal()" style="font-size:0.78rem;color:var(--dim);cursor:pointer;text-decoration:underline;text-underline-offset:3px;">🔐 Acceso administrador</span>
+      <div style="text-align:center;margin-top:18px;">
+        <span onclick="abrirAdminModal()" style="font-size:0.78rem;color:var(--dim);cursor:pointer;text-decoration:underline;text-underline-offset:3px;">🔒 Acceso administrador</span>
       </div>
     </div>
 
@@ -386,7 +391,8 @@ select.inp{appearance:none;-webkit-appearance:none;}
       <div class="access-sub" style="margin-top:8px;">El administrador revisará tu solicitud y te contactará para darte acceso.<br><br>Cuando tengas tu código, regresa aquí e ingrésalo.</div>
       <button onclick="mostrarPanelCodigo()" style="margin-top:20px;width:100%;padding:13px;background:var(--accent);color:var(--navtext);border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;">← Volver al login</button>
     </div>
-  </div>
+    </div><!-- /padding -->
+  </div><!-- /max-width -->
 </div>
 
 <!-- ══ ADMIN MODAL ══ -->
@@ -562,6 +568,40 @@ select.inp{appearance:none;-webkit-appearance:none;}
 </div>
 
 <!-- CALCULADORA FLOTANTE -->
+
+<!-- BOTÓN FLOTANTE U — ACCESO RÁPIDO CUENTAS -->
+<div id="uFabBtn" style="display:none;position:fixed;z-index:990;bottom:90px;left:14px;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 4px 18px rgba(45,106,255,0.45);cursor:pointer;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;color:#fff;font-family:'Outfit',sans-serif;letter-spacing:-1px;border:2px solid rgba(255,255,255,0.25);transition:transform 0.2s ease;" onclick="toggleUMenu()"
+  onmousedown="this.style.transform='scale(0.92)'" onmouseup="this.style.transform='scale(1)'"
+  ontouchstart="this.style.transform='scale(0.92)'" ontouchend="this.style.transform='scale(1)'">
+  U
+</div>
+
+<!-- Menú desplegable del botón U -->
+<div id="uFabMenu" style="display:none;position:fixed;z-index:989;bottom:152px;left:14px;background:var(--card);border-radius:18px;box-shadow:0 8px 32px rgba(0,0,0,0.2);padding:6px;min-width:200px;transform:scale(0.8) translateY(20px);opacity:0;transform-origin:bottom left;transition:all 0.25s cubic-bezier(0.34,1.4,0.64,1);">
+  <div onclick="irACuenta('efectivo')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;cursor:pointer;transition:background 0.15s;" onmouseenter="this.style.background='var(--inp)'" onmouseleave="this.style.background=''" ontouchstart="this.style.background='var(--inp)'" ontouchend="this.style.background=''">
+    <span style="font-size:1.3rem;">💵</span>
+    <div>
+      <div style="font-size:0.88rem;font-weight:800;color:var(--text);">Efectivo</div>
+      <div id="uMenuEfectivo" style="font-size:0.72rem;color:var(--dim);">—</div>
+    </div>
+  </div>
+  <div style="height:1px;background:var(--border);margin:2px 8px;"></div>
+  <div onclick="irACuenta('cheques')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;cursor:pointer;transition:background 0.15s;" onmouseenter="this.style.background='var(--inp)'" onmouseleave="this.style.background=''" ontouchstart="this.style.background='var(--inp)'" ontouchend="this.style.background=''">
+    <span style="font-size:1.3rem;">🏦</span>
+    <div>
+      <div style="font-size:0.88rem;font-weight:800;color:var(--text);">Cheques / Banco</div>
+      <div id="uMenuBanco" style="font-size:0.72rem;color:var(--dim);">—</div>
+    </div>
+  </div>
+  <div style="height:1px;background:var(--border);margin:2px 8px;"></div>
+  <div onclick="irACuenta('tarjetas_credito')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;cursor:pointer;transition:background 0.15s;" onmouseenter="this.style.background='var(--inp)'" onmouseleave="this.style.background=''" ontouchstart="this.style.background='var(--inp)'" ontouchend="this.style.background=''">
+    <span style="font-size:1.3rem;">💳</span>
+    <div>
+      <div style="font-size:0.88rem;font-weight:800;color:var(--text);">Tarjetas de Crédito</div>
+      <div id="uMenuTC" style="font-size:0.72rem;color:var(--dim);color:#e53935;">—</div>
+    </div>
+  </div>
+</div>
 <div id="calcFloat" style="display:none;position:fixed;z-index:999;bottom:100px;right:14px;width:280px;border-radius:28px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);font-family:'Outfit',sans-serif;touch-action:none;transition:all 0.3s cubic-bezier(0.34,1.2,0.64,1);">
   <!-- Handle drag -->
   <div id="calcHandle" style="background:linear-gradient(135deg,#1a1a2e,#16213e);padding:12px 14px 8px;display:flex;align-items:center;justify-content:space-between;cursor:grab;user-select:none;">
@@ -812,6 +852,10 @@ function recuperarAdmin(){
 // ══════════════════════════════════════════
 function initDashboard(){
   showScreen('dashboard');
+  // Mostrar botón U flotante
+  var ub = document.getElementById('uFabBtn');
+  if(ub) ub.style.display = 'flex';
+  actualizarUMenu();
   var u = S.user;
   var un = document.getElementById('topUserName');
   if(un) un.textContent = u.isAdmin ? '⚙️ Admin' : '👤 ' + u.nombre;
@@ -2024,6 +2068,60 @@ function pickTema(){
   localStorage.removeItem('usala_theme');
   showScreen('themePicker');
 }
+function toggleUMenu(){
+  var menu = document.getElementById('uFabMenu');
+  var btn  = document.getElementById('uFabBtn');
+  if(!menu) return;
+  var abierto = menu.style.display === 'block';
+  if(abierto){
+    menu.style.opacity='0'; menu.style.transform='scale(0.8) translateY(20px)';
+    setTimeout(function(){ menu.style.display='none'; }, 220);
+    btn.style.transform='rotate(0deg)';
+  } else {
+    actualizarUMenu();
+    menu.style.display='block';
+    requestAnimationFrame(function(){
+      menu.style.opacity='1'; menu.style.transform='scale(1) translateY(0)';
+    });
+    btn.style.transform='rotate(45deg)';
+    // Cerrar al tocar fuera
+    setTimeout(function(){
+      document.addEventListener('click', function cerrarFuera(e){
+        if(!menu.contains(e.target) && e.target.id!=='uFabBtn'){
+          menu.style.opacity='0'; menu.style.transform='scale(0.8) translateY(20px)';
+          setTimeout(function(){ menu.style.display='none'; }, 220);
+          btn.style.transform='rotate(0deg)';
+          document.removeEventListener('click', cerrarFuera);
+        }
+      });
+    }, 100);
+  }
+}
+
+function actualizarUMenu(){
+  var c = cargarCuentas();
+  var efectivo = Number(c.efectivo||0);
+  var banco = (c.cheques||[]).reduce(function(s,x){ return s+Number(x.saldo||0); },0);
+  var deudaTC = (c.tarjetas||[]).reduce(function(s,t){ return s+Number(t.balance||0); },0);
+  var ef = document.getElementById('uMenuEfectivo');
+  var ba = document.getElementById('uMenuBanco');
+  var tc = document.getElementById('uMenuTC');
+  if(ef) ef.textContent = '$' + efectivo.toLocaleString('es-MX', {minimumFractionDigits:2});
+  if(ba) ba.textContent = '$' + banco.toLocaleString('es-MX', {minimumFractionDigits:2});
+  if(tc) tc.textContent = 'Deuda: $' + deudaTC.toLocaleString('es-MX', {minimumFractionDigits:2});
+}
+
+function irACuenta(sub){
+  // Cerrar menú
+  var menu = document.getElementById('uFabMenu');
+  var btn  = document.getElementById('uFabBtn');
+  if(menu){ menu.style.opacity='0'; menu.style.transform='scale(0.8) translateY(20px)'; setTimeout(function(){ menu.style.display='none'; },200); }
+  if(btn) btn.style.transform='rotate(0deg)';
+  // Navegar
+  goTab('cuentas', document.querySelectorAll('.nb')[1]);
+  setTimeout(function(){ goSub(sub); }, 60);
+}
+
 function cerrarSesion(){
   if(!confirm('¿Seguro que quieres cerrar sesión?\n\nTus datos quedan guardados y podrás volver a entrar con tu código.')) return;
   localStorage.removeItem('usala_session');
@@ -2032,6 +2130,11 @@ function cerrarSesion(){
   document.getElementById('accCodigo').value='';
   document.getElementById('panelSesion').style.display='none';
   document.getElementById('panelCodigo').style.display='block';
+  // Ocultar botón U
+  var ub = document.getElementById('uFabBtn');
+  var um = document.getElementById('uFabMenu');
+  if(ub) ub.style.display='none';
+  if(um) um.style.display='none';
   showScreen('accessScreen');
 }
 function cambiarPass(){
