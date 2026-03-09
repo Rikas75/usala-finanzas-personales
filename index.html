@@ -337,9 +337,13 @@ select.inp{appearance:none;-webkit-appearance:none;}
 
     <!-- ── PANEL: Código ── -->
     <div class="access-card" id="panelCodigo" style="display:none;">
-      <div class="access-icon" style="text-align:center;">🔑</div>
-      <div class="access-title" style="text-align:center;">Código de acceso</div>
-      <div class="access-sub" style="text-align:center;">Ingresa el código que te compartieron</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <span style="font-size:1.3rem;">🔑</span>
+        <div>
+          <div style="font-size:1rem;font-weight:900;color:var(--text);">Código de acceso</div>
+          <div style="font-size:0.75rem;color:var(--dim);">Ingresa el código que te compartieron</div>
+        </div>
+      </div>
       <div id="accessErr" class="access-err">Código incorrecto o vencido</div>
       <label class="inp-label">Tu nombre</label>
       <input class="inp" id="accNombre" placeholder="¿Cómo te llamas?" autocomplete="off">
