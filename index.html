@@ -266,6 +266,56 @@ select.inp{appearance:none;-webkit-appearance:none;}
 .ck-eq:active{filter:brightness(0.85);}
 .ck-del{background:rgba(255,80,80,0.15);color:#ff6b6b;font-size:1rem;}
 .ck-del:active{background:rgba(255,80,80,0.35);}
+
+/* ── ASISTENTE IA VOZ ── */
+#iaPanel{
+  position:fixed;z-index:1200;bottom:80px;left:50%;transform:translateX(-50%) translateY(30px);
+  width:calc(100% - 32px);max-width:400px;
+  background:var(--card);border-radius:24px;
+  box-shadow:0 12px 48px rgba(0,0,0,0.25);
+  padding:0;overflow:hidden;
+  opacity:0;transition:all 0.35s cubic-bezier(0.34,1.4,0.64,1);
+  pointer-events:none;
+}
+#iaPanel.visible{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:all;}
+#iaHeader{
+  background:linear-gradient(135deg,#1e6b3c,#2d9e5f);
+  padding:14px 18px 12px;
+  display:flex;align-items:center;gap:10px;
+}
+#iaBubbles{
+  padding:14px 16px;max-height:220px;overflow-y:auto;
+  display:flex;flex-direction:column;gap:8px;
+}
+.ia-msg{padding:10px 14px;border-radius:16px;font-size:0.84rem;line-height:1.5;max-width:88%;}
+.ia-msg.ia{background:linear-gradient(135deg,rgba(30,107,60,0.12),rgba(45,158,95,0.08));color:var(--text);border-radius:4px 16px 16px 16px;align-self:flex-start;}
+.ia-msg.user{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-radius:16px 4px 16px 16px;align-self:flex-end;}
+#iaFooter{
+  padding:10px 14px 14px;display:flex;gap:8px;align-items:center;
+  border-top:1px solid var(--border);
+}
+#iaMicBtn{
+  width:48px;height:48px;border-radius:50%;border:none;cursor:pointer;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;font-size:1.3rem;flex-shrink:0;
+  transition:all 0.2s;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 16px rgba(30,107,60,0.35);
+}
+#iaMicBtn.escuchando{
+  background:linear-gradient(135deg,#ff3b30,#ff6b6b);
+  animation:pulseMic 1s ease-in-out infinite;
+  box-shadow:0 4px 20px rgba(255,59,48,0.5);
+}
+@keyframes pulseMic{0%,100%{transform:scale(1);}50%{transform:scale(1.1);}}
+#iaStatus{font-size:0.72rem;color:var(--dim);flex:1;text-align:center;}
+#iaWaveform{display:flex;align-items:center;gap:3px;justify-content:center;height:24px;}
+#iaWaveform span{width:3px;background:var(--accent);border-radius:3px;animation:wave 0.8s ease-in-out infinite;}
+#iaWaveform span:nth-child(1){height:6px;animation-delay:0s;}
+#iaWaveform span:nth-child(2){height:14px;animation-delay:0.1s;}
+#iaWaveform span:nth-child(3){height:20px;animation-delay:0.2s;}
+#iaWaveform span:nth-child(4){height:14px;animation-delay:0.3s;}
+#iaWaveform span:nth-child(5){height:6px;animation-delay:0.4s;}
+@keyframes wave{0%,100%{transform:scaleY(1);}50%{transform:scaleY(1.8);}}
 </style>
 </head>
 <body>
@@ -3111,85 +3161,249 @@ function toggleFaq(id){
 }
 
 // ══════════════════════════════════════════
-// COMANDO DE VOZ
+// ASISTENTE IA CONVERSACIONAL
 // ══════════════════════════════════════════
-var _vozRec = null, _vozActivo = false;
+var _iaRec     = null;
+var _iaActivo  = false;
+var _iaHablando= false;
+var _iaHistorial = [];  // conversación con Claude
+var _iaAbierto = false;
 
+// Abrir / cerrar panel
+function abrirIA(){
+  _iaAbierto = true;
+  var p = document.getElementById('iaPanel');
+  if(p){ p.classList.add('visible'); }
+  if(_iaHistorial.length === 0){
+    var c = getCuentas();
+    var efec = c.efectivo || 0;
+    var banco = (c.cheques||[]).reduce(function(s,x){ return s+Number(x.saldo||0); },0);
+    var saludo = 'Hola ' + S.user.nombre.split(' ')[0] + ' 👋 Soy tu asistente de finanzas. '
+      + 'Tienes $' + efec.toLocaleString('es-MX',{minimumFractionDigits:2}) + ' en efectivo '
+      + 'y $' + banco.toLocaleString('es-MX',{minimumFractionDigits:2}) + ' en banco. '
+      + '¿Qué necesitas registrar o consultar?';
+    agregarMensajeIA(saludo, 'ia');
+    hablarIA(saludo);
+  }
+}
+function cerrarIA(){
+  _iaAbierto = false;
+  var p = document.getElementById('iaPanel');
+  if(p){ p.classList.remove('visible'); }
+  detenerMicIA();
+  detenerHabla();
+}
 function toggleVoz(){
-  if(_vozActivo){ detenerVoz(); return; }
-  iniciarVoz();
+  if(_iaAbierto){ cerrarIA(); return; }
+  abrirIA();
 }
-function iniciarVoz(){
+
+// Micrófono
+function toggleMicIA(){
+  if(_iaActivo){ detenerMicIA(); return; }
+  iniciarMicIA();
+}
+function iniciarMicIA(){
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SR){ showToast('Tu navegador no soporta voz'); return; }
-  _vozRec = new SR();
-  _vozRec.lang = 'es-MX';
-  _vozRec.continuous = false;
-  _vozRec.interimResults = false;
-  _vozRec.onstart = function(){
-    _vozActivo = true;
-    var btn = document.getElementById('btnVoz');
-    if(btn){ btn.style.background='#ff3b30'; btn.style.color='#fff'; btn.textContent='🔴'; }
-    showToast('🎤 Escuchando...');
+  if(!SR){ agregarMensajeIA('Tu navegador no soporta reconocimiento de voz 😔', 'ia'); return; }
+  detenerHabla();
+  _iaRec = new SR();
+  _iaRec.lang = 'es-MX';
+  _iaRec.continuous = false;
+  _iaRec.interimResults = false;
+  _iaRec.onstart = function(){
+    _iaActivo = true;
+    var btn = document.getElementById('iaMicBtn');
+    if(btn) btn.classList.add('escuchando');
+    var st = document.getElementById('iaStatus');
+    var wv = document.getElementById('iaWaveform');
+    if(st) st.style.display = 'none';
+    if(wv) wv.style.display = 'flex';
   };
-  _vozRec.onend = function(){ detenerVoz(); };
-  _vozRec.onerror = function(e){
-    detenerVoz();
-    if(e.error !== 'no-speech') showToast('Error de voz: ' + e.error);
+  _iaRec.onend = function(){ detenerMicIA(); };
+  _iaRec.onerror = function(e){
+    detenerMicIA();
+    if(e.error !== 'no-speech') agregarMensajeIA('No te escuché bien, intenta de nuevo 🎤', 'ia');
   };
-  _vozRec.onresult = function(e){
-    var t = e.results[0][0].transcript.toLowerCase().trim();
-    showToast('🎙️ "' + t + '"');
-    procesarComandoVoz(t);
+  _iaRec.onresult = function(e){
+    var texto = e.results[0][0].transcript.trim();
+    detenerMicIA();
+    agregarMensajeIA(texto, 'user');
+    procesarConIA(texto);
   };
-  try{ _vozRec.start(); } catch(e){ showToast('No se pudo iniciar el mic'); }
+  try{ _iaRec.start(); } catch(e){ agregarMensajeIA('No se pudo activar el micrófono', 'ia'); }
 }
-function detenerVoz(){
-  _vozActivo = false;
-  var btn = document.getElementById('btnVoz');
-  if(btn){ btn.style.background=''; btn.style.color=''; btn.textContent='🎙️'; }
-  if(_vozRec){ try{ _vozRec.stop(); }catch(e){} _vozRec = null; }
+function detenerMicIA(){
+  _iaActivo = false;
+  var btn = document.getElementById('iaMicBtn');
+  if(btn) btn.classList.remove('escuchando');
+  var st = document.getElementById('iaStatus');
+  var wv = document.getElementById('iaWaveform');
+  if(st){ st.style.display = 'block'; st.textContent = 'Toca el micrófono para hablar'; }
+  if(wv) wv.style.display = 'none';
+  if(_iaRec){ try{ _iaRec.stop(); }catch(e){} _iaRec = null; }
 }
-function procesarComandoVoz(t){
+
+// Síntesis de voz (hablar)
+function hablarIA(texto){
+  if(!window.speechSynthesis) return;
+  detenerHabla();
+  _iaHablando = true;
+  var utt = new SpeechSynthesisUtterance(texto);
+  utt.lang = 'es-MX';
+  utt.rate = 1.05;
+  utt.pitch = 1.0;
+  utt.volume = 1.0;
+  // Intentar voz en español
+  var voces = window.speechSynthesis.getVoices();
+  var vozES = voces.find(function(v){ return v.lang.indexOf('es') === 0; });
+  if(vozES) utt.voice = vozES;
+  utt.onend = function(){ _iaHablando = false; };
+  window.speechSynthesis.speak(utt);
+}
+function detenerHabla(){
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  _iaHablando = false;
+}
+
+// Agregar mensajes al chat
+function agregarMensajeIA(texto, tipo){
+  var bub = document.getElementById('iaBubbles');
+  if(!bub) return;
+  var div = document.createElement('div');
+  div.className = 'ia-msg ' + tipo;
+  div.textContent = texto;
+  bub.appendChild(div);
+  bub.scrollTop = bub.scrollHeight;
+}
+function agregarPensando(){
+  var bub = document.getElementById('iaBubbles');
+  if(!bub) return null;
+  var div = document.createElement('div');
+  div.className = 'ia-msg ia';
+  div.id = 'iaPensando';
+  div.innerHTML = '<span style="opacity:0.5;font-style:italic;">✦ Pensando...</span>';
+  bub.appendChild(div);
+  bub.scrollTop = bub.scrollHeight;
+  return div;
+}
+
+// Llamar a Claude con contexto financiero
+function procesarConIA(userMsg){
+  var pensando = agregarPensando();
+
+  // Contexto financiero actual
+  var c = getCuentas();
+  var txs = getTxs();
+  var ultimasTxs = txs.slice(-10).map(function(t){
+    return t.tipo + ': $' + t.monto + ' (' + t.desc + ') en ' + (t.cuenta||'sin cuenta') + ' el ' + t.fecha;
+  }).join('\n');
+  var creds = (function(){ try{ return JSON.parse(localStorage.getItem(
+    'usala_creditos_'+(S.user.isAdmin?'admin':'u_'+S.user.codigo))||'[]'); }catch(e){ return []; } })();
+  var deudas = creds.filter(function(x){ return x.tipo==='deuda'&&x.estado!=='pagado'; })
+    .map(function(x){ return x.desc+' $'+(x.monto-(x.abonado||0)); }).join(', ') || 'ninguna';
+
+  var sistemaCtx = 'Eres el asistente financiero personal de USALA, una app de finanzas personales. '
+    + 'El usuario se llama ' + S.user.nombre + '. '
+    + 'Contexto financiero actual:\n'
+    + '- Efectivo: $' + (c.efectivo||0).toFixed(2) + '\n'
+    + '- Bancos: $' + (c.cheques||[]).reduce(function(s,x){ return s+Number(x.saldo||0); },0).toFixed(2)
+    + ' (' + (c.cheques||[]).map(function(x){ return x.banco+' $'+x.saldo; }).join(', ') + ')\n'
+    + '- Tarjetas deuda: $' + (c.tarjetas||[]).reduce(function(s,t){ return s+Number(t.balance||0); },0).toFixed(2) + '\n'
+    + '- Deudas activas: ' + deudas + '\n'
+    + '- Últimas transacciones:\n' + (ultimasTxs || 'ninguna') + '\n\n'
+    + 'Tu trabajo:\n'
+    + '1. Entender lo que el usuario quiere hacer en lenguaje natural\n'
+    + '2. Si quiere REGISTRAR algo: extrae descripción, monto, tipo (ingreso/gasto), cuenta (efectivo/banco) y categoría. Responde en JSON así: {"accion":"registrar","tipo":"gasto","monto":200,"desc":"Comida","cat":"Alimentación","cuenta":"efectivo","mensaje":"Listo, registré..."}\n'
+    + '3. Si quiere NAVEGAR: {"accion":"navegar","destino":"efectivo|cheques|tarjetas_credito|creditos|reportes|historial|metas|presupuesto","mensaje":"Te llevo a..."}\n'
+    + '4. Si quiere CONSULTAR saldos o info: responde conversacionalmente con los datos reales. {"accion":"info","mensaje":"Tu saldo en efectivo es..."}\n'
+    + '5. Si quiere hacer un CALCULO: {"accion":"info","mensaje":"..."}\n'
+    + '6. Si no entiendes: {"accion":"preguntar","mensaje":"¿Puedes decirme más sobre...?"}\n'
+    + 'Reglas: sé muy breve (máx 2 oraciones), amigable, usa emojis ocasionalmente. '
+    + 'SIEMPRE responde SOLO con el JSON, sin texto extra, sin markdown.';
+
+  // Agregar al historial
+  _iaHistorial.push({ role: 'user', content: userMsg });
+  if(_iaHistorial.length > 10) _iaHistorial = _iaHistorial.slice(-10);
+
+  fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 300,
+      system: sistemaCtx,
+      messages: _iaHistorial
+    })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    if(pensando) pensando.remove();
+    var raw = (data.content && data.content[0] && data.content[0].text) || '';
+    // Limpiar posibles backticks
+    var jsonStr = raw.replace(/```json|```/g,'').trim();
+    var resp;
+    try{ resp = JSON.parse(jsonStr); } catch(e){ resp = {accion:'info', mensaje: raw || 'No entendí, ¿puedes repetirlo?'}; }
+
+    var msgIA = resp.mensaje || 'Listo.';
+    agregarMensajeIA(msgIA, 'ia');
+    _iaHistorial.push({ role: 'assistant', content: raw });
+
+    // Ejecutar acción
+    ejecutarAccionIA(resp);
+    hablarIA(msgIA);
+  })
+  .catch(function(err){
+    if(pensando) pensando.remove();
+    var fallback = 'Hubo un problema de conexión. Intenta de nuevo.';
+    agregarMensajeIA(fallback, 'ia');
+    hablarIA(fallback);
+  });
+}
+
+function ejecutarAccionIA(resp){
   var nb = document.querySelectorAll('.nb');
-  // Navegación principal
-  if(/\binicio\b|\bhome\b/.test(t)){ goTab('inicio',nb[0]); showToast('🏠 Inicio'); return; }
-  if(/\bcuentas?\b/.test(t) && !/tarjeta|cr.dito|tc\b/.test(t)){ goTab('cuentas',nb[1]); showToast('🏦 Cuentas'); return; }
-  if(/\bcr.ditos?\b|\bpr.stamo\b/.test(t)){ goTab('creditos',nb[2]); showToast('🤝 Créditos'); return; }
-  if(/\breportes?\b/.test(t)){ goTab('reportes',nb[3]); showToast('📊 Reportes'); return; }
-  if(/\bm.s\b|\bajuste\b|\bconfig\b/.test(t)){ goTab('mas',nb[4]); showToast('⋯ Más'); return; }
-  // Cuentas directas
-  if(/\befectivo\b/.test(t)){ goTab('cuentas',nb[1]); setTimeout(function(){ goSub('efectivo'); },60); showToast('💵 Efectivo'); return; }
-  if(/\bbanco\b|\bcheque\b/.test(t)){ goTab('cuentas',nb[1]); setTimeout(function(){ goSub('cheques'); },60); showToast('🏦 Banco'); return; }
-  if(/\btarjeta\b|\b\btc\b/.test(t)){ goTab('cuentas',nb[1]); setTimeout(function(){ goSub('tarjetas_credito'); },60); showToast('💳 Tarjetas'); return; }
-  // Herramientas
-  if(/\bcalculadora\b|\bcalc\b/.test(t)){ abrirCalc(); showToast('🔢 Calculadora'); return; }
-  if(/\bhistorial\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('historial'); },60); showToast('📋 Historial'); return; }
-  if(/\bayuda\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('ayuda'); },60); showToast('❓ Ayuda'); return; }
-  if(/\bmetas?\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('metas'); },60); showToast('🎯 Metas'); return; }
-  if(/\bpresupuesto\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('presupuesto'); },60); showToast('💰 Presupuesto'); return; }
-  if(/\bconversor\b|\btipo de cambio\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('conversor'); },60); showToast('💱 Conversor'); return; }
-  // Registro rápido: "gasté/gaste N" o "ingresé/ingrese N"
-  var mG = t.match(/gast[eé]\s+(\d+[\.,]?\d*)/);
-  var mI = t.match(/ingres[eé]\s+(\d+[\.,]?\d*)/);
-  if(mG){
-    var m = parseFloat(mG[1].replace(',','.'));
-    if(m > 0){
-      var c = getCuentas(); c.efectivo = (c.efectivo||0) - m; saveCuentas(c);
-      var txs = getTxs(); txs.push({id:Date.now(),tipo:'gasto',desc:'Voz',monto:m,cat:'Otros gastos',fecha:today(),cuenta:'efectivo'}); saveTxs(txs);
-      showToast('💸 Gasto $' + m.toFixed(2) + ' en Efectivo'); renderTab(S.tab); return;
+  if(!resp || !resp.accion) return;
+
+  if(resp.accion === 'registrar'){
+    var monto = parseFloat(resp.monto);
+    if(!monto || monto <= 0) return;
+    var tipo  = resp.tipo === 'ingreso' ? 'ingreso' : 'gasto';
+    var cuenta = resp.cuenta || 'efectivo';
+    var desc  = resp.desc || 'Voz IA';
+    var cat   = resp.cat || (tipo === 'ingreso' ? 'Otros ingresos' : 'Otros gastos');
+    var fecha = today();
+    var c = getCuentas();
+    if(cuenta === 'efectivo'){
+      c.efectivo = (c.efectivo||0) + (tipo === 'ingreso' ? monto : -monto);
+    } else if(cuenta.indexOf('cheque_') === 0){
+      var idx = parseInt(cuenta.replace('cheque_',''));
+      if(c.cheques && c.cheques[idx]){
+        c.cheques[idx].saldo = (Number(c.cheques[idx].saldo)||0) + (tipo === 'ingreso' ? monto : -monto);
+      }
     }
+    saveCuentas(c);
+    var txs = getTxs();
+    txs.push({id:Date.now(), tipo:tipo, desc:desc, monto:monto, cat:cat, fecha:fecha, cuenta:cuenta});
+    saveTxs(txs);
+    renderTab(S.tab);
+    return;
   }
-  if(mI){
-    var m2 = parseFloat(mI[1].replace(',','.'));
-    if(m2 > 0){
-      var c2 = getCuentas(); c2.efectivo = (c2.efectivo||0) + m2; saveCuentas(c2);
-      var txs2 = getTxs(); txs2.push({id:Date.now(),tipo:'ingreso',desc:'Voz',monto:m2,cat:'Otros ingresos',fecha:today(),cuenta:'efectivo'}); saveTxs(txs2);
-      showToast('💰 Ingreso $' + m2.toFixed(2) + ' en Efectivo'); renderTab(S.tab); return;
+
+  if(resp.accion === 'navegar'){
+    var dest = resp.destino || '';
+    var tabs = {inicio:0, cuentas:1, creditos:2, reportes:3, mas:4,
+      historial:4, metas:4, presupuesto:4, conversor:4, ayuda:4,
+      efectivo:1, cheques:1, tarjetas_credito:1};
+    var subs = {efectivo:'efectivo', cheques:'cheques', tarjetas_credito:'tarjetas_credito',
+      historial:'historial', metas:'metas', presupuesto:'presupuesto',
+      conversor:'conversor', ayuda:'ayuda'};
+    var tabIdx = tabs[dest];
+    if(tabIdx !== undefined){
+      goTab(['inicio','cuentas','creditos','reportes','mas'][tabIdx], nb[tabIdx]);
+      if(subs[dest]) setTimeout(function(){ goSub(subs[dest]); }, 80);
     }
+    return;
   }
-  showToast('❓ No entendí: "' + t + '"');
 }
-</script>
-</body>
-</html>
+    </script>
