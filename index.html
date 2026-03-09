@@ -3046,14 +3046,22 @@ var FAQS = [
   {cat:'🔵 Botón U', q:'¿Para qué sirve el botón U azul?',
    a:'Acceso rápido a tus 3 cuentas desde cualquier pantalla. Tócalo y aparece un menú con Efectivo, Cheques/Banco y Tarjetas con el saldo actual de cada una.'},
 
-  {cat:'🎙️ Comandos de Voz', q:'¿Cómo activo los comandos de voz?',
-   a:'Toca el 🎙️ en la barra superior. Se pone rojo mientras escucha. Habla tu comando y suelta — se ejecuta solo.'},
-  {cat:'🎙️ Comandos de Voz', q:'¿Qué comandos de navegación puedo usar?',
-   a:'Di: "inicio", "cuentas", "créditos", "reportes", "más", "efectivo", "banco", "tarjetas", "calculadora", "historial", "metas", "presupuesto", "conversor", "ayuda".'},
-  {cat:'🎙️ Comandos de Voz', q:'¿Puedo registrar gastos e ingresos con voz?',
-   a:'Sí. Di "gasté 200" para registrar $200 de gasto en Efectivo, o "ingresé 500" para un ingreso. Se guarda al instante.'},
-  {cat:'🎙️ Comandos de Voz', q:'¿En qué teléfonos funciona?',
-   a:'Chrome, Edge y Safari iOS 15+. Si tu navegador no lo soporta el botón no aparece.'},
+  {cat:'🤖 Asistente IA', q:'¿Qué es el Asistente IA de USALA?',
+   a:'Es un asistente conversacional con inteligencia artificial. Toca 🎙️, habla con naturalidad como si le hablaras a una persona, y él entiende, responde con voz y ejecuta las acciones automáticamente.'},
+  {cat:'🤖 Asistente IA', q:'¿Cómo abro el asistente?',
+   a:'Toca el botón 🎙️ en la barra superior. Se abre un panel de chat. Toca el micrófono rojo, habla y suelta. El asistente te responde con voz y texto.'},
+  {cat:'🤖 Asistente IA', q:'¿Qué puedo registrar con el asistente?',
+   a:'Gastos, ingresos, en efectivo o banco. Di por ejemplo: "Gasté 350 en la despensa", "Me pagaron 5000 de nómina en el banco", "Compré zapatos con tarjeta por 800 pesos".'},
+  {cat:'🤖 Asistente IA', q:'¿En qué moneda trabaja el asistente?',
+   a:'Todo en pesos mexicanos. El asistente registra, consulta y calcula siempre en pesos MXN.'},
+  {cat:'🤖 Asistente IA', q:'¿Puedo consultar mis saldos con voz?',
+   a:'Sí. Pregunta "¿Cuánto tengo en efectivo?", "¿Cuánto debo en total?", "¿Cuál es mi saldo en el banco?", "¿Cuánto he gastado esta semana?". El asistente responde con tus datos reales.'},
+  {cat:'🤖 Asistente IA', q:'¿Puedo navegar con el asistente?',
+   a:'Sí. Di "llévame a tarjetas", "quiero ver el historial", "abre la calculadora", "ir a reportes". El asistente navega y te confirma.'},
+  {cat:'🤖 Asistente IA', q:'¿Funciona sin internet?',
+   a:'El asistente necesita internet para procesar el lenguaje con IA. Sin internet puedes usar el resto de la app normalmente.'},
+  {cat:'🤖 Asistente IA', q:'¿En qué dispositivos funciona?',
+   a:'Chrome para Android, Edge y Safari en iOS 15+. Si tu navegador no soporta voz, el botón 🎙️ no aparece.'},
 
   {cat:'🏦 Cuentas', q:'¿Qué módulos tiene Cuentas?',
    a:'3 secciones: 💵 Efectivo, 🏧 Cheques/Banco y 💳 Tarjetas de Crédito. Cada una con su historial y formulario de movimientos.'},
@@ -3163,11 +3171,16 @@ function toggleFaq(id){
 // ══════════════════════════════════════════
 // ASISTENTE IA CONVERSACIONAL
 // ══════════════════════════════════════════
-var _iaRec     = null;
-var _iaActivo  = false;
-var _iaHablando= false;
-var _iaHistorial = [];  // conversación con Claude
-var _iaAbierto = false;
+var _iaRec       = null;
+var _iaActivo    = false;
+var _iaHablando  = false;
+var _iaHistorial = [];
+var _iaAbierto   = false;
+var _iaMoneda    = null;
+var _iaEsperandoMonedaCustom = false; // se carga de localStorage al abrir
+
+// Clave de moneda por usuario
+function _iaMonedaKey(){ return 'usala_ia_moneda_' + (S.user ? (S.user.isAdmin ? 'admin' : S.user.codigo) : 'anon'); }
 
 // Abrir / cerrar panel
 function abrirIA(){
@@ -3175,16 +3188,93 @@ function abrirIA(){
   var p = document.getElementById('iaPanel');
   if(p){ p.classList.add('visible'); }
   if(_iaHistorial.length === 0){
-    var c = getCuentas();
-    var efec = c.efectivo || 0;
-    var banco = (c.cheques||[]).reduce(function(s,x){ return s+Number(x.saldo||0); },0);
-    var saludo = 'Hola ' + S.user.nombre.split(' ')[0] + ' 👋 Soy tu asistente de finanzas. '
-      + 'Tienes $' + efec.toLocaleString('es-MX',{minimumFractionDigits:2}) + ' en efectivo '
-      + 'y $' + banco.toLocaleString('es-MX',{minimumFractionDigits:2}) + ' en banco. '
-      + '¿Qué necesitas registrar o consultar?';
-    agregarMensajeIA(saludo, 'ia');
-    hablarIA(saludo);
+    // ¿Ya eligió moneda antes?
+    var monedaGuardada = localStorage.getItem(_iaMonedaKey());
+    if(monedaGuardada){
+      _iaMoneda = JSON.parse(monedaGuardada);
+      // Saludo normal con moneda ya conocida
+      var c = getCuentas();
+      var efec = c.efectivo || 0;
+      var banco = (c.cheques||[]).reduce(function(s,x){ return s+Number(x.saldo||0); },0);
+      var saludo = 'Hola ' + S.user.nombre.split(' ')[0] + ' 👋 Trabajamos en '
+        + _iaMoneda.nombre + '. Tienes ' + _iaMoneda.simbolo
+        + efec.toLocaleString('es-MX',{minimumFractionDigits:2}) + ' en efectivo y '
+        + _iaMoneda.simbolo + banco.toLocaleString('es-MX',{minimumFractionDigits:2})
+        + ' en banco. ¿Qué necesitas?';
+      agregarMensajeIA(saludo, 'ia');
+      hablarIA(saludo);
+    } else {
+      // Primera vez — preguntar moneda con botones
+      var nombre = S.user.nombre.split(' ')[0];
+      var pregunta = 'Hola ' + nombre + ' 👋 Soy tu asistente de finanzas. '
+        + 'Antes de empezar, ¿en qué moneda trabajas?';
+      agregarMensajeIA(pregunta, 'ia');
+      hablarIA(pregunta);
+      // Mostrar botones de moneda
+      mostrarBotonesMoneda();
+    }
   }
+}
+
+function mostrarBotonesMoneda(){
+  var bub = document.getElementById('iaBubbles');
+  if(!bub) return;
+  var div = document.createElement('div');
+  div.id = 'iaMonedaBtns';
+  div.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;';
+  var monedas = [
+    {codigo:'MXN', nombre:'Pesos mexicanos', simbolo:'$', bandera:'🇲🇽'},
+    {codigo:'USD', nombre:'Dólares', simbolo:'$', bandera:'🇺🇸'},
+    {codigo:'EUR', nombre:'Euros', simbolo:'€', bandera:'🇪🇺'},
+    {codigo:'CAD', nombre:'Dólar canadiense', simbolo:'$', bandera:'🇨🇦'},
+    {codigo:'GBP', nombre:'Libras', simbolo:'£', bandera:'🇬🇧'},
+    {codigo:'OTRA', nombre:'Otra moneda', simbolo:'$', bandera:'🌐'}
+  ];
+  monedas.forEach(function(m){
+    var btn = document.createElement('button');
+    btn.textContent = m.bandera + ' ' + m.codigo;
+    btn.style.cssText = 'padding:8px 14px;border-radius:20px;border:1.5px solid var(--accent);'
+      + 'background:var(--inp);color:var(--text);font-family:Outfit,sans-serif;'
+      + 'font-size:0.82rem;font-weight:700;cursor:pointer;';
+    btn.onclick = function(){
+      if(m.codigo === 'OTRA'){
+        elegirOtraMoneda();
+      } else {
+        confirmarMoneda(m);
+      }
+    };
+    div.appendChild(btn);
+  });
+  bub.appendChild(div);
+  bub.scrollTop = bub.scrollHeight;
+}
+
+function confirmarMoneda(m){
+  // Quitar botones
+  var btns = document.getElementById('iaMonedaBtns');
+  if(btns) btns.remove();
+  // Guardar
+  _iaMoneda = m;
+  localStorage.setItem(_iaMonedaKey(), JSON.stringify(m));
+  // Confirmar y saludar
+  var c = getCuentas();
+  var efec = c.efectivo || 0;
+  var banco = (c.cheques||[]).reduce(function(s,x){ return s+Number(x.saldo||0); },0);
+  var msg = '¡Perfecto! Trabajaremos en ' + m.nombre + ' ' + m.bandera + '. '
+    + 'Tienes ' + m.simbolo + efec.toLocaleString('es-MX',{minimumFractionDigits:2})
+    + ' en efectivo y ' + m.simbolo + banco.toLocaleString('es-MX',{minimumFractionDigits:2})
+    + ' en banco. ¿Qué necesitas registrar o consultar?';
+  agregarMensajeIA(msg, 'ia');
+  hablarIA(msg);
+}
+
+function elegirOtraMoneda(){
+  var btns = document.getElementById('iaMonedaBtns');
+  if(btns) btns.remove();
+  agregarMensajeIA('¿Cuál moneda usas? Di el nombre o el código (ej: "Quetzales", "Soles", "COP")', 'ia');
+  hablarIA('¿Cuál moneda usas?');
+  // La respuesta del usuario se procesará como texto y la IA la interpretará
+  _iaEsperandoMonedaCustom = true;
 }
 function cerrarIA(){
   _iaAbierto = false;
@@ -3303,24 +3393,40 @@ function procesarConIA(userMsg){
   var deudas = creds.filter(function(x){ return x.tipo==='deuda'&&x.estado!=='pagado'; })
     .map(function(x){ return x.desc+' $'+(x.monto-(x.abonado||0)); }).join(', ') || 'ninguna';
 
+  // Moneda elegida por el usuario (o default MXN)
+  var moneda = _iaMoneda || {nombre:'pesos mexicanos', simbolo:'$', codigo:'MXN', bandera:'🇲🇽'};
+
+  // Si está esperando moneda personalizada escrita/dictada
+  if(_iaEsperandoMonedaCustom){
+    _iaEsperandoMonedaCustom = false;
+    var mCustom = {codigo:userMsg.toUpperCase().substring(0,6), nombre:userMsg, simbolo:'$', bandera:'🌐'};
+    if(pensando) pensando.remove();
+    confirmarMoneda(mCustom);
+    return;
+  }
+
   var sistemaCtx = 'Eres el asistente financiero personal de USALA, una app de finanzas personales. '
     + 'El usuario se llama ' + S.user.nombre + '. '
+    + 'La moneda de trabajo es: ' + moneda.nombre + ' (' + moneda.codigo + ') símbolo: ' + moneda.simbolo + '. '
+    + 'SIEMPRE usa esa moneda. No conviertas ni menciones otras. '
     + 'Contexto financiero actual:\n'
-    + '- Efectivo: $' + (c.efectivo||0).toFixed(2) + '\n'
-    + '- Bancos: $' + (c.cheques||[]).reduce(function(s,x){ return s+Number(x.saldo||0); },0).toFixed(2)
-    + ' (' + (c.cheques||[]).map(function(x){ return x.banco+' $'+x.saldo; }).join(', ') + ')\n'
-    + '- Tarjetas deuda: $' + (c.tarjetas||[]).reduce(function(s,t){ return s+Number(t.balance||0); },0).toFixed(2) + '\n'
+    + '- Efectivo: ' + moneda.simbolo + (c.efectivo||0).toFixed(2) + '\n'
+    + '- Bancos: ' + moneda.simbolo + (c.cheques||[]).reduce(function(s,x){ return s+Number(x.saldo||0); },0).toFixed(2)
+    + ' (' + (c.cheques||[]).map(function(x){ return x.banco+' '+moneda.simbolo+x.saldo; }).join(', ') + ')\n'
+    + '- Tarjetas deuda: ' + moneda.simbolo + (c.tarjetas||[]).reduce(function(s,t){ return s+Number(t.balance||0); },0).toFixed(2) + '\n'
     + '- Deudas activas: ' + deudas + '\n'
     + '- Últimas transacciones:\n' + (ultimasTxs || 'ninguna') + '\n\n'
     + 'Tu trabajo:\n'
-    + '1. Entender lo que el usuario quiere hacer en lenguaje natural\n'
-    + '2. Si quiere REGISTRAR algo: extrae descripción, monto, tipo (ingreso/gasto), cuenta (efectivo/banco) y categoría. Responde en JSON así: {"accion":"registrar","tipo":"gasto","monto":200,"desc":"Comida","cat":"Alimentación","cuenta":"efectivo","mensaje":"Listo, registré..."}\n'
+    + '1. Entender lo que el usuario quiere en lenguaje natural\n'
+    + '2. Si quiere REGISTRAR: extrae descripción, monto, tipo (ingreso/gasto), cuenta y categoría. '
+    + '   JSON: {"accion":"registrar","tipo":"gasto","monto":200,"desc":"Comida","cat":"Alimentación","cuenta":"efectivo","mensaje":"Registré ' + moneda.simbolo + '200 en Efectivo 💵"}\n'
     + '3. Si quiere NAVEGAR: {"accion":"navegar","destino":"efectivo|cheques|tarjetas_credito|creditos|reportes|historial|metas|presupuesto","mensaje":"Te llevo a..."}\n'
-    + '4. Si quiere CONSULTAR saldos o info: responde conversacionalmente con los datos reales. {"accion":"info","mensaje":"Tu saldo en efectivo es..."}\n'
-    + '5. Si quiere hacer un CALCULO: {"accion":"info","mensaje":"..."}\n'
-    + '6. Si no entiendes: {"accion":"preguntar","mensaje":"¿Puedes decirme más sobre...?"}\n'
-    + 'Reglas: sé muy breve (máx 2 oraciones), amigable, usa emojis ocasionalmente. '
-    + 'SIEMPRE responde SOLO con el JSON, sin texto extra, sin markdown.';
+    + '4. Si quiere CONSULTAR saldos: usa datos reales con el símbolo ' + moneda.simbolo + '. {"accion":"info","mensaje":"..."}\n'
+    + '5. Si quiere CAMBIAR la moneda: {"accion":"cambiarMoneda","mensaje":"Claro, ¿a qué moneda cambiamos?"}\n'
+    + '6. Si quiere un CÁLCULO o pregunta general: {"accion":"info","mensaje":"..."}\n'
+    + '7. Si no entiendes: {"accion":"preguntar","mensaje":"¿Puedes decirme más?"}\n'
+    + 'Reglas: sé muy breve (máx 2 oraciones), cálido y amigable, usa emojis. '
+    + 'SIEMPRE responde SOLO con JSON válido, sin texto extra ni markdown.';
 
   // Agregar al historial
   _iaHistorial.push({ role: 'user', content: userMsg });
@@ -3404,6 +3510,13 @@ function ejecutarAccionIA(resp){
       if(subs[dest]) setTimeout(function(){ goSub(subs[dest]); }, 80);
     }
     return;
+  
+  if(resp.accion === 'cambiarMoneda'){
+    localStorage.removeItem(_iaMonedaKey());
+    _iaMoneda = null;
+    mostrarBotonesMoneda();
+    return;
   }
 }
-    </script>
+}
+        </script>
