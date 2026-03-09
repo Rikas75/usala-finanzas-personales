@@ -3208,7 +3208,7 @@ function abrirIA(){
       var nombre = S.user ? S.user.nombre.split(' ')[0] : '';
       var aviso = '⚠️ Hola ' + nombre + '! Para que pueda escucharte, '
         + 'necesitas abrir la app desde internet. '
-        + 'Ve a: rikas75.github.io/usala-finanzas-personales';
+        + 'Ve a: rikas75.github.io/usala-finanzas-personales/usala-suite-finanzas-personales-html';
       agregarMensajeIA(aviso, 'ia');
       hablarIA('Para activar el micrófono, abre la app desde internet.');
       // Cambiar botón mic a candado
@@ -3219,7 +3219,7 @@ function abrirIA(){
         btn.style.background = 'linear-gradient(135deg,#aaa,#888)';
         btn.style.boxShadow = 'none';
         btn.onclick = function(){
-          agregarMensajeIA('🔒 El micrófono solo funciona cuando abres la app desde: rikas75.github.io/usala-finanzas-personales', 'ia');
+          agregarMensajeIA('🔒 El micrófono solo funciona desde: rikas75.github.io/usala-finanzas-personales/usala-suite-finanzas-personales-html', 'ia');
           hablarIA('Abre la app desde internet para usar el micrófono.');
         };
       }
@@ -3230,7 +3230,7 @@ function abrirIA(){
         var linkDiv = document.createElement('div');
         linkDiv.style.cssText = 'margin-top:4px;';
         var link = document.createElement('a');
-        link.href = 'https://rikas75.github.io/usala-finanzas-personales/USALA-SUITE-Finanzas-v2.html';
+        link.href = 'https://rikas75.github.io/usala-finanzas-personales/usala-suite-finanzas-personales-html';
         link.target = '_blank';
         link.textContent = '🌐 Abrir app en internet →';
         link.style.cssText = 'display:block;padding:12px 16px;background:linear-gradient(135deg,#2355c9,#3a72f0);'
@@ -3619,4 +3619,4 @@ function ejecutarAccionIA(resp){
   }
 }
 }
-        </script>
+          </script>
