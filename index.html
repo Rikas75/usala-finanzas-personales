@@ -2130,9 +2130,42 @@ function renderConfig(){
 }
 
 function pickTema(){
-  var nb = document.querySelectorAll('.nb');
-  goTab('mas', nb[4]);
-  setTimeout(function(){ goSub('config'); }, 80);
+  // Mostrar selector de temas inline en mainContent
+  var html = '<div class="page-header">'
+    + '<button onclick="goSub(&quot;config&quot;)" style="background:none;border:none;color:var(--accent);font-size:1rem;cursor:pointer;padding:4px 8px;">← Atrás</button>'
+    + '<div class="page-title">🎨 Tema visual</div></div>'
+    + '<div class="card">'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">'
+    + '<div class="theme-card" data-theme="default" style="background:#f0f4f0;color:#1e6b3c;border:2px solid transparent;" onclick="elegirTema(this,&quot;default&quot;)">'
+    +   '<div style="width:28px;height:28px;border-radius:50%;background:#1e6b3c;margin-bottom:8px;"></div>'
+    +   '<div style="font-weight:700;font-size:0.9rem;">Verde Natural</div></div>'
+    + '<div class="theme-card" data-theme="dark" style="background:#162016;color:#2d9e5f;border:2px solid transparent;" onclick="elegirTema(this,&quot;dark&quot;)">'
+    +   '<div style="width:28px;height:28px;border-radius:50%;background:#2d9e5f;margin-bottom:8px;"></div>'
+    +   '<div style="font-weight:700;font-size:0.9rem;color:#e8f5e8;">Oscuro Pro</div></div>'
+    + '<div class="theme-card" data-theme="gold" style="background:#140f00;color:#c9841a;border:2px solid transparent;" onclick="elegirTema(this,&quot;gold&quot;)">'
+    +   '<div style="width:28px;height:28px;border-radius:50%;background:#c9841a;margin-bottom:8px;"></div>'
+    +   '<div style="font-weight:700;font-size:0.9rem;color:#f5e6c0;">Dorado Élite</div></div>'
+    + '<div class="theme-card" data-theme="ocean" style="background:#e8f4fd;color:#0066cc;border:2px solid transparent;" onclick="elegirTema(this,&quot;ocean&quot;)">'
+    +   '<div style="width:28px;height:28px;border-radius:50%;background:#0066cc;margin-bottom:8px;"></div>'
+    +   '<div style="font-weight:700;font-size:0.9rem;">Océano</div></div>'
+    + '<div class="theme-card" data-theme="rose" style="background:#fff5f7;color:#c02040;border:2px solid transparent;grid-column:1/-1;" onclick="elegirTema(this,&quot;rose&quot;)">'
+    +   '<div style="width:28px;height:28px;border-radius:50%;background:#c02040;margin-bottom:8px;"></div>'
+    +   '<div style="font-weight:700;font-size:0.9rem;">Rosa Elegante</div></div>'
+    + '</div></div>';
+  document.getElementById('mainContent').innerHTML = html;
+  // Marcar el tema activo
+  var activo = document.querySelector('.theme-card[data-theme="'+(S.theme||'default')+'"]');
+  if(activo) activo.style.border = '2px solid currentColor';
+}
+
+function elegirTema(el, t){
+  // Quitar selección anterior
+  document.querySelectorAll('.theme-card').forEach(function(c){ c.style.border='2px solid transparent'; });
+  el.style.border = '2px solid currentColor';
+  S.theme = t;
+  applyTheme(t);
+  localStorage.setItem('usala_theme', t);
+  showToast('🎨 Tema aplicado');
 }
 
 function _getMicEstado(){
@@ -3411,64 +3444,16 @@ function toggleVoz(){
 // Micrófono
 function toggleMicIA(){
   if(_iaActivo){ detenerMicIA(); return; }
-  // Si nunca se pidió permiso, pedirlo primero con dialogo claro
-  var permiso = localStorage.getItem('usala_mic_permiso');
-  if(!permiso){
-    pedirPermisoMic();
-  } else if(permiso === 'granted'){
-    iniciarMicIA();
-  } else {
-    // Denegado — mostrar instrucciones
-    agregarMensajeIA('🔒 El micrófono está bloqueado. En Chrome: toca los 3 puntos ⋮ arriba → Configuración → Privacidad y seguridad → Configuración del sitio → Micrófono → busca esta página y cambia a Permitir. Luego recarga la app.', 'ia');
-    hablarIA('El micrófono está bloqueado. Ve a la configuración del navegador para permitirlo.');
-  }
+  iniciarMicIA();
 }
-
-function pedirPermisoMic(){
-  // Mostrar mensaje antes del popup del navegador
-  agregarMensajeIA('📋 Voy a pedir acceso al micrófono. Cuando aparezca el mensaje del navegador, toca "Permitir" 👆', 'ia');
-  hablarIA('Voy a pedir acceso al micrófono. Toca Permitir cuando aparezca el mensaje.');
-  setTimeout(function(){
-    navigator.mediaDevices.getUserMedia({audio:true})
-      .then(function(stream){
-        stream.getTracks().forEach(function(t){ t.stop(); });
-        localStorage.setItem('usala_mic_permiso','granted');
-        agregarMensajeIA('✅ ¡Perfecto! Micrófono activado. Ahora toca el botón 🎤 y habla.', 'ia');
-        hablarIA('Perfecto, micrófono activado. Toca el botón y habla.');
-      })
-      .catch(function(err){
-        localStorage.setItem('usala_mic_permiso','denied');
-        var msg = err.name === 'NotAllowedError'
-          ? '❌ Permiso denegado. Ve a Chrome ⋮ → Configuración → Privacidad y seguridad → Configuración del sitio → Micrófono → permite esta página. Luego recarga.'
-          : '❌ No se pudo acceder al micrófono: ' + err.message;
-        agregarMensajeIA(msg, 'ia');
-        hablarIA('No se pudo activar el micrófono. Revisa los permisos en configuración.');
-      });
-  }, 1200);
-}
-var _micStream = null; // stream activo mientras escucha
-
 function iniciarMicIA(){
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SR){
-    agregarMensajeIA('Tu navegador no soporta reconocimiento de voz 😔 Usa Chrome en Android o Safari en iPhone.', 'ia');
+    agregarMensajeIA('Tu navegador no soporta voz 😔 Usa Chrome en Android o Safari en iPhone.', 'ia');
     return;
   }
   detenerHabla();
-  // Mantener stream activo — NO cerrarlo antes de SpeechRecognition
-  // Chrome Android requiere que el mic esté abierto cuando arranca SR
-  navigator.mediaDevices.getUserMedia({audio:true})
-    .then(function(stream){
-      _micStream = stream; // guardar — se cierra al terminar
-      _arrancarReconocimiento();
-    })
-    .catch(function(err){
-      if(err.name === 'NotAllowedError'){
-        agregarMensajeIA('🔒 Permiso de micrófono denegado. Ve a Chrome ⋮ → Configuración del sitio → Micrófono → permite rikas75.github.io → recarga.', 'ia');
-      } else {
-        agregarMensajeIA('🎤 No se pudo acceder al micrófono: ' + err.message, 'ia');
-      }
-    });
+  _arrancarReconocimiento();
 }
 
 function _arrancarReconocimiento(){
@@ -3713,4 +3698,4 @@ function ejecutarAccionIA(resp){
   }
 }
 }
-  </script>
+        </script>
