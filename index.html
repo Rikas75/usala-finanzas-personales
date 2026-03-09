@@ -409,6 +409,7 @@ select.inp{appearance:none;-webkit-appearance:none;}
     </button>
     <!-- Botón U acceso rápido cuentas -->
     <button id="uFabBtn" class="top-icon" onclick="toggleUMenu()" title="Mis cuentas" style="display:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:900;font-size:0.95rem;letter-spacing:-0.5px;transition:transform 0.2s ease;">U</button>
+    <button class="top-icon" id="btnVoz" onclick="toggleVoz()" title="Comando de voz" style="display:none;">🎙️</button>
     <button class="top-icon" onclick="abrirCalc()" title="Calculadora">🔢</button>
     <button class="top-icon" onclick="goTab('mas',document.querySelectorAll('.nb')[4]);setTimeout(function(){goSub('ayuda');},50);" title="Ayuda">❓</button>
   </div>
@@ -847,6 +848,11 @@ function initDashboard(){
   var ub = document.getElementById('uFabBtn');
   if(ub) ub.style.display = 'flex';
   actualizarUMenu();
+  // Mostrar botón voz si el navegador lo soporta
+  if('webkitSpeechRecognition' in window || 'SpeechRecognition' in window){
+    var bv = document.getElementById('btnVoz');
+    if(bv) bv.style.display = 'flex';
+  }
   var u = S.user;
   var un = document.getElementById('topUserName');
   if(un) un.textContent = u.isAdmin ? '⚙️ Admin' : '👤 ' + u.nombre;
@@ -2982,105 +2988,83 @@ function menuAccion(accion){
 function cerrarMenu(){ var m=document.getElementById('menuModal'); if(m) m.classList.remove('open'); }
 // ══════════════════════════════════════════
 var FAQS = [
-  // ── INICIO ──
   {cat:'🏠 Inicio', q:'¿Qué muestra la pantalla de Inicio?',
-   a:'Muestra tu balance neto, el resumen de tus cuentas (Efectivo, Banco, Total disponible, Deuda TC), Créditos, Invitados (solo admin) y las últimas transacciones. Toca cualquier tarjeta para ir al módulo correspondiente.'},
+   a:'Muestra el resumen de tus cuentas (Efectivo, Banco, Total disponible, Deuda TC), Créditos, Invitados (solo admin) y las últimas transacciones.'},
   {cat:'🏠 Inicio', q:'¿Cómo registro un ingreso o gasto rápido?',
-   a:'Todo se registra desde 🏦 Cuentas. Usa el botón U azul en la barra superior para acceder en un toque a Efectivo, Banco o Tarjetas de Crédito desde cualquier pantalla.'},
-  {cat:'🏠 Inicio', q:'¿Qué es el Balance Neto?',
-   a:'Es la suma de todos tus ingresos menos todos tus gastos registrados. Tócalo para ir a la pantalla de Reportes y ver el detalle completo.'},
+   a:'Usa el botón U azul para acceder en un toque a Efectivo, Banco o Tarjetas. O di un comando de voz: "gasté 200" o "ingresé 500".'},
 
-  // ── BOTÓN U ──
-  {cat:'🔵 Botón U', q:'¿Para qué sirve el botón U azul en la barra superior?',
-   a:'Es un acceso rápido a tus 3 cuentas principales. Tócalo y aparece un menú con Efectivo, Cheques/Banco y Tarjetas de Crédito, cada uno mostrando el saldo actual. Toca cualquiera y vas directo a esa sección.'},
-  {cat:'🔵 Botón U', q:'¿Desde dónde funciona el botón U?',
-   a:'Desde cualquier pantalla del dashboard. No importa en qué pestaña estés — el botón U siempre está en la barra superior y te lleva directo a la cuenta que necesites.'},
+  {cat:'🔵 Botón U', q:'¿Para qué sirve el botón U azul?',
+   a:'Acceso rápido a tus 3 cuentas desde cualquier pantalla. Tócalo y aparece un menú con Efectivo, Cheques/Banco y Tarjetas con el saldo actual de cada una.'},
 
-  // ── CUENTAS ──
+  {cat:'🎙️ Comandos de Voz', q:'¿Cómo activo los comandos de voz?',
+   a:'Toca el 🎙️ en la barra superior. Se pone rojo mientras escucha. Habla tu comando y suelta — se ejecuta solo.'},
+  {cat:'🎙️ Comandos de Voz', q:'¿Qué comandos de navegación puedo usar?',
+   a:'Di: "inicio", "cuentas", "créditos", "reportes", "más", "efectivo", "banco", "tarjetas", "calculadora", "historial", "metas", "presupuesto", "conversor", "ayuda".'},
+  {cat:'🎙️ Comandos de Voz', q:'¿Puedo registrar gastos e ingresos con voz?',
+   a:'Sí. Di "gasté 200" para registrar $200 de gasto en Efectivo, o "ingresé 500" para un ingreso. Se guarda al instante.'},
+  {cat:'🎙️ Comandos de Voz', q:'¿En qué teléfonos funciona?',
+   a:'Chrome, Edge y Safari iOS 15+. Si tu navegador no lo soporta el botón no aparece.'},
+
   {cat:'🏦 Cuentas', q:'¿Qué módulos tiene Cuentas?',
-   a:'Tiene 3 secciones: 💵 Efectivo (tu dinero en mano), 🏧 Cheques/Banco (tus cuentas bancarias) y 💳 Tarjetas de Crédito. Cada una tiene su propio registro de movimientos.'},
+   a:'3 secciones: 💵 Efectivo, 🏧 Cheques/Banco y 💳 Tarjetas de Crédito. Cada una con su historial y formulario de movimientos.'},
   {cat:'🏦 Cuentas', q:'¿Cómo registro un movimiento de Efectivo?',
-   a:'Ve a Cuentas → Efectivo (o usa el botón U). Elige Entrada o Salida, escribe descripción, monto, categoría y fecha. Al guardar se actualiza tu saldo automáticamente.'},
-  {cat:'🏦 Cuentas', q:'¿Cómo registro un movimiento bancario?',
-   a:'Ve a Cuentas → Cheques/Banco → toca el banco específico. Verás sus movimientos y un formulario de entrada/salida. Cada movimiento actualiza el saldo de esa cuenta.'},
-  {cat:'🏦 Cuentas', q:'¿Cómo agrego una cuenta bancaria?',
-   a:'Ve a Cuentas → Cheques/Banco → llena el formulario: nombre del banco, tipo de cuenta, saldo inicial. Toca Guardar.'},
+   a:'Cuentas → Efectivo (o botón U o di "efectivo"). Elige Entrada o Salida, llena el formulario. El saldo se actualiza al instante.'},
+  {cat:'🏦 Cuentas', q:'¿Cómo transfiero efectivo a mi banco?',
+   a:'Efectivo → Salida → en "¿A qué banco?" elige tu cuenta. Automáticamente resta de Efectivo y suma al banco destino.'},
+  {cat:'🏦 Cuentas', q:'¿Qué pasa si borro una transacción?',
+   a:'El saldo de la cuenta se revierte automáticamente. Tienes 6 segundos para deshacer y el saldo se restaura también.'},
   {cat:'🏦 Cuentas', q:'¿Las compras con TC afectan mi efectivo?',
    a:'No. Las compras con tarjeta solo aumentan la deuda de esa TC. Tu efectivo y banco NO se ven afectados.'},
 
-  // ── TARJETAS ──
   {cat:'💳 Tarjetas de Crédito', q:'¿Qué información puedo registrar de mi TC?',
-   a:'Banco, tipo (Visa/Mastercard/Amex), últimos 4 dígitos, límite, saldo usado, interés anual, día de pago, fecha de corte, pago mínimo y monto para no pagar intereses.'},
+   a:'Banco, tipo, últimos 4 dígitos, límite, saldo, interés, día de pago, fecha de corte, pago mínimo y monto sin intereses.'},
   {cat:'💳 Tarjetas de Crédito', q:'¿Qué es el Saldo al Corte AUTO?',
-   a:'Se calcula automáticamente sumando todas las compras registradas con esa TC en el período actual. Aparece con badge naranja "AUTO". No necesitas calcularlo manualmente.'},
+   a:'Se calcula sumando todas las compras del período actual. Aparece con badge naranja "AUTO". No lo calculas manualmente.'},
   {cat:'💳 Tarjetas de Crédito', q:'¿Cómo registro una compra con TC?',
-   a:'En la tarjeta toca "🛒 Registrar compra". Llena descripción, monto, categoría y fecha. La deuda aumenta pero NO afecta tu efectivo ni banco.'},
+   a:'En la tarjeta toca "🛒 Registrar compra". La deuda aumenta pero NO afecta efectivo ni banco.'},
   {cat:'💳 Tarjetas de Crédito', q:'¿Cómo registro un pago de TC?',
-   a:'Toca "💳 Pago" en la tarjeta. Ingresa el monto pagado. El saldo se reduce automáticamente. Si llega a $0 se marca como "Al corriente".'},
+   a:'Toca "💳 Pago" en la tarjeta. El saldo se reduce. Si llega a $0 se marca "Al corriente".'},
 
-  // ── REPORTES ──
-  {cat:'📊 Reportes', q:'¿Qué muestra la pantalla de Reportes?',
-   a:'Ingresos totales, gastos totales y flujo neto del período. Gastos por categoría con barras de progreso, ingresos por fuente y últimos movimientos.'},
-  {cat:'📊 Reportes', q:'¿Cómo llego a Reportes?',
-   a:'Toca 📊 Reportes en la barra inferior (cuarto ícono). También puedes llegar tocando el Balance Neto en Inicio.'},
+  {cat:'📊 Reportes', q:'¿Qué muestra Reportes?',
+   a:'Ingresos, gastos y flujo neto. Gastos por categoría con barras de progreso e ingresos por fuente.'},
 
-  // ── CRÉDITOS ──
   {cat:'🤝 Créditos', q:'¿Qué son los Créditos?',
-   a:'"Mis Deudas" = dinero que tú pediste prestado. "Créditos por Cobrar" = dinero que tú prestaste. Ambos llevan seguimiento de abonos y fechas.'},
+   a:'"Mis Deudas" = dinero que tú pediste. "Por Cobrar" = dinero que tú prestaste. Con seguimiento de abonos y fechas.'},
   {cat:'🤝 Créditos', q:'¿Cómo abono a una deuda?',
-   a:'Toca "+ Abonar" en el crédito. La barra de progreso se actualiza al instante. Al llegar al 100% se marca como pagado.'},
+   a:'Toca "+ Abonar". La barra de progreso se actualiza. Al 100% se marca como pagado.'},
   {cat:'🤝 Créditos', q:'¿Qué significan los colores?',
-   a:'⏳ Amarillo = Pendiente (en plazo). 🔴 Rojo = Vencido. ✅ Verde = Pagado completamente.'},
+   a:'⏳ Amarillo = Pendiente. 🔴 Rojo = Vencido. ✅ Verde = Pagado.'},
 
-  // ── HISTORIAL ──
   {cat:'📋 Historial', q:'¿Qué muestra el Historial?',
-   a:'Ve a Más → Historial. Todas tus transacciones con resumen de ingresos y gastos. Filtra por Todos, 💰 Ingresos o 💸 Gastos. Cada registro muestra la cuenta de origen y tiene botones de editar y eliminar.'},
-  {cat:'📋 Historial', q:'¿Puedo filtrar el historial?',
-   a:'Sí. Tres botones al inicio: "Todos", "💰 Ingresos" y "💸 Gastos". Toca el que necesites.'},
+   a:'Todas tus transacciones. Filtra por Todos, Ingresos o Gastos. Cada registro muestra cuenta de origen con botones editar y eliminar.'},
+  {cat:'📋 Historial', q:'¿Puedo editar una transacción?',
+   a:'Sí, toca ✏️ en el historial. Al guardar, el saldo se recalcula automáticamente.'},
 
-  // ── LOGIN ──
   {cat:'🔐 Login', q:'¿Cómo entro más rápido la próxima vez?',
-   a:'La app recuerda tu sesión automáticamente. La próxima vez que abras USALA verás tu nombre y un botón "¡Continuar! →". Un solo toque y estás adentro.'},
-  {cat:'🔐 Login', q:'¿Puedo cerrar sesión y entrar con otro código?',
-   a:'Sí. En la pantalla de sesión recordada toca "No soy yo — ingresar con otro código". También puedes cerrar sesión desde Más → Configuración → Cerrar sesión.'},
+   a:'La app recuerda tu sesión. Verás tu nombre y "¡Continuar! →". Un toque y estás adentro.'},
+  {cat:'🔐 Login', q:'¿Puedo cerrar sesión?',
+   a:'Sí. Toca "No soy yo" en la sesión recordada, o Más → Configuración → Cerrar sesión.'},
 
-  // ── VOZ ──
-  {cat:'🎙️ Comandos de Voz', q:'¿Cómo activo los comandos de voz?',
-   a:'Toca el ícono 🎙️ en la barra superior. Habla claramente tu comando. La app lo procesa y ejecuta la acción automáticamente.'},
-  {cat:'🎙️ Comandos de Voz', q:'¿Qué comandos de voz puedo usar?',
-   a:'Puedes decir: "ir a efectivo", "ir a banco", "ir a tarjetas", "ir a créditos", "ir a reportes", "ir a inicio", "abrir calculadora", "ir a historial", "ir a metas", "ir a presupuesto". También puedes decir "ayuda" para abrir esta pantalla.'},
-  {cat:'🎙️ Comandos de Voz', q:'¿En qué idioma funcionan los comandos?',
-   a:'En español. Habla de forma natural y corta. Por ejemplo: "efectivo", "banco", "tarjetas", "inicio". La app reconoce la palabra clave dentro de lo que dices.'},
-  {cat:'🎙️ Comandos de Voz', q:'¿Funciona en todos los teléfonos?',
-   a:'Funciona en la mayoría de navegadores modernos (Chrome, Edge, Safari en iOS 15+). Si tu navegador no soporta reconocimiento de voz, el botón no aparecerá.'},
-
-  // ── ACCESO ──
   {cat:'🔑 Acceso', q:'¿Cómo entran otras personas?',
-   a:'El admin genera un código en Más → Códigos de Acceso y lo comparte. O el visitante toca "📩 Solicitar acceso" en el login y el admin aprueba generando el código automáticamente.'},
+   a:'El admin genera un código en Más → Códigos de Acceso. O el visitante solicita acceso y el admin aprueba.'},
   {cat:'🔑 Acceso', q:'¿Cómo apruebo una solicitud?',
-   a:'Aparece un badge 🔴 en el topbar. Tócalo → Códigos de Acceso → Solicitudes pendientes. Toca "✅ Aprobar" para generar el código y copiarlo al portapapeles.'},
-  {cat:'🔑 Acceso', q:'¿Los datos de cada usuario son privados?',
-   a:'Sí. Cada usuario tiene su propio espacio aislado. Los invitados no ven datos del admin ni entre ellos.'},
+   a:'Badge 🔴 en el topbar → Códigos de Acceso → Solicitudes pendientes → ✅ Aprobar.'},
+  {cat:'🔑 Acceso', q:'¿Los datos son privados por usuario?',
+   a:'Sí. Espacio completamente aislado por usuario. Nadie ve datos de otro.'},
   {cat:'🔑 Acceso', q:'¿Olvidé mi contraseña de admin?',
-   a:'En el login toca "🔐 Admin" → "¿Olvidaste tu contraseña? Restablecer". Podrás usar la clave maestra admin1234.'},
+   a:'Login → 🔐 Admin → "¿Olvidaste tu contraseña?". Usa la clave maestra admin1234.'},
 
-  // ── CONFIG ──
   {cat:'⚙️ Config', q:'¿Cómo cambio el tema visual?',
-   a:'Más → Configuración → Cambiar tema. 5 temas: Verde Natural, Oscuro Pro, Dorado Élite, Océano y Rosa Elegante.'},
-  {cat:'⚙️ Config', q:'¿Cómo cambio mi contraseña?',
-   a:'Más → Configuración → escribe y confirma tu nueva contraseña (mínimo 4 caracteres).'},
+   a:'Más → Configuración → Cambiar tema. 5 temas disponibles.'},
   {cat:'⚙️ Config', q:'¿Cómo borro mis datos?',
-   a:'Más → Configuración → Zona de peligro. Puedes borrar solo las transacciones o restablecer toda tu cuenta. No se puede deshacer.'},
+   a:'Más → Configuración → Zona de peligro. Puedes borrar transacciones o restablecer toda la cuenta.'},
 
-  // ── GENERAL ──
   {cat:'↩️ General', q:'¿Puedo deshacer un borrado?',
-   a:'Sí. Tienes 6 segundos después de eliminar para tocar "Deshacer" en la barra verde que aparece abajo.'},
-  {cat:'↩️ General', q:'¿La app guarda automáticamente?',
-   a:'Sí. Todo se guarda automáticamente en tu dispositivo al instante.'},
+   a:'Sí. 6 segundos para tocar "Deshacer". El saldo también se restaura.'},
   {cat:'↩️ General', q:'¿Funciona sin internet?',
-   a:'Sí. Una vez cargada funciona completamente sin conexión. Los datos se guardan localmente.'},
+   a:'Sí. Todo se guarda localmente en tu dispositivo.'},
   {cat:'↩️ General', q:'¿Cómo uso la calculadora?',
-   a:'Toca 🔢 en la barra superior. Puedes arrastrarla, minimizarla con el botón amarillo (−) sin perder tus cálculos, o cerrarla con el botón rojo (✕).'},
+   a:'Toca 🔢 en la barra superior. Arrástrala, minimízala (−) sin perder cálculos, o ciérrala (×). O di "calculadora" por voz.'},
 ];
 
 function renderAyuda(){
@@ -3124,6 +3108,87 @@ function toggleFaq(id){
   var open=el.style.display==='block';
   el.style.display=open?'none':'block';
   arr.textContent=open?'›':'↓';
+}
+
+// ══════════════════════════════════════════
+// COMANDO DE VOZ
+// ══════════════════════════════════════════
+var _vozRec = null, _vozActivo = false;
+
+function toggleVoz(){
+  if(_vozActivo){ detenerVoz(); return; }
+  iniciarVoz();
+}
+function iniciarVoz(){
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ showToast('Tu navegador no soporta voz'); return; }
+  _vozRec = new SR();
+  _vozRec.lang = 'es-MX';
+  _vozRec.continuous = false;
+  _vozRec.interimResults = false;
+  _vozRec.onstart = function(){
+    _vozActivo = true;
+    var btn = document.getElementById('btnVoz');
+    if(btn){ btn.style.background='#ff3b30'; btn.style.color='#fff'; btn.textContent='🔴'; }
+    showToast('🎤 Escuchando...');
+  };
+  _vozRec.onend = function(){ detenerVoz(); };
+  _vozRec.onerror = function(e){
+    detenerVoz();
+    if(e.error !== 'no-speech') showToast('Error de voz: ' + e.error);
+  };
+  _vozRec.onresult = function(e){
+    var t = e.results[0][0].transcript.toLowerCase().trim();
+    showToast('🎙️ "' + t + '"');
+    procesarComandoVoz(t);
+  };
+  try{ _vozRec.start(); } catch(e){ showToast('No se pudo iniciar el mic'); }
+}
+function detenerVoz(){
+  _vozActivo = false;
+  var btn = document.getElementById('btnVoz');
+  if(btn){ btn.style.background=''; btn.style.color=''; btn.textContent='🎙️'; }
+  if(_vozRec){ try{ _vozRec.stop(); }catch(e){} _vozRec = null; }
+}
+function procesarComandoVoz(t){
+  var nb = document.querySelectorAll('.nb');
+  // Navegación principal
+  if(/\binicio\b|\bhome\b/.test(t)){ goTab('inicio',nb[0]); showToast('🏠 Inicio'); return; }
+  if(/\bcuentas?\b/.test(t) && !/tarjeta|cr.dito|tc\b/.test(t)){ goTab('cuentas',nb[1]); showToast('🏦 Cuentas'); return; }
+  if(/\bcr.ditos?\b|\bpr.stamo\b/.test(t)){ goTab('creditos',nb[2]); showToast('🤝 Créditos'); return; }
+  if(/\breportes?\b/.test(t)){ goTab('reportes',nb[3]); showToast('📊 Reportes'); return; }
+  if(/\bm.s\b|\bajuste\b|\bconfig\b/.test(t)){ goTab('mas',nb[4]); showToast('⋯ Más'); return; }
+  // Cuentas directas
+  if(/\befectivo\b/.test(t)){ goTab('cuentas',nb[1]); setTimeout(function(){ goSub('efectivo'); },60); showToast('💵 Efectivo'); return; }
+  if(/\bbanco\b|\bcheque\b/.test(t)){ goTab('cuentas',nb[1]); setTimeout(function(){ goSub('cheques'); },60); showToast('🏦 Banco'); return; }
+  if(/\btarjeta\b|\b\btc\b/.test(t)){ goTab('cuentas',nb[1]); setTimeout(function(){ goSub('tarjetas_credito'); },60); showToast('💳 Tarjetas'); return; }
+  // Herramientas
+  if(/\bcalculadora\b|\bcalc\b/.test(t)){ abrirCalc(); showToast('🔢 Calculadora'); return; }
+  if(/\bhistorial\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('historial'); },60); showToast('📋 Historial'); return; }
+  if(/\bayuda\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('ayuda'); },60); showToast('❓ Ayuda'); return; }
+  if(/\bmetas?\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('metas'); },60); showToast('🎯 Metas'); return; }
+  if(/\bpresupuesto\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('presupuesto'); },60); showToast('💰 Presupuesto'); return; }
+  if(/\bconversor\b|\btipo de cambio\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('conversor'); },60); showToast('💱 Conversor'); return; }
+  // Registro rápido: "gasté/gaste N" o "ingresé/ingrese N"
+  var mG = t.match(/gast[eé]\s+(\d+[\.,]?\d*)/);
+  var mI = t.match(/ingres[eé]\s+(\d+[\.,]?\d*)/);
+  if(mG){
+    var m = parseFloat(mG[1].replace(',','.'));
+    if(m > 0){
+      var c = getCuentas(); c.efectivo = (c.efectivo||0) - m; saveCuentas(c);
+      var txs = getTxs(); txs.push({id:Date.now(),tipo:'gasto',desc:'Voz',monto:m,cat:'Otros gastos',fecha:today(),cuenta:'efectivo'}); saveTxs(txs);
+      showToast('💸 Gasto $' + m.toFixed(2) + ' en Efectivo'); renderTab(S.tab); return;
+    }
+  }
+  if(mI){
+    var m2 = parseFloat(mI[1].replace(',','.'));
+    if(m2 > 0){
+      var c2 = getCuentas(); c2.efectivo = (c2.efectivo||0) + m2; saveCuentas(c2);
+      var txs2 = getTxs(); txs2.push({id:Date.now(),tipo:'ingreso',desc:'Voz',monto:m2,cat:'Otros ingresos',fecha:today(),cuenta:'efectivo'}); saveTxs(txs2);
+      showToast('💰 Ingreso $' + m2.toFixed(2) + ' en Efectivo'); renderTab(S.tab); return;
+    }
+  }
+  showToast('❓ No entendí: "' + t + '"');
 }
 </script>
 </body>
