@@ -308,6 +308,9 @@ select.inp{appearance:none;-webkit-appearance:none;}
     <div style="text-align:center;margin-bottom:24px;">
       <div class="access-logo">USALA</div>
       <div style="font-size:0.75rem;color:var(--dim);">Finanzas Personales</div>
+      <div style="margin-top:10px;">
+        <span onclick="abrirAdminModal()" style="font-size:0.75rem;color:var(--dim);cursor:pointer;text-decoration:underline;text-underline-offset:3px;opacity:0.6;">🔐 Acceso administrador</span>
+      </div>
     </div>
 
     <!-- ── PANEL: Sesión recordada ── -->
@@ -650,6 +653,9 @@ function confirmarTema(){
 (function(){
   var t = localStorage.getItem('usala_theme');
   if(t){ S.theme = t; applyTheme(t); }
+})();
+
+window.addEventListener('DOMContentLoaded', function(){
   showScreen('accessScreen');
   var raw = localStorage.getItem('usala_session');
   if(raw){
@@ -671,8 +677,10 @@ function confirmarTema(){
       localStorage.removeItem('usala_session');
     }catch(e){ localStorage.removeItem('usala_session'); }
   }
-  document.getElementById('panelCodigo').style.display = 'block';
-})();
+  // Sin sesión: mostrar login normal
+  document.getElementById('panelSesion').style.display = 'none';
+  document.getElementById('panelCodigo').style.display  = 'block';
+});
 
 // ══════════════════════════════════════════
 // ACCESO
