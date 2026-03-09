@@ -2110,6 +2110,8 @@ function renderConfig(){
   return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">⚙️ Configuración</div></div>'
     +'<div class="card">'
     +'<div class="set-item" onclick="pickTema()"><div><div class="set-label">🎨 Cambiar tema</div></div><div class="set-arrow">›</div></div>'
+    +'<div class="set-item" onclick="restablecerMic()"><div><div class="set-label">🎤 Restablecer micrófono</div><div class="set-sub" id="micEstadoLabel">'+_getMicEstado()+'</div></div><div class="set-arrow">›</div></div>'
+    +'<div class="set-item" onclick="restablecerMonedaIA()"><div><div class="set-label">💱 Cambiar moneda del asistente</div><div class="set-sub" id="monedaEstadoLabel">'+_getMonedaEstado()+'</div></div><div class="set-arrow">›</div></div>'
     +'<div class="set-item" onclick="goSub(\'version\')"><div><div class="set-label">📋 Versión</div><div class="set-sub">v'+APP_VERSION+'</div></div><div class="set-arrow">›</div></div>'
     +'<div class="set-item" onclick="cerrarSesion()"><div><div class="set-label" style="color:var(--danger);">🚪 Cerrar sesión</div></div><div class="set-arrow">›</div></div>'
     +'</div>'
@@ -2128,10 +2130,47 @@ function renderConfig(){
 }
 
 function pickTema(){
-  // Ahora el selector de temas vive en Más → Configuración
   var nb = document.querySelectorAll('.nb');
   goTab('mas', nb[4]);
   setTimeout(function(){ goSub('configuracion'); }, 80);
+}
+
+function _getMicEstado(){
+  var p = localStorage.getItem('usala_mic_permiso');
+  if(!p)    return 'No solicitado aún';
+  if(p === 'granted') return '✅ Permitido';
+  if(p === 'denied')  return '❌ Denegado';
+  return p;
+}
+
+function _getMonedaEstado(){
+  var key = 'usala_ia_moneda_' + (S.user ? (S.user.isAdmin ? 'admin' : S.user.codigo) : 'anon');
+  var m = localStorage.getItem(key);
+  if(!m) return 'No configurada';
+  try{ return JSON.parse(m).bandera + ' ' + JSON.parse(m).nombre; } catch(e){ return 'Ver asistente'; }
+}
+
+function restablecerMic(){
+  localStorage.removeItem('usala_mic_permiso');
+  // Restablecer también en el navegador si es posible
+  showToast('🎤 Permiso de micrófono restablecido. Abre el asistente 🎙️ para solicitarlo de nuevo.');
+  // Refrescar el label
+  var el = document.getElementById('micEstadoLabel');
+  if(el) el.textContent = 'No solicitado aún';
+  // Si el navegador soporta revocar permisos
+  if(navigator.permissions && navigator.permissions.revoke){
+    navigator.permissions.revoke({name:'microphone'}).catch(function(){});
+  }
+}
+
+function restablecerMonedaIA(){
+  var key = 'usala_ia_moneda_' + (S.user ? (S.user.isAdmin ? 'admin' : S.user.codigo) : 'anon');
+  localStorage.removeItem(key);
+  _iaMoneda = null;
+  _iaHistorial = [];
+  showToast('💱 Moneda restablecida. Abre el asistente 🎙️ para elegir de nuevo.');
+  var el = document.getElementById('monedaEstadoLabel');
+  if(el) el.textContent = 'No configurada';
 }
 function toggleUMenu(){
   var menu = document.getElementById('uFabMenu');
@@ -3676,4 +3715,4 @@ function ejecutarAccionIA(resp){
   }
 }
 }
-  </script>
+      </script>
