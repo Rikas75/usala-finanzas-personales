@@ -3245,28 +3245,57 @@ function abrirIA(){
   }
 
   if(_iaHistorial.length === 0){
-    // ¿Ya eligió moneda antes?
-    var monedaGuardada = localStorage.getItem(_iaMonedaKey());
-    if(monedaGuardada){
-      _iaMoneda = JSON.parse(monedaGuardada);
-      var c = getCuentas();
-      var efec = c.efectivo || 0;
-      var banco = (c.cheques||[]).reduce(function(s,x){ return s+Number(x.saldo||0); },0);
-      var saludo = 'Hola ' + S.user.nombre.split(' ')[0] + ' 👋 Trabajamos en '
-        + _iaMoneda.nombre + '. Tienes ' + _iaMoneda.simbolo
-        + efec.toLocaleString('es-MX',{minimumFractionDigits:2}) + ' en efectivo y '
-        + _iaMoneda.simbolo + banco.toLocaleString('es-MX',{minimumFractionDigits:2})
-        + ' en banco. ¿Qué necesitas?';
-      agregarMensajeIA(saludo, 'ia');
-      hablarIA(saludo);
-    } else {
-      var nombre2 = S.user.nombre.split(' ')[0];
-      var pregunta = 'Hola ' + nombre2 + ' 👋 Soy tu asistente de finanzas. '
-        + 'Antes de empezar, ¿en qué moneda trabajas?';
-      agregarMensajeIA(pregunta, 'ia');
-      hablarIA(pregunta);
-      mostrarBotonesMoneda();
+    var permiso = localStorage.getItem('usala_mic_permiso');
+
+    // ── Pedir permiso mic PRIMERO si nunca se ha pedido ──
+    if(!permiso && navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+      agregarMensajeIA('👋 ¡Hola ' + S.user.nombre.split(' ')[0] + '! Para escucharte necesito acceso al micrófono. Toca "Permitir" cuando aparezca el mensaje 👆', 'ia');
+      hablarIA('Hola, necesito acceso al micrófono. Toca Permitir cuando aparezca el mensaje.');
+      setTimeout(function(){
+        navigator.mediaDevices.getUserMedia({audio:true})
+          .then(function(stream){
+            stream.getTracks().forEach(function(t){ t.stop(); });
+            localStorage.setItem('usala_mic_permiso','granted');
+            agregarMensajeIA('✅ ¡Perfecto! Ya puedo escucharte. Toca 🎤 y habla con naturalidad.', 'ia');
+            hablarIA('Perfecto, ya puedo escucharte. Toca el micrófono y habla.');
+            // Ahora mostrar saludo o moneda
+            setTimeout(function(){ _saludoIA(); }, 1500);
+          })
+          .catch(function(err){
+            localStorage.setItem('usala_mic_permiso','denied');
+            agregarMensajeIA('❌ Permiso denegado. Ve a Chrome ⋮ → Configuración → Privacidad y seguridad → Configuración del sitio → Micrófono → permite esta página. Luego recarga la app.', 'ia');
+            hablarIA('Permiso denegado. Ve a la configuración del navegador para permitir el micrófono.');
+          });
+      }, 800);
+      return;
     }
+
+    // Permiso ya dado o no disponible — saludo directo
+    _saludoIA();
+  }
+}
+
+function _saludoIA(){
+  var monedaGuardada = localStorage.getItem(_iaMonedaKey());
+  if(monedaGuardada){
+    _iaMoneda = JSON.parse(monedaGuardada);
+    var c = getCuentas();
+    var efec = c.efectivo || 0;
+    var banco = (c.cheques||[]).reduce(function(s,x){ return s+Number(x.saldo||0); },0);
+    var saludo = 'Hola ' + S.user.nombre.split(' ')[0] + ' 👋 Trabajamos en '
+      + _iaMoneda.nombre + '. Tienes ' + _iaMoneda.simbolo
+      + efec.toLocaleString('es-MX',{minimumFractionDigits:2}) + ' en efectivo y '
+      + _iaMoneda.simbolo + banco.toLocaleString('es-MX',{minimumFractionDigits:2})
+      + ' en banco. ¿Qué necesitas?';
+    agregarMensajeIA(saludo, 'ia');
+    hablarIA(saludo);
+  } else {
+    var nombre2 = S.user.nombre.split(' ')[0];
+    var pregunta = 'Hola ' + nombre2 + ' 👋 Soy tu asistente de finanzas. '
+      + 'Antes de empezar, ¿en qué moneda trabajas?';
+    agregarMensajeIA(pregunta, 'ia');
+    hablarIA(pregunta);
+    mostrarBotonesMoneda();
   }
 }
 
@@ -3652,4 +3681,4 @@ function ejecutarAccionIA(resp){
   }
 }
 }
-        </script>
+</script>
