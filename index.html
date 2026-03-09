@@ -1369,11 +1369,19 @@ function guardarTxInline(tipo, cat){
 }
 
 function borrarTx(id){
-  if(!confirm('¿Eliminar esta transacción?')) return;
-  var txs = getTxs(); var eli = txs.find(function(t){ return t.id===id; });
+  if(!confirm('\u00bfEliminar esta transacci\u00f3n?')) return;
+  var txs = getTxs();
+  var eli = txs.find(function(t){ return t.id===id; });
+  if(!eli) return;
+  // Revertir saldo en cuenta
+  if(eli.cuenta) revertirMovimientoCuenta(eli.cuenta, Number(eli.monto), eli.tipo);
   saveTxs(txs.filter(function(t){ return t.id!==id; }));
   renderTab(S.tab);
-  mostrarUndo('Transacción eliminada', function(){ var t2=getTxs(); t2.push(eli); saveTxs(t2); showToast('✓ Restaurado'); renderTab(S.tab); });
+  mostrarUndo('Transacci\u00f3n eliminada', function(){
+    var t2=getTxs(); t2.push(eli); saveTxs(t2);
+    if(eli.cuenta) aplicarMovimientoCuenta(eli.cuenta, Number(eli.monto), eli.tipo, eli.desc, eli.fecha, eli.id);
+    showToast('\u2713 Restaurado'); renderTab(S.tab);
+  });
 }
 
 // ══════════════════════════════════════════
