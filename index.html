@@ -310,8 +310,26 @@ select.inp{appearance:none;-webkit-appearance:none;}
       <div style="font-size:0.75rem;color:var(--dim);">Finanzas Personales</div>
     </div>
 
-    <!-- Panel: Ingresar con código -->
-    <div class="access-card" id="panelCodigo">
+    <!-- ── PANEL: Sesión recordada ── -->
+    <div class="access-card" id="panelSesion" style="display:none;">
+      <div style="text-align:center;margin-bottom:20px;">
+        <div id="sesionAvatar" style="width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:2.2rem;box-shadow:0 6px 24px rgba(45,106,255,0.35);">👤</div>
+        <div style="font-size:0.65rem;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Bienvenido de vuelta</div>
+        <div id="sesionNombre" style="font-size:1.5rem;font-weight:900;color:var(--text);"></div>
+      </div>
+      <button onclick="entrarSesionGuardada()" style="width:100%;padding:16px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:var(--navtext);border:none;border-radius:16px;font-family:'Outfit',sans-serif;font-size:1.05rem;font-weight:800;cursor:pointer;box-shadow:0 6px 20px rgba(45,106,255,0.35);margin-bottom:12px;letter-spacing:0.01em;">
+        ¡Continuar! →
+      </button>
+      <button onclick="mostrarPanelCodigo(true)" style="width:100%;padding:13px;background:none;border:1.5px solid var(--border);border-radius:14px;font-family:'Outfit',sans-serif;font-size:0.85rem;color:var(--dim);cursor:pointer;">
+        No soy yo — ingresar con otro código
+      </button>
+      <div style="text-align:center;margin-top:16px;">
+        <span onclick="abrirAdminModal()" style="font-size:0.78rem;color:var(--dim);cursor:pointer;text-decoration:underline;text-underline-offset:3px;">🔐 Acceso administrador</span>
+      </div>
+    </div>
+
+    <!-- ── PANEL: Código ── -->
+    <div class="access-card" id="panelCodigo" style="display:none;">
       <div class="access-icon" style="text-align:center;">🔑</div>
       <div class="access-title" style="text-align:center;">Código de acceso</div>
       <div class="access-sub" style="text-align:center;">Ingresa el código que te compartieron</div>
@@ -320,7 +338,7 @@ select.inp{appearance:none;-webkit-appearance:none;}
       <input class="inp" id="accNombre" placeholder="¿Cómo te llamas?" autocomplete="off">
       <label class="inp-label">Código</label>
       <input class="inp" id="accCodigo" placeholder="Ej: FIN-2026" autocomplete="off" style="font-family:'JetBrains Mono',monospace;letter-spacing:0.08em;" onkeydown="if(event.key==='Enter')verificarCodigo()">
-      <button class="btn-main" onclick="verificarCodigo()">Verificar acceso →</button>
+      <button class="btn-main" onclick="verificarCodigo()">Entrar →</button>
       <div style="display:flex;align-items:center;gap:10px;margin:16px 0 4px;">
         <div style="flex:1;height:1px;background:var(--border);"></div>
         <span style="font-size:0.7rem;color:var(--dim);font-weight:600;">¿No tienes código?</span>
@@ -329,7 +347,6 @@ select.inp{appearance:none;-webkit-appearance:none;}
       <button onclick="mostrarPanelSolicitud()" style="width:100%;padding:13px;border:2px dashed var(--accent);background:rgba(45,106,255,0.06);color:var(--accent);border-radius:14px;font-family:'Outfit',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;margin-top:6px;">
         📩 Solicitar acceso al administrador
       </button>
-      <!-- Acceso admin siempre visible -->
       <div style="text-align:center;margin-top:16px;">
         <span onclick="abrirAdminModal()" style="font-size:0.78rem;color:var(--dim);cursor:pointer;text-decoration:underline;text-underline-offset:3px;">🔐 Acceso administrador</span>
       </div>
@@ -359,8 +376,6 @@ select.inp{appearance:none;-webkit-appearance:none;}
       <button onclick="mostrarPanelCodigo()" style="margin-top:20px;width:100%;padding:13px;background:var(--accent);color:var(--navtext);border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;">← Volver al login</button>
     </div>
   </div>
-
-  <!-- admin-link removido del footer, ahora está dentro del panel -->
 </div>
 
 <!-- ══ ADMIN MODAL ══ -->
@@ -631,19 +646,44 @@ function confirmarTema(){
   localStorage.setItem('usala_theme', S.theme);
   showScreen('accessScreen');
 }
-// Aplicar tema guardado al inicio
+// Aplicar tema y detectar sesión al inicio
 (function(){
   var t = localStorage.getItem('usala_theme');
-  if(t){ S.theme = t; applyTheme(t); showScreen('accessScreen'); }
+  if(t){ S.theme = t; applyTheme(t); }
+  showScreen('accessScreen');
+  var raw = localStorage.getItem('usala_session');
+  if(raw){
+    try{
+      var ses = JSON.parse(raw);
+      var codigos = JSON.parse(localStorage.getItem('usala_codigos')||'[]');
+      var hoy = new Date();
+      var cod = codigos.find(function(c){ return c.codigo===ses.codigo && c.activo; });
+      if(cod){
+        var venc = new Date(cod.vencimiento.split('-').join('/'));
+        if(venc >= hoy){
+          document.getElementById('panelSesion').style.display = 'block';
+          document.getElementById('panelCodigo').style.display  = 'none';
+          var el = document.getElementById('sesionNombre');
+          if(el) el.textContent = ses.nombre.split(' ')[0];
+          return;
+        }
+      }
+      localStorage.removeItem('usala_session');
+    }catch(e){ localStorage.removeItem('usala_session'); }
+  }
+  document.getElementById('panelCodigo').style.display = 'block';
 })();
 
 // ══════════════════════════════════════════
 // ACCESO
 // ══════════════════════════════════════════
-function mostrarPanelCodigo(){
+function mostrarPanelCodigo(forzar){
+  document.getElementById('panelSesion').style.display='none';
   document.getElementById('panelCodigo').style.display='block';
   document.getElementById('panelSolicitud').style.display='none';
   document.getElementById('panelEnviada').style.display='none';
+  // Si viene de "no soy yo", limpiar sesión guardada
+  if(forzar) localStorage.removeItem('usala_session');
 }
 function mostrarPanelSolicitud(){
   document.getElementById('panelCodigo').style.display='none';
@@ -691,6 +731,22 @@ function verificarCodigo(){
   cod.usado = true; cod.nombreUsuario = nombre; cod.fechaUso = today();
   localStorage.setItem('usala_codigos', JSON.stringify(codigos));
   S.user = { nombre: nombre, codigo: codigo, isAdmin: false };
+  // Guardar sesión para próxima vez
+  localStorage.setItem('usala_session', JSON.stringify({ nombre: nombre, codigo: codigo }));
+  initDashboard();
+}
+
+function entrarSesionGuardada(){
+  var raw = localStorage.getItem('usala_session');
+  if(!raw){ mostrarPanelCodigo(); return; }
+  var ses = JSON.parse(raw);
+  var codigos = JSON.parse(localStorage.getItem('usala_codigos')||'[]');
+  var hoy = new Date();
+  var cod = codigos.find(function(c){ return c.codigo===ses.codigo && c.activo; });
+  if(!cod){ localStorage.removeItem('usala_session'); mostrarPanelCodigo(); return; }
+  var venc = new Date(cod.vencimiento.split('-').join('/'));
+  if(venc < hoy){ localStorage.removeItem('usala_session'); mostrarPanelCodigo(); return; }
+  S.user = { nombre: ses.nombre, codigo: ses.codigo, isAdmin: false };
   initDashboard();
 }
 
