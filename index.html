@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es"> 
+<html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -312,7 +312,9 @@ select.inp{appearance:none;-webkit-appearance:none;}
       </div>
       <div class="access-logo">USALA</div>
       <div style="font-size:0.75rem;color:var(--dim);">Finanzas Personales</div>
-      
+      <div style="margin-top:10px;">
+        <span onclick="abrirAdminModal()" style="font-size:0.75rem;color:var(--dim);cursor:pointer;text-decoration:underline;text-underline-offset:3px;opacity:0.6;">🔐 Acceso administrador</span>
+      </div>
     </div>
 
     <!-- ── PANEL: Sesión recordada ── -->
@@ -328,7 +330,9 @@ select.inp{appearance:none;-webkit-appearance:none;}
       <button onclick="mostrarPanelCodigo(true)" style="width:100%;padding:13px;background:none;border:1.5px solid var(--border);border-radius:14px;font-family:'Outfit',sans-serif;font-size:0.85rem;color:var(--dim);cursor:pointer;">
         No soy yo — ingresar con otro código
       </button>
-      
+      <div style="text-align:center;margin-top:16px;">
+        <span onclick="abrirAdminModal()" style="font-size:0.78rem;color:var(--dim);cursor:pointer;text-decoration:underline;text-underline-offset:3px;">🔐 Acceso administrador</span>
+      </div>
     </div>
 
     <!-- ── PANEL: Código ── -->
@@ -783,8 +787,11 @@ function verificarAdmin(){
   if(pass === 'admin1234' || pass === guardada){
     cerrarAdminModal();
     S.user = { nombre: 'Administrador', codigo: 'ADMIN', isAdmin: true };
-    // Guardar sesión admin
-    localStorage.setItem('usala_session', JSON.stringify({ nombre: 'Administrador', codigo: 'ADMIN', isAdmin: true }));
+    var sesData = JSON.stringify({ nombre: 'Administrador', codigo: 'ADMIN', isAdmin: true });
+    localStorage.setItem('usala_session', sesData);
+    // Verificar que se guardó
+    var verificar = localStorage.getItem('usala_session');
+    console.log('Sesión admin guardada:', verificar);
     initDashboard();
   } else {
     document.getElementById('adminErr').style.display = 'block';
