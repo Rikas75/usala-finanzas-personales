@@ -2102,7 +2102,7 @@ function cerrarUMenu(){
 }
 
 function actualizarUMenu(){
-  var c = cargarCuentas();
+  var c = getCuentas();
   var efectivo = Number(c.efectivo||0);
   var banco = (c.cheques||[]).reduce(function(s,x){ return s+Number(x.saldo||0); },0);
   var deudaTC = (c.tarjetas||[]).reduce(function(s,t){ return s+Number(t.balance||0); },0);
