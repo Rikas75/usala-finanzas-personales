@@ -420,6 +420,8 @@ select.inp{appearance:none;-webkit-appearance:none;}
       📩
       <span id="badgeSolicitudes" style="position:absolute;top:2px;right:2px;background:#ff3b30;color:#fff;font-size:0.45rem;font-weight:800;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;"></span>
     </button>
+    <!-- Botón U acceso rápido cuentas -->
+    <button id="uFabBtn" class="top-icon" onclick="toggleUMenu()" title="Mis cuentas" style="display:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:900;font-size:0.95rem;letter-spacing:-0.5px;transition:transform 0.2s ease;">U</button>
     <button class="top-icon" onclick="abrirCalc()" title="Calculadora">🔢</button>
     <button class="top-icon" onclick="goTab('mas',document.querySelectorAll('.nb')[4]);setTimeout(function(){goSub('ayuda');},50);" title="Ayuda">❓</button>
   </div>
@@ -569,16 +571,9 @@ select.inp{appearance:none;-webkit-appearance:none;}
 
 <!-- CALCULADORA FLOTANTE -->
 
-<!-- BOTÓN FLOTANTE U — ACCESO RÁPIDO CUENTAS -->
-<div id="uFabBtn" style="display:none;position:fixed;z-index:990;bottom:90px;left:14px;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 4px 18px rgba(45,106,255,0.45);cursor:pointer;align-items:center;justify-content:center;font-size:1.4rem;font-weight:900;color:#fff;font-family:'Outfit',sans-serif;letter-spacing:-1px;border:2px solid rgba(255,255,255,0.25);transition:transform 0.2s ease;" onclick="toggleUMenu()"
-  onmousedown="this.style.transform='scale(0.92)'" onmouseup="this.style.transform='scale(1)'"
-  ontouchstart="this.style.transform='scale(0.92)'" ontouchend="this.style.transform='scale(1)'">
-  U
-</div>
-
-<!-- Menú desplegable del botón U -->
-<div id="uFabMenu" style="display:none;position:fixed;z-index:989;bottom:152px;left:14px;background:var(--card);border-radius:18px;box-shadow:0 8px 32px rgba(0,0,0,0.2);padding:6px;min-width:200px;transform:scale(0.8) translateY(20px);opacity:0;transform-origin:bottom left;transition:all 0.25s cubic-bezier(0.34,1.4,0.64,1);">
-  <div onclick="irACuenta('efectivo')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;cursor:pointer;transition:background 0.15s;" onmouseenter="this.style.background='var(--inp)'" onmouseleave="this.style.background=''" ontouchstart="this.style.background='var(--inp)'" ontouchend="this.style.background=''">
+<!-- Menú desplegable del botón U (cae desde topbar) -->
+<div id="uFabMenu" style="display:none;position:fixed;z-index:989;top:58px;right:14px;background:var(--card);border-radius:18px;box-shadow:0 8px 32px rgba(0,0,0,0.2);padding:6px;min-width:210px;transform:scale(0.85) translateY(-10px);opacity:0;transform-origin:top right;transition:all 0.25s cubic-bezier(0.34,1.4,0.64,1);">
+  <div onclick="irACuenta('efectivo')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;cursor:pointer;" ontouchstart="this.style.background='var(--inp)'" ontouchend="this.style.background=''">
     <span style="font-size:1.3rem;">💵</span>
     <div>
       <div style="font-size:0.88rem;font-weight:800;color:var(--text);">Efectivo</div>
@@ -586,7 +581,7 @@ select.inp{appearance:none;-webkit-appearance:none;}
     </div>
   </div>
   <div style="height:1px;background:var(--border);margin:2px 8px;"></div>
-  <div onclick="irACuenta('cheques')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;cursor:pointer;transition:background 0.15s;" onmouseenter="this.style.background='var(--inp)'" onmouseleave="this.style.background=''" ontouchstart="this.style.background='var(--inp)'" ontouchend="this.style.background=''">
+  <div onclick="irACuenta('cheques')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;cursor:pointer;" ontouchstart="this.style.background='var(--inp)'" ontouchend="this.style.background=''">
     <span style="font-size:1.3rem;">🏦</span>
     <div>
       <div style="font-size:0.88rem;font-weight:800;color:var(--text);">Cheques / Banco</div>
@@ -594,11 +589,11 @@ select.inp{appearance:none;-webkit-appearance:none;}
     </div>
   </div>
   <div style="height:1px;background:var(--border);margin:2px 8px;"></div>
-  <div onclick="irACuenta('tarjetas_credito')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;cursor:pointer;transition:background 0.15s;" onmouseenter="this.style.background='var(--inp)'" onmouseleave="this.style.background=''" ontouchstart="this.style.background='var(--inp)'" ontouchend="this.style.background=''">
+  <div onclick="irACuenta('tarjetas_credito')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;cursor:pointer;" ontouchstart="this.style.background='var(--inp)'" ontouchend="this.style.background=''">
     <span style="font-size:1.3rem;">💳</span>
     <div>
       <div style="font-size:0.88rem;font-weight:800;color:var(--text);">Tarjetas de Crédito</div>
-      <div id="uMenuTC" style="font-size:0.72rem;color:var(--dim);color:#e53935;">—</div>
+      <div id="uMenuTC" style="font-size:0.72rem;color:#e53935;">—</div>
     </div>
   </div>
 </div>
@@ -2074,23 +2069,22 @@ function toggleUMenu(){
   if(!menu) return;
   var abierto = menu.style.display === 'block';
   if(abierto){
-    menu.style.opacity='0'; menu.style.transform='scale(0.8) translateY(20px)';
+    menu.style.opacity='0'; menu.style.transform='scale(0.85) translateY(-10px)';
     setTimeout(function(){ menu.style.display='none'; }, 220);
-    btn.style.transform='rotate(0deg)';
+    if(btn) btn.style.transform='rotate(0deg)';
   } else {
     actualizarUMenu();
     menu.style.display='block';
     requestAnimationFrame(function(){
       menu.style.opacity='1'; menu.style.transform='scale(1) translateY(0)';
     });
-    btn.style.transform='rotate(45deg)';
-    // Cerrar al tocar fuera
+    if(btn) btn.style.transform='rotate(45deg)';
     setTimeout(function(){
       document.addEventListener('click', function cerrarFuera(e){
         if(!menu.contains(e.target) && e.target.id!=='uFabBtn'){
-          menu.style.opacity='0'; menu.style.transform='scale(0.8) translateY(20px)';
+          menu.style.opacity='0'; menu.style.transform='scale(0.85) translateY(-10px)';
           setTimeout(function(){ menu.style.display='none'; }, 220);
-          btn.style.transform='rotate(0deg)';
+          if(btn) btn.style.transform='rotate(0deg)';
           document.removeEventListener('click', cerrarFuera);
         }
       });
