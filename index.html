@@ -560,28 +560,31 @@ select.inp{appearance:none;-webkit-appearance:none;}
 
 <!-- Menú desplegable del botón U (cae desde topbar) -->
 <div id="uFabMenu" style="display:none;position:fixed;z-index:989;top:58px;right:14px;background:var(--card);border-radius:18px;box-shadow:0 8px 32px rgba(0,0,0,0.2);padding:6px;min-width:210px;transform:scale(0.85) translateY(-10px);opacity:0;transform-origin:top right;transition:all 0.25s cubic-bezier(0.34,1.4,0.64,1);">
-  <div onclick="irACuenta('efectivo')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;cursor:pointer;" ontouchstart="this.style.background='var(--inp)'" ontouchend="this.style.background=''">
-    <span style="font-size:1.3rem;">💵</span>
+  <div onclick="irACuenta('efectivo')" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;cursor:pointer;active-background:var(--inp);">
+    <span style="font-size:1.4rem;">💵</span>
     <div>
-      <div style="font-size:0.88rem;font-weight:800;color:var(--text);">Efectivo</div>
-      <div id="uMenuEfectivo" style="font-size:0.72rem;color:var(--dim);">—</div>
+      <div style="font-size:0.92rem;font-weight:800;color:var(--text);">Efectivo</div>
+      <div id="uMenuEfectivo" style="font-size:0.74rem;color:var(--dim);">—</div>
     </div>
+    <span style="margin-left:auto;color:var(--dim);">›</span>
   </div>
   <div style="height:1px;background:var(--border);margin:2px 8px;"></div>
-  <div onclick="irACuenta('cheques')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;cursor:pointer;" ontouchstart="this.style.background='var(--inp)'" ontouchend="this.style.background=''">
-    <span style="font-size:1.3rem;">🏦</span>
+  <div onclick="irACuenta('cheques')" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;cursor:pointer;">
+    <span style="font-size:1.4rem;">🏦</span>
     <div>
-      <div style="font-size:0.88rem;font-weight:800;color:var(--text);">Cheques / Banco</div>
-      <div id="uMenuBanco" style="font-size:0.72rem;color:var(--dim);">—</div>
+      <div style="font-size:0.92rem;font-weight:800;color:var(--text);">Cheques / Banco</div>
+      <div id="uMenuBanco" style="font-size:0.74rem;color:var(--dim);">—</div>
     </div>
+    <span style="margin-left:auto;color:var(--dim);">›</span>
   </div>
   <div style="height:1px;background:var(--border);margin:2px 8px;"></div>
-  <div onclick="irACuenta('tarjetas_credito')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;cursor:pointer;" ontouchstart="this.style.background='var(--inp)'" ontouchend="this.style.background=''">
-    <span style="font-size:1.3rem;">💳</span>
+  <div onclick="irACuenta('tarjetas_credito')" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:12px;cursor:pointer;">
+    <span style="font-size:1.4rem;">💳</span>
     <div>
-      <div style="font-size:0.88rem;font-weight:800;color:var(--text);">Tarjetas de Crédito</div>
-      <div id="uMenuTC" style="font-size:0.72rem;color:#e53935;">—</div>
+      <div style="font-size:0.92rem;font-weight:800;color:var(--text);">Tarjetas de Crédito</div>
+      <div id="uMenuTC" style="font-size:0.74rem;color:#e53935;">—</div>
     </div>
+    <span style="margin-left:auto;color:var(--dim);">›</span>
   </div>
 </div>
 <div id="calcFloat" style="display:none;position:fixed;z-index:999;bottom:100px;right:14px;width:280px;border-radius:28px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);font-family:'Outfit',sans-serif;touch-action:none;transition:all 0.3s cubic-bezier(0.34,1.2,0.64,1);">
@@ -2427,6 +2430,11 @@ function renderEfectivo(){
     +'</div>'
     +'<label class="inp-label">Fecha</label>'
     +'<input class="inp" id="efFecha" type="date" value="'+today()+'">'
+    +'<div id="efDestRow" style="display:none;">'
+    +'<label class="inp-label">¿A qué banco? (opcional)</label>'
+    +'<select class="inp" id="efDestBanco"><option value="">— Solo registrar salida —</option>'
+    + (c.cheques||[]).map(function(ch,i){ return '<option value="cheque_'+i+'">🏦 '+ch.banco+'</option>'; }).join('')
+    +'</select></div>'
     +'<button class="btn-main" onclick="guardarMovEfectivo()">💾 Guardar</button>'
     +'</div>'
     +'<div class="card"><div class="card-title">Movimientos ('+txs.length+')</div>'+items+'</div>';
@@ -2437,9 +2445,12 @@ function selEfTipo(t){
   document.getElementById('efTipoSal').classList.toggle('selected', !esEnt);
   var cats = esEnt
     ? ['Salario','Freelance','Negocio','Venta','Regalo','Otros ingresos']
-    : ['Alimentación','Transporte','Servicios','Compras','Pagos','Entretenimiento','Otros gastos'];
+    : ['Alimentación','Transporte','Servicios','Compras','Pagos','Entretenimiento','Transferencia a banco','Otros gastos'];
   var sel = document.getElementById('efCat');
   if(sel) sel.innerHTML = cats.map(function(c){ return '<option>'+c+'</option>'; }).join('');
+  // Mostrar/ocultar selector de banco destino
+  var destRow = document.getElementById('efDestRow');
+  if(destRow) destRow.style.display = esEnt ? 'none' : 'block';
 }
 function guardarMovEfectivo(){
   var desc  = document.getElementById('efDesc').value.trim();
@@ -2447,17 +2458,29 @@ function guardarMovEfectivo(){
   var fecha = document.getElementById('efFecha').value||today();
   var cat   = document.getElementById('efCat').value;
   var tipo  = document.getElementById('efTipoEnt').classList.contains('selected')?'ingreso':'gasto';
+  var destEl = document.getElementById('efDestBanco');
+  var dest  = destEl ? destEl.value : '';
   if(!desc||!monto||monto<=0){ showToast('⚠ Completa descripción y monto'); return; }
-  // Crear transacción real vinculada a efectivo
   var id = Date.now();
   var txs = getTxs();
   txs.push({id:id, tipo:tipo, desc:desc, monto:monto, cat:cat, fecha:fecha, cuenta:'efectivo'});
   saveTxs(txs);
-  // Actualizar saldo efectivo
   var c = getCuentas();
+  // Restar de efectivo
   c.efectivo = (c.efectivo||0) + (tipo==='ingreso'?monto:-monto);
+  // Si es salida con banco destino → sumar al banco
+  if(tipo==='gasto' && dest && dest.indexOf('cheque_')===0){
+    var idx = parseInt(dest.replace('cheque_',''));
+    if(c.cheques && c.cheques[idx]){
+      c.cheques[idx].saldo = (Number(c.cheques[idx].saldo)||0) + monto;
+      // Registrar también tx en el banco destino
+      var txs2 = getTxs();
+      txs2.push({id:Date.now()+1, tipo:'ingreso', desc:'Transferencia desde Efectivo: '+desc, monto:monto, cat:'Transferencia recibida', fecha:fecha, cuenta:dest});
+      saveTxs(txs2);
+    }
+  }
   saveCuentas(c);
-  showToast('✓ '+(tipo==='ingreso'?'Ingreso':'Gasto')+' registrado en Efectivo');
+  showToast('✓ '+(tipo==='ingreso'?'Entrada':'Salida')+' registrada en Efectivo');
   goSub('efectivo');
 }
 
