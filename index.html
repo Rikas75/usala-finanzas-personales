@@ -536,48 +536,56 @@ select.inp{appearance:none;-webkit-appearance:none;}
 </div>
 
 <!-- CALCULADORA FLOTANTE -->
-<div id="calcFloat" style="display:none;position:fixed;z-index:999;bottom:100px;right:14px;width:280px;border-radius:28px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);font-family:'Outfit',sans-serif;touch-action:none;">
+<div id="calcFloat" style="display:none;position:fixed;z-index:999;bottom:100px;right:14px;width:280px;border-radius:28px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);font-family:'Outfit',sans-serif;touch-action:none;transition:all 0.3s cubic-bezier(0.34,1.2,0.64,1);">
   <!-- Handle drag -->
   <div id="calcHandle" style="background:linear-gradient(135deg,#1a1a2e,#16213e);padding:12px 14px 8px;display:flex;align-items:center;justify-content:space-between;cursor:grab;user-select:none;">
     <div style="display:flex;align-items:center;gap:6px;">
       <span style="font-size:1rem;">🔢</span>
       <span style="color:rgba(255,255,255,0.5);font-size:0.65rem;font-weight:700;letter-spacing:0.1em;">CALCULADORA</span>
     </div>
-    <button id="calcCloseBtn" style="background:rgba(255,60,60,0.25);border:none;color:#ff6b6b;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:0.9rem;font-weight:900;line-height:28px;text-align:center;flex-shrink:0;">✕</button>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <!-- Botón minimizar -->
+      <button id="calcMinBtn" style="background:rgba(255,200,0,0.2);border:none;color:#ffd60a;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1rem;font-weight:900;line-height:28px;text-align:center;flex-shrink:0;" title="Minimizar">−</button>
+      <!-- Botón cerrar -->
+      <button id="calcCloseBtn" style="background:rgba(255,60,60,0.25);border:none;color:#ff6b6b;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:0.9rem;font-weight:900;line-height:28px;text-align:center;flex-shrink:0;" title="Cerrar">✕</button>
+    </div>
   </div>
   <!-- Display -->
-  <div style="background:#0f0f1a;padding:10px 16px 12px;">
-    <div id="calcExpr" style="text-align:right;font-size:0.68rem;color:rgba(255,255,255,0.35);min-height:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
-    <div id="calcDisplay" style="text-align:right;font-size:2.5rem;font-weight:700;color:#fff;min-height:54px;word-break:break-all;line-height:1.1;margin-top:2px;">0</div>
+  <div id="calcBody">
+    <div style="background:#0f0f1a;padding:10px 16px 12px;">
+      <div id="calcExpr" style="text-align:right;font-size:0.68rem;color:rgba(255,255,255,0.35);min-height:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+      <div id="calcDisplay" style="text-align:right;font-size:2.5rem;font-weight:700;color:#fff;min-height:54px;word-break:break-all;line-height:1.1;margin-top:2px;">0</div>
+    </div>
+    <!-- Teclado -->
+    <div id="calcKeys" style="background:#1a1a2e;display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:2px;">
+      <button class="ck ck-fn" onclick="calcAc()">AC</button>
+      <button class="ck ck-fn" onclick="calcPlusMinus()">+/−</button>
+      <button class="ck ck-fn" onclick="calcOp('%')">%</button>
+      <button class="ck ck-op" onclick="calcOp('/')">÷</button>
+      <button class="ck" onclick="calcNum('7')">7</button>
+      <button class="ck" onclick="calcNum('8')">8</button>
+      <button class="ck" onclick="calcNum('9')">9</button>
+      <button class="ck ck-op" onclick="calcOp('*')">×</button>
+      <button class="ck" onclick="calcNum('4')">4</button>
+      <button class="ck" onclick="calcNum('5')">5</button>
+      <button class="ck" onclick="calcNum('6')">6</button>
+      <button class="ck ck-op" onclick="calcOp('-')">−</button>
+      <button class="ck" onclick="calcNum('1')">1</button>
+      <button class="ck" onclick="calcNum('2')">2</button>
+      <button class="ck" onclick="calcNum('3')">3</button>
+      <button class="ck ck-op" onclick="calcOp('+')">+</button>
+      <button class="ck ck-del" onclick="calcDel()">⌫</button>
+      <button class="ck" onclick="calcNum('0')">0</button>
+      <button class="ck" onclick="calcPunto()">.</button>
+      <button class="ck ck-eq" onclick="calcEqual()">=</button>
+    </div>
   </div>
-  <!-- Teclado -->
-  <div id="calcKeys" style="background:#1a1a2e;display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:2px;">
-    <!-- Fila 1 -->
-    <button class="ck ck-fn" onclick="calcAc()">AC</button>
-    <button class="ck ck-fn" onclick="calcPlusMinus()">+/−</button>
-    <button class="ck ck-fn" onclick="calcOp('%')">%</button>
-    <button class="ck ck-op" onclick="calcOp('/')">÷</button>
-    <!-- Fila 2 -->
-    <button class="ck" onclick="calcNum('7')">7</button>
-    <button class="ck" onclick="calcNum('8')">8</button>
-    <button class="ck" onclick="calcNum('9')">9</button>
-    <button class="ck ck-op" onclick="calcOp('*')">×</button>
-    <!-- Fila 3 -->
-    <button class="ck" onclick="calcNum('4')">4</button>
-    <button class="ck" onclick="calcNum('5')">5</button>
-    <button class="ck" onclick="calcNum('6')">6</button>
-    <button class="ck ck-op" onclick="calcOp('-')">−</button>
-    <!-- Fila 4 -->
-    <button class="ck" onclick="calcNum('1')">1</button>
-    <button class="ck" onclick="calcNum('2')">2</button>
-    <button class="ck" onclick="calcNum('3')">3</button>
-    <button class="ck ck-op" onclick="calcOp('+')">+</button>
-    <!-- Fila 5 -->
-    <button class="ck ck-del" onclick="calcDel()">⌫</button>
-    <button class="ck" onclick="calcNum('0')">0</button>
-    <button class="ck" onclick="calcPunto()">.</button>
-    <button class="ck ck-eq" onclick="calcEqual()">=</button>
-  </div>
+</div>
+
+<!-- Burbuja minimizada -->
+<div id="calcBubble" style="display:none;position:fixed;z-index:999;bottom:100px;right:14px;width:68px;height:68px;border-radius:50%;background:linear-gradient(135deg,#1a1a2e,#16213e);box-shadow:0 8px 24px rgba(0,0,0,0.5);cursor:pointer;touch-action:none;flex-direction:column;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,0.1);" onclick="restaurarCalc()">
+  <div style="font-size:1.2rem;line-height:1;">🔢</div>
+  <div id="calcBubbleVal" style="font-size:0.55rem;font-weight:800;color:#ffd60a;margin-top:2px;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;">0</div>
 </div>
 
 <script>
@@ -884,24 +892,111 @@ var _calcExpr = '', _calcResult = '0', _calcNewNum = true;
 var _calcScale = 1.0;
 
 function abrirCalc(){
+  // NO resetear si ya hay datos (viene de minimizado)
+  var cf = document.getElementById('calcFloat');
+  var bb = document.getElementById('calcBubble');
+  // Si está minimizado, restaurar en lugar de abrir nuevo
+  if(bb && bb.style.display !== 'none'){
+    restaurarCalc(); return;
+  }
+  // Primera apertura — resetear
   _calcExpr=''; _calcResult='0'; _calcNewNum=true;
   document.getElementById('calcDisplay').textContent='0';
   document.getElementById('calcExpr').textContent='';
-  var cf = document.getElementById('calcFloat');
   cf.style.display='block';
-  cf.style.bottom='100px';
-  cf.style.right='14px';
-  cf.style.left='auto';
-  cf.style.top='auto';
-  // Vincular botón cerrar AQUÍ, no en HTML (evita conflicto con drag)
+  cf.style.bottom='100px'; cf.style.right='14px';
+  cf.style.left='auto'; cf.style.top='auto';
+  if(bb) bb.style.display='none';
+
+  document.getElementById('calcMinBtn').onclick = function(e){
+    e.stopPropagation(); minimizarCalc();
+  };
   document.getElementById('calcCloseBtn').onclick = function(e){
-    e.stopPropagation();
-    cerrarCalc();
+    e.stopPropagation(); cerrarCalc();
   };
   iniciarDragCalc();
+  iniciarDragBurbuja();
 }
+
+function minimizarCalc(){
+  var cf = document.getElementById('calcFloat');
+  var bb = document.getElementById('calcBubble');
+  // Guardar posición
+  var r = cf.getBoundingClientRect();
+  // Mostrar burbuja en misma posición
+  bb.style.left = (r.left + r.width/2 - 34) + 'px';
+  bb.style.top  = (r.top  + r.height/2 - 34) + 'px';
+  bb.style.right = 'auto'; bb.style.bottom = 'auto';
+  bb.style.display = 'flex';
+  // Actualizar valor en burbuja
+  document.getElementById('calcBubbleVal').textContent = _calcResult !== '0' ? _calcResult : (_calcExpr ? '...' : '0');
+  // Ocultar calculadora con animación
+  cf.style.transform = 'scale(0.3)';
+  cf.style.opacity = '0';
+  setTimeout(function(){ cf.style.display='none'; cf.style.transform=''; cf.style.opacity=''; }, 280);
+}
+
+function restaurarCalc(){
+  var cf = document.getElementById('calcFloat');
+  var bb = document.getElementById('calcBubble');
+  var r  = bb.getBoundingClientRect();
+  cf.style.left  = Math.max(0, r.left - 100) + 'px';
+  cf.style.top   = Math.max(0, r.top  - 200) + 'px';
+  cf.style.right = 'auto'; cf.style.bottom = 'auto';
+  cf.style.transform = 'scale(0.3)';
+  cf.style.opacity = '0';
+  cf.style.display = 'block';
+  bb.style.display = 'none';
+  requestAnimationFrame(function(){
+    cf.style.transition = 'transform 0.3s cubic-bezier(0.34,1.4,0.64,1), opacity 0.25s ease';
+    cf.style.transform  = 'scale(1)';
+    cf.style.opacity    = '1';
+    setTimeout(function(){ cf.style.transition=''; }, 350);
+  });
+  document.getElementById('calcMinBtn').onclick = function(e){ e.stopPropagation(); minimizarCalc(); };
+  document.getElementById('calcCloseBtn').onclick = function(e){ e.stopPropagation(); cerrarCalc(); };
+}
+
 function cerrarCalc(){
-  document.getElementById('calcFloat').style.display='none';
+  var cf = document.getElementById('calcFloat');
+  var bb = document.getElementById('calcBubble');
+  // Animación de cierre
+  cf.style.transition = 'transform 0.2s ease, opacity 0.2s ease';
+  cf.style.transform  = 'scale(0.8)';
+  cf.style.opacity    = '0';
+  setTimeout(function(){
+    cf.style.display='none';
+    cf.style.transform=''; cf.style.opacity=''; cf.style.transition='';
+  }, 200);
+  if(bb) bb.style.display='none';
+  // Resetear datos al cerrar definitivamente
+  _calcExpr=''; _calcResult='0'; _calcNewNum=true;
+}
+
+function iniciarDragBurbuja(){
+  var bb = document.getElementById('calcBubble');
+  var startX,startY,startL,startT,dragging=false,moved=false;
+  bb.ontouchstart=function(e){
+    if(e.touches.length!==1) return;
+    dragging=true; moved=false;
+    var r=bb.getBoundingClientRect();
+    startX=e.touches[0].clientX; startY=e.touches[0].clientY;
+    startL=r.left; startT=r.top;
+    bb.style.right='auto'; bb.style.bottom='auto';
+    e.preventDefault();
+  };
+  bb.ontouchmove=function(e){
+    if(!dragging||e.touches.length!==1) return;
+    moved=true;
+    var dx=e.touches[0].clientX-startX, dy=e.touches[0].clientY-startY;
+    bb.style.left=Math.max(0,Math.min(window.innerWidth-68,startL+dx))+'px';
+    bb.style.top =Math.max(0,Math.min(window.innerHeight-68,startT+dy))+'px';
+    e.preventDefault();
+  };
+  bb.ontouchend=function(e){
+    dragging=false;
+    if(!moved) restaurarCalc(); // tap sin drag = restaurar
+  };
 }
 
 function iniciarDragCalc(){
