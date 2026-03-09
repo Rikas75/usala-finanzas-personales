@@ -1,0 +1,3089 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>USALA · Finanzas</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f0f4f0;
+  --card: #ffffff;
+  --text: #1a2e1a;
+  --dim: #7a9a7a;
+  --accent: #1e6b3c;
+  --accent2: #2d9e5f;
+  --danger: #e53935;
+  --gold: #c9841a;
+  --border: rgba(30,107,60,0.12);
+  --nav: #1a2e1a;
+  --navtext: #ffffff;
+  --shadow: 0 4px 24px rgba(30,107,60,0.10);
+  --radius: 18px;
+  --inp: #f5f9f5;
+}
+[data-theme="dark"] {
+  --bg: #0d1a0d;
+  --card: #162016;
+  --text: #e8f5e8;
+  --dim: #5a8a5a;
+  --accent: #2d9e5f;
+  --accent2: #3dce7a;
+  --border: rgba(45,158,95,0.15);
+  --nav: #0a120a;
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  --inp: #1e2e1e;
+}
+[data-theme="gold"] {
+  --bg: #0a0800;
+  --card: #140f00;
+  --text: #f5e6c0;
+  --dim: #8a7040;
+  --accent: #c9841a;
+  --accent2: #f0a830;
+  --border: rgba(201,132,26,0.2);
+  --nav: #0a0800;
+  --navtext: #f5e6c0;
+  --shadow: 0 4px 24px rgba(0,0,0,0.5);
+  --inp: #1a1200;
+}
+[data-theme="ocean"] {
+  --bg: #e8f4fd;
+  --card: #ffffff;
+  --text: #0d2d4a;
+  --dim: #5a8aaa;
+  --accent: #0066cc;
+  --accent2: #0099ee;
+  --border: rgba(0,102,204,0.12);
+  --nav: #0d2d4a;
+  --navtext: #ffffff;
+  --shadow: 0 4px 24px rgba(0,102,204,0.12);
+  --inp: #f0f8ff;
+}
+[data-theme="rose"] {
+  --bg: #fff5f7;
+  --card: #ffffff;
+  --text: #3d0a14;
+  --dim: #aa6070;
+  --accent: #c02040;
+  --accent2: #e84060;
+  --border: rgba(192,32,64,0.12);
+  --nav: #3d0a14;
+  --navtext: #ffffff;
+  --shadow: 0 4px 24px rgba(192,32,64,0.10);
+  --inp: #fff0f2;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);overflow:hidden;}
+
+/* ── SCREENS ── */
+.screen{display:none;position:fixed;inset:0;background:var(--bg);}
+.screen.active{display:flex;flex-direction:column;}
+
+/* ── THEME PICKER ── */
+#themePicker{align-items:center;justify-content:center;padding:32px 24px;}
+.tp-logo{font-size:2.4rem;font-weight:900;letter-spacing:-0.03em;color:var(--accent);margin-bottom:6px;}
+.tp-sub{font-size:0.82rem;color:var(--dim);margin-bottom:36px;text-align:center;}
+.tp-title{font-size:0.72rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--dim);margin-bottom:16px;}
+.themes-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;}
+.theme-card{padding:20px 16px;border-radius:16px;cursor:pointer;border:2px solid transparent;transition:all 0.2s;text-align:left;}
+.theme-card:active{transform:scale(0.97);}
+.theme-card.selected{border-color:currentColor;}
+.tc-name{font-weight:700;font-size:0.9rem;margin-top:8px;}
+.tc-dot{width:28px;height:28px;border-radius:50%;}
+.tp-btn{margin-top:24px;width:100%;padding:16px;background:var(--accent);color:var(--navtext);border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;letter-spacing:0.02em;}
+
+/* ── ACCESS SCREEN ── */
+#accessScreen{align-items:center;justify-content:center;padding:32px 20px;}
+.access-logo{font-size:2.8rem;font-weight:900;color:var(--accent);margin-bottom:2px;letter-spacing:-0.02em;}
+.access-icon{font-size:2.2rem;margin-bottom:8px;}
+.access-card{background:var(--card);border-radius:24px;padding:28px 24px 24px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,0.08);}
+.access-title{font-size:1.15rem;font-weight:900;margin-bottom:4px;color:var(--text);}
+.access-sub{font-size:0.78rem;color:var(--dim);margin-bottom:20px;line-height:1.5;}
+.inp-label{font-size:0.72rem;font-weight:700;color:var(--accent);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;display:block;}
+.inp{width:100%;padding:16px 18px;background:var(--inp);border:1.5px solid transparent;border-radius:16px;font-family:'Outfit',sans-serif;font-size:1rem;color:var(--text);outline:none;margin-bottom:16px;transition:border-color 0.2s;}
+.inp:focus{border-color:var(--accent);background:var(--card);}
+.btn-main{width:100%;padding:17px;background:var(--accent);color:var(--navtext);border:none;border-radius:16px;font-family:'Outfit',sans-serif;font-size:1rem;font-weight:800;cursor:pointer;margin-top:4px;letter-spacing:0.01em;box-shadow:0 4px 16px rgba(45,106,255,0.3);}
+.btn-main:active{opacity:0.88;transform:scale(0.98);}
+.access-err{display:none;padding:10px 14px;background:rgba(229,57,53,0.08);border:1px solid rgba(229,57,53,0.25);border-radius:12px;font-size:0.8rem;color:var(--danger);margin-bottom:14px;}
+.admin-link{text-align:center;margin-top:16px;font-size:0.72rem;color:var(--dim);cursor:pointer;text-decoration:underline;}
+.admin-modal{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.5);align-items:flex-end;}
+.admin-modal.open{display:flex;}
+.admin-box{background:var(--card);border-radius:24px 24px 0 0;padding:28px 24px 40px;width:100%;}
+.admin-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px;}
+.admin-title{font-size:1rem;font-weight:800;margin-bottom:16px;text-align:center;}
+.admin-hint{text-align:center;font-size:0.7rem;color:var(--dim);margin-top:12px;}
+.admin-recover{text-align:center;margin-top:8px;font-size:0.68rem;color:var(--dim);text-decoration:underline;cursor:pointer;background:none;border:none;font-family:'Outfit',sans-serif;width:100%;}
+
+/* ── DASHBOARD ── */
+#dashboard{display:none;flex-direction:column;}
+#dashboard.active{display:flex;}
+.topbar{display:flex;align-items:center;padding:12px 16px 8px;gap:10px;background:var(--bg);}
+.top-logo{font-size:1rem;font-weight:900;color:var(--accent);flex:1;letter-spacing:-0.02em;}
+.top-ver{font-size:0.58rem;font-weight:800;opacity:1;margin-left:6px;color:var(--navtext);background:var(--accent);padding:2px 8px;border-radius:10px;vertical-align:middle;letter-spacing:0.02em;}
+.top-icon{width:36px;height:36px;border-radius:50%;background:var(--inp);border:none;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;color:var(--text);}
+.top-avatar{width:36px;height:36px;border-radius:50%;background:var(--accent);color:var(--navtext);font-weight:800;font-size:0.85rem;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.content{flex:1;overflow-y:auto;padding:0 16px 90px;}
+.bot-nav{position:fixed;bottom:0;left:0;right:0;background:var(--nav);display:flex;border-top:1px solid rgba(255,255,255,0.06);z-index:50;padding-bottom:env(safe-area-inset-bottom);}
+.nb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 2px 8px;border:none;background:none;color:var(--navtext);opacity:0.4;cursor:pointer;font-family:'Outfit',sans-serif;transition:opacity 0.2s;}
+.nb.active{opacity:1;}
+.nb-ico{font-size:1.15rem;margin-bottom:2px;}
+.nb-lbl{font-size:0.46rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;}
+
+/* ── CARDS & UI ── */
+.card{background:var(--card);border-radius:var(--radius);padding:18px;margin-bottom:12px;box-shadow:var(--shadow);}
+.card-title{font-size:0.72rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--dim);margin-bottom:14px;}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.stat-card{background:var(--card);border-radius:14px;padding:14px;box-shadow:var(--shadow);cursor:pointer;}
+.stat-card.full{grid-column:1/-1;}
+.stat-label{font-size:0.65rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--dim);margin-bottom:4px;}
+.stat-val{font-size:1.15rem;font-weight:800;color:var(--accent);}
+.stat-val.red{color:var(--danger);}
+.stat-val.gold{color:var(--gold);}
+
+/* ── TRANSACCIONES ── */
+.tx-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+.tx-item:last-child{border-bottom:none;}
+.tx-ico{width:38px;height:38px;border-radius:12px;background:var(--inp);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
+.tx-info{flex:1;min-width:0;}
+.tx-name{font-weight:600;font-size:0.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tx-date{font-size:0.68rem;color:var(--dim);margin-top:2px;}
+.tx-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.tx-amt{font-weight:800;font-size:0.88rem;font-family:'JetBrains Mono',monospace;}
+.ing{color:var(--accent2);}
+.gas{color:var(--danger);}
+.ic-btn{background:none;border:none;cursor:pointer;font-size:0.95rem;padding:4px;opacity:0.6;}
+.ic-btn:active{opacity:1;}
+
+/* ── MÓDULOS ── */
+.mod-list{display:flex;flex-direction:column;gap:2px;}
+.mod-item{display:flex;align-items:center;gap:14px;padding:15px 16px;background:var(--card);border-radius:14px;cursor:pointer;margin-bottom:6px;box-shadow:var(--shadow);}
+.mod-item:active{opacity:0.8;}
+.mod-icon{font-size:1.4rem;width:42px;height:42px;background:var(--inp);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.mod-label{font-weight:700;font-size:0.9rem;}
+.mod-sub{font-size:0.7rem;color:var(--dim);margin-top:2px;}
+.mod-arrow{margin-left:auto;color:var(--dim);font-size:1.1rem;}
+
+/* ── FORMS ── */
+.form-section{margin-bottom:16px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.btn-sec{width:100%;padding:15px;background:var(--inp);color:var(--accent);border:1.5px solid var(--border);border-radius:12px;font-family:'Outfit',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;margin-bottom:8px;}
+.back-btn{background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--text);padding:0 10px 0 0;line-height:1;}
+.page-header{display:flex;align-items:center;margin-bottom:18px;padding-top:4px;}
+.page-title{font-size:1.05rem;font-weight:800;}
+
+/* ── PROGRESS BAR ── */
+.prog-wrap{background:var(--inp);border-radius:6px;height:7px;overflow:hidden;margin:8px 0;}
+.prog-bar{height:100%;background:var(--accent);border-radius:6px;transition:width 0.4s;}
+
+/* ── ALERTAS ── */
+.alerta-item{display:flex;align-items:flex-start;gap:10px;padding:14px;background:var(--card);border-radius:14px;margin-bottom:8px;box-shadow:var(--shadow);}
+.alerta-info{flex:1;min-width:0;}
+.alerta-nombre{font-weight:700;font-size:0.88rem;}
+.alerta-meta{font-size:0.68rem;color:var(--dim);margin-top:3px;}
+.alerta-actions{display:flex;gap:6px;flex-shrink:0;}
+
+/* ── CRÉDITOS ── */
+.cred-item{background:var(--card);border-radius:14px;padding:16px;margin-bottom:10px;box-shadow:var(--shadow);}
+.cred-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+.cred-persona{font-weight:800;font-size:0.9rem;}
+.cred-desc{font-size:0.7rem;color:var(--dim);margin-top:2px;}
+.cred-badge{font-size:0.65rem;padding:3px 10px;border-radius:20px;font-weight:700;}
+.badge-pend{background:rgba(255,152,0,0.12);color:#f57c00;}
+.badge-pagado{background:rgba(45,158,95,0.12);color:var(--accent2);}
+.badge-vencido{background:rgba(229,57,53,0.10);color:var(--danger);}
+.cred-amounts{display:flex;justify-content:space-between;font-size:0.72rem;color:var(--dim);margin-bottom:6px;}
+.cred-btns{display:flex;gap:6px;margin-top:10px;}
+.cred-btn{flex:1;padding:8px 6px;border-radius:10px;border:1.5px solid var(--border);background:var(--inp);font-family:'Outfit',sans-serif;font-size:0.72rem;font-weight:700;cursor:pointer;color:var(--accent);}
+.cred-btn.danger{color:var(--danger);border-color:rgba(229,57,53,0.2);}
+.cred-btn.success{color:var(--accent2);border-color:rgba(45,158,95,0.2);}
+
+/* ── MODAL TRANSACCIÓN ── */
+.modal{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,0.5);align-items:flex-end;}
+.modal.open{display:flex;}
+.modal-box{background:var(--card);border-radius:24px 24px 0 0;padding:20px 20px 36px;width:100%;max-height:90vh;overflow-y:auto;}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+.modal-title{font-size:1rem;font-weight:800;}
+.modal-close{background:var(--inp);border:none;width:32px;height:32px;border-radius:50%;font-size:1.1rem;cursor:pointer;color:var(--dim);display:flex;align-items:center;justify-content:center;}
+.tipo-selector{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+.tipo-opt{padding:12px;border-radius:12px;border:2px solid var(--border);background:var(--inp);text-align:center;cursor:pointer;font-weight:700;font-size:0.88rem;transition:all 0.15s;}
+.tipo-opt.selected{border-color:var(--accent);background:rgba(30,107,60,0.08);color:var(--accent);}
+
+/* ── TOAST & UNDO ── */
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#1a2e1a;color:#fff;padding:10px 20px;border-radius:20px;font-size:0.82rem;font-weight:600;z-index:999;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,0.3);animation:toastIn 0.3s ease;}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-10px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+@keyframes gradShift{0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0% 50%;}}
+@keyframes float1{0%,100%{transform:translateY(0) scale(1);}50%{transform:translateY(-12px) scale(1.05);}}
+@keyframes float2{0%,100%{transform:translateY(0) rotate(0deg);}50%{transform:translateY(-8px) rotate(8deg);}}
+@keyframes popIn{0%{transform:scale(0) rotate(-15deg);opacity:0;}70%{transform:scale(1.2) rotate(5deg);}100%{transform:scale(1) rotate(0deg);opacity:1;}}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+.undo-bar{position:fixed;bottom:80px;left:12px;right:12px;background:var(--nav);color:var(--navtext);padding:14px 16px;border-radius:16px;font-size:0.83rem;font-weight:600;z-index:200;display:flex;justify-content:space-between;align-items:center;box-shadow:0 4px 20px rgba(0,0,0,0.3);}
+.undo-btn{background:var(--accent);border:none;color:var(--navtext);padding:7px 16px;border-radius:10px;font-family:'Outfit',sans-serif;font-weight:700;cursor:pointer;font-size:0.8rem;}
+.undo-prog{position:absolute;bottom:0;left:0;height:3px;background:var(--accent);border-radius:0 0 16px 16px;transition:width 6s linear;}
+
+/* ── CONFIG / DANGER ── */
+.danger-zone{border:1.5px solid rgba(229,57,53,0.25);border-radius:14px;padding:16px;margin-top:12px;}
+.danger-title{font-size:0.78rem;font-weight:700;color:var(--danger);margin-bottom:12px;letter-spacing:0.05em;text-transform:uppercase;}
+.danger-btn{width:100%;padding:12px;background:rgba(229,57,53,0.06);border:1.5px solid rgba(229,57,53,0.2);border-radius:10px;color:var(--danger);font-family:'Outfit',sans-serif;font-size:0.82rem;font-weight:600;cursor:pointer;margin-bottom:8px;text-align:left;}
+.danger-btn:last-child{margin-bottom:0;}
+
+/* ── CHIPS & TAGS ── */
+.chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:0.68rem;font-weight:700;}
+.chip-green{background:rgba(45,158,95,0.1);color:var(--accent2);}
+.chip-red{background:rgba(229,57,53,0.1);color:var(--danger);}
+.chip-orange{background:rgba(255,152,0,0.1);color:#f57c00;}
+
+/* ── CÓDIGOS ── */
+.code-item{background:var(--card);border-radius:12px;padding:14px;margin-bottom:8px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px;}
+.code-text{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:0.9rem;color:var(--accent);flex:1;}
+.code-info{font-size:0.68rem;color:var(--dim);}
+
+/* ── SETTINGS ── */
+.set-item{display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-bottom:1px solid var(--border);}
+.set-item:last-child{border-bottom:none;}
+.set-label{font-weight:600;font-size:0.88rem;}
+.set-sub{font-size:0.7rem;color:var(--dim);margin-top:2px;}
+.set-arrow{color:var(--dim);}
+
+/* ── BANNER ADMIN ── */
+.admin-banner{background:rgba(45,158,95,0.12);border:1px solid rgba(45,158,95,0.25);border-radius:12px;padding:10px 14px;margin-bottom:12px;font-size:0.75rem;color:var(--accent2);font-weight:600;text-align:center;}
+
+/* ── PRESUPUESTO ── */
+.pres-item{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--border);}
+.pres-item:last-child{border-bottom:none;}
+.pres-name{flex:1;font-size:0.85rem;font-weight:600;}
+.pres-val{font-family:'JetBrains Mono',monospace;font-size:0.8rem;font-weight:700;}
+
+select.inp{appearance:none;-webkit-appearance:none;}
+.ck{padding:16px 6px;border:none;background:rgba(255,255,255,0.08);color:#fff;font-family:'Outfit',sans-serif;font-size:1.15rem;font-weight:600;cursor:pointer;transition:background 0.1s,transform 0.08s;-webkit-tap-highlight-color:transparent;border-radius:4px;}
+.ck:active{background:rgba(255,255,255,0.22);transform:scale(0.93);}
+.ck-fn{background:rgba(160,174,200,0.15);color:#a0aec8;font-size:0.95rem;font-weight:700;}
+.ck-fn:active{background:rgba(160,174,200,0.3);}
+.ck-op{background:rgba(255,159,10,0.18);color:#ffb347;font-size:1.2rem;font-weight:700;}
+.ck-op:active{background:rgba(255,159,10,0.4);}
+.ck-eq{background:linear-gradient(135deg,#ff9f0a,#ff6b00);color:#fff;font-size:1.25rem;font-weight:800;border-radius:4px;}
+.ck-eq:active{filter:brightness(0.85);}
+.ck-del{background:rgba(255,80,80,0.15);color:#ff6b6b;font-size:1rem;}
+.ck-del:active{background:rgba(255,80,80,0.35);}
+</style>
+</head>
+<body>
+
+<!-- ══ THEME PICKER ══ -->
+<div class="screen active" id="themePicker">
+  <div style="text-align:center;width:100%;">
+    <div class="tp-logo">USALA</div>
+    <div class="tp-sub">Finanzas Personales · Elige tu estilo</div>
+    <div class="tp-title">Tema visual</div>
+    <div class="themes-grid" id="themesGrid">
+      <div class="theme-card selected" data-theme="default" style="background:#f0f4f0;color:#1e6b3c;" onclick="selectTheme(this)">
+        <div class="tc-dot" style="background:#1e6b3c;"></div>
+        <div class="tc-name">Verde Natural</div>
+      </div>
+      <div class="theme-card" data-theme="dark" style="background:#162016;color:#2d9e5f;" onclick="selectTheme(this)">
+        <div class="tc-dot" style="background:#2d9e5f;"></div>
+        <div class="tc-name" style="color:#e8f5e8;">Oscuro Pro</div>
+      </div>
+      <div class="theme-card" data-theme="gold" style="background:#140f00;color:#c9841a;" onclick="selectTheme(this)">
+        <div class="tc-dot" style="background:#c9841a;"></div>
+        <div class="tc-name" style="color:#f5e6c0;">Dorado Élite</div>
+      </div>
+      <div class="theme-card" data-theme="ocean" style="background:#e8f4fd;color:#0066cc;" onclick="selectTheme(this)">
+        <div class="tc-dot" style="background:#0066cc;"></div>
+        <div class="tc-name">Océano</div>
+      </div>
+      <div class="theme-card" data-theme="rose" style="background:#fff5f7;color:#c02040;" onclick="selectTheme(this)" style="grid-column:1/-1;">
+        <div class="tc-dot" style="background:#c02040;"></div>
+        <div class="tc-name">Rosa Elegante</div>
+      </div>
+    </div>
+    <button class="tp-btn" onclick="confirmarTema()" style="margin-top:24px;width:100%;">Continuar →</button>
+  </div>
+</div>
+
+<!-- ══ ACCESS SCREEN ══ -->
+<div class="screen" id="accessScreen">
+  <div style="width:100%;max-width:420px;margin:auto;padding:0 0 40px;">
+    <!-- Logo USALA -->
+    <div style="text-align:center;margin-bottom:28px;">
+      <div class="access-logo">USALA</div>
+      <div style="font-size:0.78rem;color:var(--dim);font-weight:500;">Finanzas Personales</div>
+    </div>
+
+    <!-- ── PANEL: Sesión recordada ── -->
+    <div class="access-card" id="panelSesion" style="display:none;">
+      <div style="text-align:center;margin-bottom:20px;">
+        <div id="sesionAvatar" style="width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:2.2rem;box-shadow:0 6px 24px rgba(45,106,255,0.35);">👤</div>
+        <div style="font-size:0.65rem;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Bienvenido de vuelta</div>
+        <div id="sesionNombre" style="font-size:1.5rem;font-weight:900;color:var(--text);"></div>
+      </div>
+      <button onclick="entrarSesionGuardada()" style="width:100%;padding:16px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:var(--navtext);border:none;border-radius:16px;font-family:'Outfit',sans-serif;font-size:1.05rem;font-weight:800;cursor:pointer;box-shadow:0 6px 20px rgba(45,106,255,0.35);margin-bottom:12px;letter-spacing:0.01em;">
+        ¡Continuar! →
+      </button>
+      <button onclick="mostrarPanelCodigo(true)" style="width:100%;padding:13px;background:none;border:1.5px solid var(--border);border-radius:14px;font-family:'Outfit',sans-serif;font-size:0.85rem;color:var(--dim);cursor:pointer;">
+        No soy yo — ingresar con otro código
+      </button>
+      <div style="text-align:center;margin-top:16px;">
+        <span onclick="abrirAdminModal()" style="font-size:0.78rem;color:var(--dim);cursor:pointer;text-decoration:underline;text-underline-offset:3px;">🔐 Acceso administrador</span>
+      </div>
+    </div>
+
+    <!-- ── PANEL: Código ── -->
+    <div class="access-card" id="panelCodigo" style="display:none;">
+      <!-- Ícono + título centrado -->
+      <div style="text-align:center;margin-bottom:20px;">
+        <div style="font-size:2.4rem;margin-bottom:10px;">🔑</div>
+        <div style="font-size:1.15rem;font-weight:900;color:var(--text);">Código de acceso</div>
+        <div style="font-size:0.78rem;color:var(--dim);margin-top:4px;">Ingresa el código que te compartieron</div>
+      </div>
+      <div id="accessErr" class="access-err">Código incorrecto o vencido</div>
+      <label class="inp-label">Tu nombre</label>
+      <input class="inp" id="accNombre" placeholder="¿Cómo te llamas?" autocomplete="off">
+      <label class="inp-label">Código</label>
+      <input class="inp" id="accCodigo" placeholder="Ej: FIN-2026" autocomplete="off" style="font-family:'JetBrains Mono',monospace;letter-spacing:0.08em;" onkeydown="if(event.key==='Enter')verificarCodigo()">
+      <button class="btn-main" onclick="verificarCodigo()">Entrar →</button>
+      <div style="display:flex;align-items:center;gap:10px;margin:20px 0 8px;">
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+        <span style="font-size:0.7rem;color:var(--dim);font-weight:600;">¿No tienes código?</span>
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+      </div>
+      <button onclick="mostrarPanelSolicitud()" style="width:100%;padding:14px;border:2px dashed var(--accent);background:rgba(45,106,255,0.05);color:var(--accent);border-radius:16px;font-family:'Outfit',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;">
+        📩 Solicitar acceso al administrador
+      </button>
+      <div style="text-align:center;margin-top:18px;">
+        <span onclick="abrirAdminModal()" style="font-size:0.78rem;color:var(--dim);cursor:pointer;text-decoration:underline;text-underline-offset:3px;">🔒 Acceso administrador</span>
+      </div>
+    </div>
+
+    <!-- Panel: Solicitar acceso -->
+    <div class="access-card" id="panelSolicitud" style="display:none;">
+      <div class="access-icon" style="text-align:center;">📩</div>
+      <div class="access-title" style="text-align:center;">Solicitar acceso</div>
+      <div class="access-sub" style="text-align:center;">El administrador recibirá tu solicitud y te enviará un código si la aprueba</div>
+      <div id="solicitudMsg" class="access-err" style="display:none;"></div>
+      <label class="inp-label">Tu nombre completo</label>
+      <input class="inp" id="solNombre" placeholder="¿Cómo te llamas?" autocomplete="off">
+      <label class="inp-label">¿Para qué quieres usar USALA?</label>
+      <textarea class="inp" id="solMotivo" placeholder="Ej: Quiero llevar control de mis gastos personales..." style="height:80px;resize:none;"></textarea>
+      <label class="inp-label">Tu contacto (WhatsApp, email, etc.)</label>
+      <input class="inp" id="solContacto" placeholder="Para que el admin te envíe el código">
+      <button class="btn-main" onclick="enviarSolicitud()">📩 Enviar solicitud</button>
+      <button onclick="mostrarPanelCodigo()" style="width:100%;padding:12px;background:none;border:none;color:var(--dim);font-family:'Outfit',sans-serif;font-size:0.83rem;cursor:pointer;margin-top:4px;">← Ya tengo un código</button>
+    </div>
+
+    <!-- Panel: Solicitud enviada -->
+    <div class="access-card" id="panelEnviada" style="display:none;text-align:center;padding:32px 20px;">
+      <div style="font-size:3rem;margin-bottom:12px;">✅</div>
+      <div class="access-title">¡Solicitud enviada!</div>
+      <div class="access-sub" style="margin-top:8px;">El administrador revisará tu solicitud y te contactará para darte acceso.<br><br>Cuando tengas tu código, regresa aquí e ingrésalo.</div>
+      <button onclick="mostrarPanelCodigo()" style="margin-top:20px;width:100%;padding:13px;background:var(--accent);color:var(--navtext);border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;">← Volver al login</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ADMIN MODAL ══ -->
+<div class="admin-modal" id="adminModal">
+  <div style="position:absolute;inset:0;" onclick="cerrarAdminModal()"></div>
+  <div class="admin-box" style="position:relative;">
+    <div class="admin-handle"></div>
+    <div style="text-align:center;font-size:2rem;margin-bottom:8px;">🔐</div>
+    <div class="admin-title">Acceso Administrador</div>
+    <div id="adminErr" class="access-err">Contraseña incorrecta</div>
+    <label class="inp-label">Contraseña</label>
+    <input class="inp" id="adminPass" type="password" placeholder="Contraseña de administrador" onkeydown="if(event.key==='Enter')verificarAdmin()">
+    <button class="btn-main" onclick="verificarAdmin()">Entrar como Admin →</button>
+    <div class="admin-hint">¿Primera vez? Usa la clave que te fue asignada</div>
+    <button class="admin-recover" onclick="recuperarAdmin()">¿Olvidaste tu contraseña? Restablecer</button>
+  </div>
+</div>
+
+<!-- ══ DASHBOARD ══ -->
+<div class="screen" id="dashboard">
+  <div class="topbar">
+    <div class="top-logo">USALA <span class="top-ver" id="verBadge"></span></div>
+    <div id="topUserName" style="font-size:0.72rem;font-weight:700;color:var(--dim);flex:1;text-align:right;padding-right:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+    <button class="top-icon" id="btnSolicitudes" onclick="goTab('mas',document.querySelectorAll('.nb')[4]);setTimeout(function(){goSub('codigos');},50);" title="Solicitudes" style="display:none;position:relative;">
+      📩
+      <span id="badgeSolicitudes" style="position:absolute;top:2px;right:2px;background:#ff3b30;color:#fff;font-size:0.45rem;font-weight:800;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;"></span>
+    </button>
+    <!-- Botón U acceso rápido cuentas -->
+    <button id="uFabBtn" class="top-icon" onclick="toggleUMenu()" title="Mis cuentas" style="display:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:900;font-size:0.95rem;letter-spacing:-0.5px;transition:transform 0.2s ease;">U</button>
+    <button class="top-icon" onclick="abrirCalc()" title="Calculadora">🔢</button>
+    <button class="top-icon" onclick="goTab('mas',document.querySelectorAll('.nb')[4]);setTimeout(function(){goSub('ayuda');},50);" title="Ayuda">❓</button>
+  </div>
+  <div class="content" id="mainContent"></div>
+  <nav class="bot-nav">
+    <button class="nb active" onclick="goTab('inicio',this)"><div class="nb-ico">🏠</div><div class="nb-lbl">Inicio</div></button>
+    <button class="nb" onclick="goTab('cuentas',this)"><div class="nb-ico">🏦</div><div class="nb-lbl">Cuentas</div></button>
+    <button class="nb" onclick="goTab('creditos',this)"><div class="nb-ico">🤝</div><div class="nb-lbl">Créditos</div></button>
+    <button class="nb" onclick="goTab('reportes',this)"><div class="nb-ico">📊</div><div class="nb-lbl">Reportes</div></button>
+    <button class="nb" onclick="goTab('mas',this)"><div class="nb-ico">⋯</div><div class="nb-lbl">Más</div></button>
+  </nav>
+</div>
+
+<!-- ══ TX MODAL ══ -->
+<!-- ══ BIENVENIDA MODAL ══ -->
+<div id="welcomeModal" style="display:none;position:fixed;inset:0;z-index:200;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0);">
+  <!-- Backdrop animado -->
+  <div id="welcomeBackdrop" style="position:absolute;inset:0;background:rgba(0,0,0,0);transition:background 0.4s ease;"></div>
+
+  <!-- Sheet principal -->
+  <div id="welcomeSheet" style="
+    position:relative;z-index:1;
+    width:100%;max-width:480px;
+    background:var(--card);
+    border-radius:28px 28px 0 0;
+    padding:0 0 40px;
+    transform:translateY(100%);
+    transition:transform 0.5s cubic-bezier(0.34,1.56,0.64,1);
+    overflow:hidden;
+  ">
+    <!-- Hero gradient animado -->
+    <div style="
+      background:linear-gradient(135deg,#667eea,#764ba2,#f093fb);
+      background-size:300% 300%;
+      animation:gradShift 4s ease infinite;
+      padding:36px 24px 28px;
+      text-align:center;
+      position:relative;
+      overflow:hidden;
+    ">
+      <!-- Círculos decorativos flotantes -->
+      <div style="position:absolute;top:-20px;left:-20px;width:100px;height:100px;background:rgba(255,255,255,0.08);border-radius:50%;animation:float1 3s ease-in-out infinite;"></div>
+      <div style="position:absolute;bottom:-30px;right:-10px;width:140px;height:140px;background:rgba(255,255,255,0.06);border-radius:50%;animation:float2 4s ease-in-out infinite;"></div>
+      <div style="position:absolute;top:20px;right:20px;width:50px;height:50px;background:rgba(255,255,255,0.1);border-radius:50%;animation:float1 2.5s ease-in-out infinite reverse;"></div>
+
+      <!-- Emoji con pulso -->
+      <div style="font-size:3.5rem;animation:popIn 0.7s cubic-bezier(0.34,1.56,0.64,1) 0.3s both;display:inline-block;">👋</div>
+
+      <!-- Título personalizado -->
+      <div id="welcomeName" style="
+        font-size:1.5rem;font-weight:900;color:#fff;
+        margin-top:10px;margin-bottom:4px;
+        animation:slideUp 0.5s ease 0.5s both;
+        text-shadow:0 2px 12px rgba(0,0,0,0.2);
+      ">¡Bienvenido/a a USALA!</div>
+
+      <!-- Subtítulo -->
+      <div style="
+        font-size:0.8rem;color:rgba(255,255,255,0.85);
+        animation:slideUp 0.5s ease 0.65s both;
+        font-weight:500;
+      ">Tu dinero, finalmente bajo control ✨</div>
+    </div>
+
+    <!-- Cuerpo del mensaje -->
+    <div style="padding:24px 24px 0;">
+
+      <!-- Mensaje principal -->
+      <div style="
+        font-size:0.92rem;color:var(--text);line-height:1.75;
+        text-align:center;margin-bottom:20px;
+        animation:slideUp 0.5s ease 0.8s both;
+      ">
+        Ese dinero que <strong style="color:#764ba2;">"desaparece"</strong> cada quincena<br>— aquí lo vamos a encontrar juntos.
+        <br><br>
+        Desde hoy sabes exactamente <strong style="color:var(--accent);">cuánto tienes</strong>, cuánto debes y cuánto puedes gastar. Sin hojas de cálculo, sin estrés, sin juicios.
+        <br><br>
+        No necesitas ser experto en finanzas.<br><strong style="color:var(--text);">Solo necesitas empezar.</strong>
+      </div>
+
+      <!-- Frase motivacional destacada -->
+      <div style="
+        background:linear-gradient(135deg,rgba(102,126,234,0.12),rgba(118,75,162,0.12));
+        border:1.5px solid rgba(118,75,162,0.2);
+        border-radius:16px;padding:14px 18px;
+        text-align:center;margin-bottom:20px;
+        animation:slideUp 0.5s ease 1s both;
+      ">
+        <div style="font-size:1rem;font-weight:900;background:linear-gradient(135deg,#667eea,#764ba2);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+          El primer paso ya lo diste. 🚀
+        </div>
+      </div>
+
+      <!-- Botón CTA -->
+      <button onclick="cerrarWelcome()" style="
+        width:100%;padding:16px;border:none;border-radius:18px;
+        background:linear-gradient(135deg,#667eea,#764ba2);
+        color:#fff;font-family:'Outfit',sans-serif;
+        font-size:1rem;font-weight:800;cursor:pointer;
+        box-shadow:0 8px 24px rgba(102,126,234,0.4);
+        animation:slideUp 0.5s ease 1.1s both;
+        transition:transform 0.15s ease, box-shadow 0.15s ease;
+      "
+      onmousedown="this.style.transform='scale(0.97)';this.style.boxShadow='0 4px 12px rgba(102,126,234,0.3)'"
+      onmouseup="this.style.transform='scale(1)';this.style.boxShadow='0 8px 24px rgba(102,126,234,0.4)'"
+      ontouchstart="this.style.transform='scale(0.97)'"
+      ontouchend="this.style.transform='scale(1)'">
+        ¡Empezar ahora! →
+      </button>
+    </div>
+  </div>
+</div>
+<div class="modal" id="txModal">
+  <div class="modal-box" style="position:relative;z-index:2;">
+    <div class="modal-header">
+      <div class="modal-title" id="txModalTitle">Nueva Transacción</div>
+      <button class="modal-close" onclick="cerrarTxModal()">✕</button>
+    </div>
+    <div class="tipo-selector" id="tipoSelector">
+      <div class="tipo-opt selected" id="tipoGasto" onclick="selTipo('gasto')">💳 Gasto</div>
+      <div class="tipo-opt" id="tipoIngreso" onclick="selTipo('ingreso')">💰 Ingreso</div>
+    </div>
+    <label class="inp-label">Descripción</label>
+    <input class="inp" id="txDesc" placeholder="Ej: Supermercado" autocomplete="off">
+    <div class="form-row">
+      <div><label class="inp-label">Monto ($)</label><input class="inp" id="txMonto" type="number" inputmode="decimal" placeholder="0.00"></div>
+      <div><label class="inp-label">Categoría</label>
+        <select class="inp" id="txCat">
+          <option>Pagos</option><option>Compras</option><option>Servicios</option>
+          <option>Alimentación</option><option>Transporte</option>
+          <option>Salario</option><option>Activos</option><option>Freelance</option><option>Renta</option><option>Inversión</option>
+          <option>Otros</option>
+        </select>
+      </div>
+    </div>
+    <label class="inp-label">💼 Cuenta / Bolsillo</label>
+    <select class="inp" id="txCuenta">
+      <option value="">— Sin asignar —</option>
+      <option value="efectivo">💵 Efectivo</option>
+    </select>
+    <label class="inp-label">Fecha</label>
+    <input class="inp" id="txFecha" type="date">
+    <button class="btn-main" id="txSaveBtn" onclick="guardarTx()" style="margin-top:8px;">💾 Guardar</button>
+    <button onclick="cerrarTxModal()" style="width:100%;padding:12px;background:none;border:1.5px solid var(--border);border-radius:12px;font-family:'Outfit',sans-serif;font-size:0.88rem;color:var(--dim);cursor:pointer;margin-top:8px;">Cancelar</button>
+  </div>
+</div>
+
+<!-- CALCULADORA FLOTANTE -->
+
+<!-- Menú desplegable del botón U (cae desde topbar) -->
+<div id="uFabMenu" style="display:none;position:fixed;z-index:989;top:58px;right:14px;background:var(--card);border-radius:18px;box-shadow:0 8px 32px rgba(0,0,0,0.2);padding:6px;min-width:210px;transform:scale(0.85) translateY(-10px);opacity:0;transform-origin:top right;transition:all 0.25s cubic-bezier(0.34,1.4,0.64,1);">
+  <div onclick="irACuenta('efectivo')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;cursor:pointer;" ontouchstart="this.style.background='var(--inp)'" ontouchend="this.style.background=''">
+    <span style="font-size:1.3rem;">💵</span>
+    <div>
+      <div style="font-size:0.88rem;font-weight:800;color:var(--text);">Efectivo</div>
+      <div id="uMenuEfectivo" style="font-size:0.72rem;color:var(--dim);">—</div>
+    </div>
+  </div>
+  <div style="height:1px;background:var(--border);margin:2px 8px;"></div>
+  <div onclick="irACuenta('cheques')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;cursor:pointer;" ontouchstart="this.style.background='var(--inp)'" ontouchend="this.style.background=''">
+    <span style="font-size:1.3rem;">🏦</span>
+    <div>
+      <div style="font-size:0.88rem;font-weight:800;color:var(--text);">Cheques / Banco</div>
+      <div id="uMenuBanco" style="font-size:0.72rem;color:var(--dim);">—</div>
+    </div>
+  </div>
+  <div style="height:1px;background:var(--border);margin:2px 8px;"></div>
+  <div onclick="irACuenta('tarjetas_credito')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;cursor:pointer;" ontouchstart="this.style.background='var(--inp)'" ontouchend="this.style.background=''">
+    <span style="font-size:1.3rem;">💳</span>
+    <div>
+      <div style="font-size:0.88rem;font-weight:800;color:var(--text);">Tarjetas de Crédito</div>
+      <div id="uMenuTC" style="font-size:0.72rem;color:#e53935;">—</div>
+    </div>
+  </div>
+</div>
+<div id="calcFloat" style="display:none;position:fixed;z-index:999;bottom:100px;right:14px;width:280px;border-radius:28px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);font-family:'Outfit',sans-serif;touch-action:none;transition:all 0.3s cubic-bezier(0.34,1.2,0.64,1);">
+  <!-- Handle drag -->
+  <div id="calcHandle" style="background:linear-gradient(135deg,#1a1a2e,#16213e);padding:12px 14px 8px;display:flex;align-items:center;justify-content:space-between;cursor:grab;user-select:none;">
+    <div style="display:flex;align-items:center;gap:6px;">
+      <span style="font-size:1rem;">🔢</span>
+      <span style="color:rgba(255,255,255,0.5);font-size:0.65rem;font-weight:700;letter-spacing:0.1em;">CALCULADORA</span>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <!-- Botón minimizar -->
+      <button id="calcMinBtn" onclick="minimizarCalc()" style="background:rgba(255,200,0,0.2);border:none;color:#ffd60a;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1rem;font-weight:900;line-height:28px;text-align:center;flex-shrink:0;" title="Minimizar">−</button>
+      <!-- Botón cerrar -->
+      <button id="calcCloseBtn" onclick="cerrarCalc()" style="background:rgba(255,60,60,0.25);border:none;color:#ff6b6b;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:0.9rem;font-weight:900;line-height:28px;text-align:center;flex-shrink:0;" title="Cerrar">✕</button>
+    </div>
+  </div>
+  <!-- Display -->
+  <div id="calcBody">
+    <div style="background:#0f0f1a;padding:10px 16px 12px;">
+      <div id="calcExpr" style="text-align:right;font-size:0.68rem;color:rgba(255,255,255,0.35);min-height:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+      <div id="calcDisplay" style="text-align:right;font-size:2.5rem;font-weight:700;color:#fff;min-height:54px;word-break:break-all;line-height:1.1;margin-top:2px;">0</div>
+    </div>
+    <!-- Teclado -->
+    <div id="calcKeys" style="background:#1a1a2e;display:grid;grid-template-columns:repeat(4,1fr);gap:2px;padding:2px;">
+      <button class="ck ck-fn" onclick="calcAc()">AC</button>
+      <button class="ck ck-fn" onclick="calcPlusMinus()">+/−</button>
+      <button class="ck ck-fn" onclick="calcOp('%')">%</button>
+      <button class="ck ck-op" onclick="calcOp('/')">÷</button>
+      <button class="ck" onclick="calcNum('7')">7</button>
+      <button class="ck" onclick="calcNum('8')">8</button>
+      <button class="ck" onclick="calcNum('9')">9</button>
+      <button class="ck ck-op" onclick="calcOp('*')">×</button>
+      <button class="ck" onclick="calcNum('4')">4</button>
+      <button class="ck" onclick="calcNum('5')">5</button>
+      <button class="ck" onclick="calcNum('6')">6</button>
+      <button class="ck ck-op" onclick="calcOp('-')">−</button>
+      <button class="ck" onclick="calcNum('1')">1</button>
+      <button class="ck" onclick="calcNum('2')">2</button>
+      <button class="ck" onclick="calcNum('3')">3</button>
+      <button class="ck ck-op" onclick="calcOp('+')">+</button>
+      <button class="ck ck-del" onclick="calcDel()">⌫</button>
+      <button class="ck" onclick="calcNum('0')">0</button>
+      <button class="ck" onclick="calcPunto()">.</button>
+      <button class="ck ck-eq" onclick="calcEqual()">=</button>
+    </div>
+  </div>
+</div>
+
+<!-- Burbuja minimizada -->
+<div id="calcBubble" style="display:none;position:fixed;z-index:999;bottom:100px;right:14px;width:68px;height:68px;border-radius:50%;background:linear-gradient(135deg,#1a1a2e,#16213e);box-shadow:0 8px 24px rgba(0,0,0,0.5);cursor:pointer;touch-action:none;flex-direction:column;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,0.1);" onclick="restaurarCalc()">
+  <div style="font-size:1.2rem;line-height:1;">🔢</div>
+  <div id="calcBubbleVal" style="font-size:0.55rem;font-weight:800;color:#ffd60a;margin-top:2px;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;">0</div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// ESTADO GLOBAL
+// ══════════════════════════════════════════
+var S = {
+  user: null,       // {nombre, codigo, isAdmin}
+  tab: 'inicio',
+  subtab: null,
+  editTxId: null,
+  editCrediIdx: null,
+  editCrediTipo: null,
+  theme: 'default'
+};
+
+var APP_VERSION = localStorage.getItem('usala_version') || '2.0.0';
+var APP_NOTAS   = localStorage.getItem('usala_notas') || 'Versión 2 — Rediseño completo';
+
+// ══════════════════════════════════════════
+// STORAGE POR USUARIO
+// ══════════════════════════════════════════
+function ukey(k){
+  var uid = S.user ? (S.user.isAdmin ? 'admin' : 'u_' + S.user.codigo) : 'anon';
+  return 'usala_' + uid + '_' + k;
+}
+function load(k, def){ try{ var v=localStorage.getItem(ukey(k)); return v!==null?JSON.parse(v):def; }catch(e){ return def; } }
+function save(k, v){ try{ localStorage.setItem(ukey(k), JSON.stringify(v)); }catch(e){} }
+
+// ══════════════════════════════════════════
+// TEMA
+// ══════════════════════════════════════════
+function selectTheme(el){
+  document.querySelectorAll('.theme-card').forEach(function(c){ c.classList.remove('selected'); });
+  el.classList.add('selected');
+  S.theme = el.dataset.theme;
+  applyTheme(S.theme);
+}
+function applyTheme(t){
+  document.documentElement.dataset.theme = (t === 'default') ? '' : t;
+}
+function confirmarTema(){
+  localStorage.setItem('usala_theme', S.theme);
+  showScreen('accessScreen');
+}
+// Aplicar tema y arrancar app
+(function(){
+  var t = localStorage.getItem('usala_theme');
+  if(t){ S.theme = t; applyTheme(t); }
+
+  function arrancarApp(){
+    var raw = localStorage.getItem('usala_session');
+    if(raw){
+      try{
+        var ses = JSON.parse(raw);
+        if(ses.isAdmin){
+          S.user = { nombre: 'Administrador', codigo: 'ADMIN', isAdmin: true };
+          initDashboard();
+          return;
+        }
+        var codigos = JSON.parse(localStorage.getItem('usala_codigos')||'[]');
+        var hoy = new Date();
+        var cod = codigos.find(function(c){ return c.codigo===ses.codigo && c.activo; });
+        if(cod){
+          var venc = new Date(cod.vencimiento.split('-').join('/'));
+          if(venc >= hoy){
+            showScreen('accessScreen');
+            document.getElementById('panelSesion').style.display = 'block';
+            document.getElementById('panelCodigo').style.display  = 'none';
+            var el = document.getElementById('sesionNombre');
+            if(el) el.textContent = ses.nombre.split(' ')[0];
+            return;
+          }
+        }
+        localStorage.removeItem('usala_session');
+      }catch(e){ localStorage.removeItem('usala_session'); }
+    }
+    // Sin sesión válida → login normal
+    showScreen('accessScreen');
+    document.getElementById('panelSesion').style.display = 'none';
+    document.getElementById('panelCodigo').style.display  = 'block';
+  }
+
+  // Siempre arrancar (con o sin tema guardado)
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', arrancarApp);
+  } else {
+    arrancarApp();
+  }
+})();
+
+// ══════════════════════════════════════════
+// ACCESO
+// ══════════════════════════════════════════
+function mostrarPanelCodigo(forzar){
+  document.getElementById('panelSesion').style.display='none';
+  document.getElementById('panelCodigo').style.display='block';
+  document.getElementById('panelSolicitud').style.display='none';
+  document.getElementById('panelEnviada').style.display='none';
+  // Si viene de "no soy yo", limpiar sesión guardada
+  if(forzar) localStorage.removeItem('usala_session');
+}
+function mostrarPanelSolicitud(){
+  document.getElementById('panelCodigo').style.display='none';
+  document.getElementById('panelSolicitud').style.display='block';
+  document.getElementById('panelEnviada').style.display='none';
+  document.getElementById('solicitudMsg').style.display='none';
+}
+function enviarSolicitud(){
+  var nombre   = document.getElementById('solNombre').value.trim();
+  var motivo   = document.getElementById('solMotivo').value.trim();
+  var contacto = document.getElementById('solContacto').value.trim();
+  var msg = document.getElementById('solicitudMsg');
+  if(!nombre || !motivo || !contacto){
+    msg.textContent='⚠ Completa todos los campos';
+    msg.style.display='block'; msg.style.color='var(--danger)'; return;
+  }
+  var solicitudes = JSON.parse(localStorage.getItem('usala_solicitudes')||'[]');
+  solicitudes.push({
+    id: Date.now(),
+    nombre: nombre,
+    motivo: motivo,
+    contacto: contacto,
+    fecha: today(),
+    estado: 'pendiente'
+  });
+  localStorage.setItem('usala_solicitudes', JSON.stringify(solicitudes));
+  document.getElementById('panelSolicitud').style.display='none';
+  document.getElementById('panelEnviada').style.display='block';
+}
+
+function verificarCodigo(){
+  var nombre = document.getElementById('accNombre').value.trim();
+  var codigo = document.getElementById('accCodigo').value.trim().toUpperCase();
+  var err = document.getElementById('accessErr');
+  err.style.display = 'none';
+  if(!nombre){ err.textContent='Ingresa tu nombre'; err.style.display='block'; return; }
+  if(!codigo){ err.textContent='Ingresa el código'; err.style.display='block'; return; }
+  var codigos = JSON.parse(localStorage.getItem('usala_codigos') || '[]');
+  var hoy = new Date();
+  var cod = codigos.find(function(c){ return c.codigo === codigo && c.activo; });
+  if(!cod){ err.textContent='Código incorrecto o no existe'; err.style.display='block'; return; }
+  var venc = new Date(cod.vencimiento.split('-').join('/'));
+  if(venc < hoy){ err.textContent='Este código ha vencido'; err.style.display='block'; return; }
+  // Marcar uso
+  cod.usado = true; cod.nombreUsuario = nombre; cod.fechaUso = today();
+  localStorage.setItem('usala_codigos', JSON.stringify(codigos));
+  S.user = { nombre: nombre, codigo: codigo, isAdmin: false };
+  // Guardar sesión para próxima vez
+  localStorage.setItem('usala_session', JSON.stringify({ nombre: nombre, codigo: codigo }));
+  initDashboard();
+}
+
+function entrarSesionGuardada(){
+  var raw = localStorage.getItem('usala_session');
+  if(!raw){ mostrarPanelCodigo(); return; }
+  var ses = JSON.parse(raw);
+  var codigos = JSON.parse(localStorage.getItem('usala_codigos')||'[]');
+  var hoy = new Date();
+  var cod = codigos.find(function(c){ return c.codigo===ses.codigo && c.activo; });
+  if(!cod){ localStorage.removeItem('usala_session'); mostrarPanelCodigo(); return; }
+  var venc = new Date(cod.vencimiento.split('-').join('/'));
+  if(venc < hoy){ localStorage.removeItem('usala_session'); mostrarPanelCodigo(); return; }
+  S.user = { nombre: ses.nombre, codigo: ses.codigo, isAdmin: false };
+  initDashboard();
+}
+
+function abrirAdminModal(){
+  document.getElementById('adminErr').style.display = 'none';
+  document.getElementById('adminPass').value = '';
+  document.getElementById('adminModal').classList.add('open');
+  setTimeout(function(){ document.getElementById('adminPass').focus(); }, 300);
+}
+function cerrarAdminModal(){ document.getElementById('adminModal').classList.remove('open'); }
+
+function verificarAdmin(){
+  var pass = document.getElementById('adminPass').value;
+  var guardada = localStorage.getItem('usala_admin_pass') || 'admin1234';
+  if(pass === 'admin1234' || pass === guardada){
+    cerrarAdminModal();
+    S.user = { nombre: 'Administrador', codigo: 'ADMIN', isAdmin: true };
+    var sesData = JSON.stringify({ nombre: 'Administrador', codigo: 'ADMIN', isAdmin: true });
+    localStorage.setItem('usala_session', sesData);
+    // Verificar que se guardó
+    var verificar = localStorage.getItem('usala_session');
+    console.log('Sesión admin guardada:', verificar);
+    initDashboard();
+  } else {
+    document.getElementById('adminErr').style.display = 'block';
+    document.getElementById('adminPass').value = '';
+  }
+}
+
+function recuperarAdmin(){
+  if(!confirm('¿Restablecer la contraseña al valor original?')) return;
+  localStorage.removeItem('usala_admin_pass');
+  document.getElementById('adminErr').style.display = 'none';
+  document.getElementById('adminPass').value = '';
+  alert('Listo. Usa la clave maestra que conoces para entrar.');
+}
+
+// ══════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════
+function initDashboard(){
+  showScreen('dashboard');
+  // Mostrar botón U flotante
+  var ub = document.getElementById('uFabBtn');
+  if(ub) ub.style.display = 'flex';
+  actualizarUMenu();
+  var u = S.user;
+  var un = document.getElementById('topUserName');
+  if(un) un.textContent = u.isAdmin ? '⚙️ Admin' : '👤 ' + u.nombre;
+  var vb = document.getElementById('verBadge'); if(vb) vb.textContent = 'v' + APP_VERSION;
+  if(u.isAdmin){
+    actualizarBadgeSolicitudes();
+  }
+  goTab('inicio', document.querySelector('.nb'));
+  // Mostrar bienvenida solo la primera vez (no al admin)
+  if(!u.isAdmin){
+    var keyVisto = 'usala_bienvenida_' + u.codigo;
+    if(!localStorage.getItem(keyVisto)){
+      setTimeout(function(){
+        var wn = document.getElementById('welcomeName');
+        if(wn) wn.textContent = '¡Bienvenido/a, ' + u.nombre.split(' ')[0] + '! 👋';
+        var m = document.getElementById('welcomeModal');
+        var bd = document.getElementById('welcomeBackdrop');
+        var sh = document.getElementById('welcomeSheet');
+        if(m){
+          m.style.display = 'flex';
+          requestAnimationFrame(function(){
+            if(bd) bd.style.background = 'rgba(0,0,0,0.55)';
+            if(sh) sh.style.transform = 'translateY(0)';
+          });
+        }
+      }, 700);
+    }
+  }
+}
+
+function cerrarWelcome(){
+  var m = document.getElementById('welcomeModal');
+  var bd = document.getElementById('welcomeBackdrop');
+  var sh = document.getElementById('welcomeSheet');
+  if(bd) bd.style.background = 'rgba(0,0,0,0)';
+  if(sh) sh.style.transform = 'translateY(100%)';
+  setTimeout(function(){ if(m) m.style.display = 'none'; }, 500);
+  if(S.user && !S.user.isAdmin){
+    localStorage.setItem('usala_bienvenida_' + S.user.codigo, '1');
+  }
+}
+
+function actualizarBadgeSolicitudes(){
+  var solicitudes = JSON.parse(localStorage.getItem('usala_solicitudes')||'[]');
+  var pendientes = solicitudes.filter(function(s){ return s.estado==='pendiente'; }).length;
+  var btn = document.getElementById('btnSolicitudes');
+  var badge = document.getElementById('badgeSolicitudes');
+  if(btn){
+    btn.style.display = pendientes > 0 ? 'flex' : 'none';
+    if(badge) badge.textContent = pendientes > 0 ? pendientes : '';
+  }
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+}
+
+function goTab(tab, btn){
+  S.tab = tab; S.subtab = null;
+  document.querySelectorAll('.nb').forEach(function(b){ b.classList.remove('active'); });
+  if(btn) btn.classList.add('active');
+  renderTab(tab);
+}
+
+function goSub(sub){
+  S.subtab = sub;
+  // Manejar banco_N dinámico
+  if(sub && sub.indexOf('banco_')===0){
+    var idx = parseInt(sub.replace('banco_',''));
+    document.getElementById('mainContent').innerHTML = renderBancoDetalle(idx);
+    return;
+  }
+  var renders = {
+    // Cuentas
+    efectivo: renderEfectivo, cheques: renderCheques,
+    tarjetas_credito: renderTarjetasCredito,
+    nueva_tc: function(){ return renderFormTC(null); },
+    // Créditos
+    creditos_debo: renderCreditosDebo, creditos_cobrar: renderCreditosCobrar,
+    nueva_deuda: function(){ return renderFormCredito('deuda', null); },
+    nuevo_prestamo: function(){ return renderFormCredito('prestamo', null); },
+    // Más
+    metas: renderMetas, presupuesto: renderPresupuesto, alertas: renderAlertas,
+    historial: renderHistorial, conversor: renderConversor,
+    reportes: renderReportes,
+    codigos: renderCodigos, config: renderConfig, ayuda: renderAyuda,
+    version: renderVersion, noticias: renderNoticias
+  };
+  var fn = renders[sub];
+  if(fn) document.getElementById('mainContent').innerHTML = fn();
+}
+
+function renderTab(tab){
+  var map = {
+    inicio: renderInicio,
+    cuentas: renderCuentas,
+    creditos: renderCreditos,
+    reportes: renderReportes,
+    mas: renderMas
+  };
+  var fn = map[tab] || function(){ return '<p>En construcción</p>'; };
+  document.getElementById('mainContent').innerHTML = fn();
+}
+
+// ══════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════
+function today(){ return new Date().toISOString().split('T')[0]; }
+function fmt(n){ return '$' + Number(n||0).toLocaleString('es-MX',{minimumFractionDigits:2}); }
+function showToast(msg){ var t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(function(){ t.remove(); },2500); }
+function backBtn(tab, idx){
+  return '<button class="back-btn" onclick="goTab(\''+tab+'\',document.querySelectorAll(\'.nb\')['+idx+'])">‹</button>';
+}
+function backSubBtn(label){
+  return '<button class="back-btn" onclick="goTab(S.tab,document.querySelector(\'.nb.active\'))">‹</button>';
+}
+
+// ══════════════════════════════════════════
+// UNDO SYSTEM
+// ══════════════════════════════════════════
+var _undoFn = null, _undoTimer = null;
+function mostrarUndo(msg, fn){
+  if(_undoTimer) clearTimeout(_undoTimer);
+  var old = document.getElementById('undoBar'); if(old) old.remove();
+  var d = document.createElement('div'); d.id='undoBar'; d.className='undo-bar';
+  d.innerHTML = '<span>'+msg+'</span><button class="undo-btn" onclick="ejecutarUndo()">Deshacer</button><div class="undo-prog" id="undoProg"></div>';
+  document.body.appendChild(d);
+  setTimeout(function(){ var p=document.getElementById('undoProg'); if(p) p.style.width='0%'; }, 50);
+  _undoFn = fn;
+  _undoTimer = setTimeout(function(){ var u=document.getElementById('undoBar'); if(u) u.remove(); _undoFn=null; }, 6000);
+}
+function ejecutarUndo(){
+  if(_undoTimer) clearTimeout(_undoTimer);
+  var u=document.getElementById('undoBar'); if(u) u.remove();
+  if(_undoFn){ _undoFn(); _undoFn=null; }
+}
+
+// ══════════════════════════════════════════
+// TRANSACCIONES
+// ══════════════════════════════════════════
+function getTxs(){ return load('txs',[]); }
+function saveTxs(txs){ save('txs',txs); }
+
+function txItem(t, showEdit){
+  var es = showEdit !== false;
+  return '<div class="tx-item">'
+    +'<div class="tx-ico">'+(t.tipo==='ingreso'?'💰':'💳')+'</div>'
+    +'<div class="tx-info"><div class="tx-name">'+t.desc+'</div><div class="tx-date">'+t.fecha+' · '+t.cat+'</div></div>'
+    +'<div class="tx-right">'
+    +'<div class="tx-amt '+(t.tipo==='ingreso'?'ing':'gas')+'">'+(t.tipo==='ingreso'?'+':'-')+fmt(t.monto)+'</div>'
+    +(es?'<button class="ic-btn" onclick="editarTx('+t.id+')">✏️</button>':'')
+    +(es?'<button class="ic-btn" onclick="borrarTx('+t.id+')">🗑️</button>':'')
+    +'</div></div>';
+}
+
+// ══════════════════════════════════════════
+// CALCULADORA FLOTANTE — DRAG + PINCH RESIZE
+// ══════════════════════════════════════════
+var _calcExpr = '', _calcResult = '0', _calcNewNum = true;
+var _calcScale = 1.0;
+
+function abrirCalc(){
+  var cf = document.getElementById('calcFloat');
+  var bb = document.getElementById('calcBubble');
+  // Si está minimizado como burbuja → restaurar
+  if(bb && bb.style.display !== 'none'){
+    restaurarCalc(); return;
+  }
+  // Si ya está abierto → no hacer nada
+  if(cf.style.display === 'block') return;
+  // Primera apertura — resetear
+  _calcExpr=''; _calcResult='0'; _calcNewNum=true;
+  document.getElementById('calcDisplay').textContent='0';
+  document.getElementById('calcExpr').textContent='';
+  cf.style.display='block';
+  cf.style.bottom='100px'; cf.style.right='14px';
+  cf.style.left='auto'; cf.style.top='auto';
+  if(bb) bb.style.display='none';
+  iniciarDragCalc();
+  iniciarDragBurbuja();
+}
+
+function minimizarCalc(){
+  var cf = document.getElementById('calcFloat');
+  var bb = document.getElementById('calcBubble');
+  // Guardar posición
+  var r = cf.getBoundingClientRect();
+  // Mostrar burbuja en misma posición
+  bb.style.left = (r.left + r.width/2 - 34) + 'px';
+  bb.style.top  = (r.top  + r.height/2 - 34) + 'px';
+  bb.style.right = 'auto'; bb.style.bottom = 'auto';
+  bb.style.display = 'flex';
+  // Actualizar valor en burbuja
+  document.getElementById('calcBubbleVal').textContent = _calcResult !== '0' ? _calcResult : (_calcExpr ? '...' : '0');
+  // Ocultar calculadora con animación
+  cf.style.transform = 'scale(0.3)';
+  cf.style.opacity = '0';
+  setTimeout(function(){ cf.style.display='none'; cf.style.transform=''; cf.style.opacity=''; }, 280);
+}
+
+function restaurarCalc(){
+  var cf = document.getElementById('calcFloat');
+  var bb = document.getElementById('calcBubble');
+  var r  = bb.getBoundingClientRect();
+  cf.style.left  = Math.max(0, r.left - 100) + 'px';
+  cf.style.top   = Math.max(0, r.top  - 200) + 'px';
+  cf.style.right = 'auto'; cf.style.bottom = 'auto';
+  cf.style.transform = 'scale(0.3)';
+  cf.style.opacity = '0';
+  cf.style.display = 'block';
+  bb.style.display = 'none';
+  requestAnimationFrame(function(){
+    cf.style.transition = 'transform 0.3s cubic-bezier(0.34,1.4,0.64,1), opacity 0.25s ease';
+    cf.style.transform  = 'scale(1)';
+    cf.style.opacity    = '1';
+    setTimeout(function(){ cf.style.transition=''; }, 350);
+  });
+}
+
+function cerrarCalc(){
+  var cf = document.getElementById('calcFloat');
+  var bb = document.getElementById('calcBubble');
+  // Animación de cierre
+  cf.style.transition = 'transform 0.2s ease, opacity 0.2s ease';
+  cf.style.transform  = 'scale(0.8)';
+  cf.style.opacity    = '0';
+  setTimeout(function(){
+    cf.style.display='none';
+    cf.style.transform=''; cf.style.opacity=''; cf.style.transition='';
+  }, 200);
+  if(bb) bb.style.display='none';
+  // Resetear datos al cerrar definitivamente
+  _calcExpr=''; _calcResult='0'; _calcNewNum=true;
+}
+
+function iniciarDragBurbuja(){
+  var bb = document.getElementById('calcBubble');
+  var startX,startY,startL,startT,dragging=false,moved=false;
+  bb.ontouchstart=function(e){
+    if(e.touches.length!==1) return;
+    dragging=true; moved=false;
+    var r=bb.getBoundingClientRect();
+    startX=e.touches[0].clientX; startY=e.touches[0].clientY;
+    startL=r.left; startT=r.top;
+    bb.style.right='auto'; bb.style.bottom='auto';
+    e.preventDefault();
+  };
+  bb.ontouchmove=function(e){
+    if(!dragging||e.touches.length!==1) return;
+    moved=true;
+    var dx=e.touches[0].clientX-startX, dy=e.touches[0].clientY-startY;
+    bb.style.left=Math.max(0,Math.min(window.innerWidth-68,startL+dx))+'px';
+    bb.style.top =Math.max(0,Math.min(window.innerHeight-68,startT+dy))+'px';
+    e.preventDefault();
+  };
+  bb.ontouchend=function(e){
+    dragging=false;
+    if(!moved) restaurarCalc(); // tap sin drag = restaurar
+  };
+}
+
+function iniciarDragCalc(){
+  var handle = document.getElementById('calcHandle');
+  var cf = document.getElementById('calcFloat');
+  var startX,startY,startL,startT,dragging=false;
+
+  function esBtnCalc(el){ return el.id==='calcMinBtn'||el.id==='calcCloseBtn'||el.closest&&(el.closest('#calcMinBtn')||el.closest('#calcCloseBtn')); }
+
+  handle.ontouchstart = function(e){
+    if(esBtnCalc(e.target)) return;
+    if(e.touches.length!==1) return;
+    dragging=true;
+    var r=cf.getBoundingClientRect();
+    startX=e.touches[0].clientX; startY=e.touches[0].clientY;
+    startL=r.left; startT=r.top;
+    cf.style.right='auto'; cf.style.bottom='auto';
+    cf.style.left=startL+'px'; cf.style.top=startT+'px';
+    e.preventDefault();
+  };
+  handle.ontouchmove = function(e){
+    if(!dragging||e.touches.length!==1) return;
+    var dx=e.touches[0].clientX-startX, dy=e.touches[0].clientY-startY;
+    var newL=Math.max(0,Math.min(window.innerWidth-cf.offsetWidth, startL+dx));
+    var newT=Math.max(0,Math.min(window.innerHeight-cf.offsetHeight, startT+dy));
+    cf.style.left=newL+'px'; cf.style.top=newT+'px';
+    e.preventDefault();
+  };
+  handle.ontouchend=function(){ dragging=false; };
+  handle.onmousedown=function(e){
+    if(esBtnCalc(e.target)) return;
+    dragging=true;
+    var r=cf.getBoundingClientRect();
+    startX=e.clientX; startY=e.clientY;
+    startL=r.left; startT=r.top;
+    cf.style.right='auto'; cf.style.bottom='auto';
+    cf.style.left=startL+'px'; cf.style.top=startT+'px';
+    e.preventDefault();
+  };
+  document.onmousemove=function(e){
+    if(!dragging) return;
+    var newL=Math.max(0,Math.min(window.innerWidth-cf.offsetWidth, startL+(e.clientX-startX)));
+    var newT=Math.max(0,Math.min(window.innerHeight-cf.offsetHeight, startT+(e.clientY-startY)));
+    cf.style.left=newL+'px'; cf.style.top=newT+'px';
+  };
+  document.onmouseup=function(){ dragging=false; };
+}
+
+function calcNum(n){
+  if(_calcNewNum){ _calcResult=n; _calcNewNum=false; }
+  else { _calcResult=_calcResult==='0'?n:_calcResult+n; }
+  document.getElementById('calcDisplay').textContent=_calcResult;
+}
+function calcPlusMinus(){
+  if(_calcResult==='0') return;
+  _calcResult=_calcResult.startsWith('-')?_calcResult.slice(1):'-'+_calcResult;
+  document.getElementById('calcDisplay').textContent=_calcResult;
+}
+function calcPunto(){
+  if(_calcNewNum){ _calcResult='0.'; _calcNewNum=false; }
+  else if(!_calcResult.includes('.')) _calcResult+='.';
+  document.getElementById('calcDisplay').textContent=_calcResult;
+}
+function calcOp(op){
+  _calcExpr+=_calcResult+' '+op+' ';
+  document.getElementById('calcExpr').textContent=_calcExpr;
+  _calcNewNum=true; _calcResult='0';
+}
+function calcEqual(){
+  try{
+    var expr=(_calcExpr+_calcResult).replace(/÷/g,'/').replace(/×/g,'*');
+    expr=expr.replace(/(\d+\.?\d*)\s*%/g,function(m,n){ return (parseFloat(n)/100); });
+    var res=Function('"use strict";return ('+expr+')')();
+    _calcResult=parseFloat(res.toFixed(10)).toString();
+    document.getElementById('calcDisplay').textContent=_calcResult;
+    document.getElementById('calcExpr').textContent=_calcExpr+'=';
+    _calcExpr=''; _calcNewNum=true;
+  }catch(e){ document.getElementById('calcDisplay').textContent='Error'; _calcExpr=''; _calcNewNum=true; }
+}
+function calcAc(){ _calcExpr=''; _calcResult='0'; _calcNewNum=true; document.getElementById('calcDisplay').textContent='0'; document.getElementById('calcExpr').textContent=''; }
+function calcDel(){
+  if(_calcNewNum||_calcResult==='0') return;
+  _calcResult=_calcResult.length>1?_calcResult.slice(0,-1):'0';
+  document.getElementById('calcDisplay').textContent=_calcResult;
+}
+
+// ── Poblar selector de cuentas ──
+function poblarCuentas(cuentaActual){
+  var c = getCuentas();
+  var sel = document.getElementById('txCuenta');
+  if(!sel) return;
+  var ops = '<option value="">— Sin asignar —</option>'
+    +'<option value="efectivo"'+(cuentaActual==='efectivo'?' selected':'')+'>💵 Efectivo</option>';
+  (c.cheques||[]).forEach(function(ch, i){
+    var val = 'cheque_'+i;
+    ops += '<option value="'+val+'"'+(cuentaActual===val?' selected':'')+'>🏧 '+ch.banco+' ('+ch.tipo+')</option>';
+  });
+  sel.innerHTML = ops;
+}
+
+function abrirTxModal(tipo){
+  S.editTxId = null;
+  document.getElementById('txModalTitle').textContent = 'Nueva Transacción';
+  document.getElementById('txDesc').value = '';
+  document.getElementById('txMonto').value = '';
+  document.getElementById('txFecha').value = today();
+  document.getElementById('tipoSelector').style.display = 'grid';
+  document.getElementById('txSaveBtn').textContent = '💾 Guardar';
+  selTipo(tipo || 'gasto');
+  poblarCuentas('');
+  document.getElementById('txModal').classList.add('open');
+  setTimeout(function(){ document.getElementById('txDesc').focus(); }, 400);
+}
+function cerrarTxModal(){ document.getElementById('txModal').classList.remove('open'); }
+
+function selTipo(t){
+  document.getElementById('tipoGasto').classList.toggle('selected', t==='gasto');
+  document.getElementById('tipoIngreso').classList.toggle('selected', t==='ingreso');
+  var cats = t==='ingreso'
+    ? ['Salario','Activos','Freelance','Renta','Inversión','Otros']
+    : ['Pagos','Compras','Servicios','Alimentación','Transporte','Otros'];
+  var sel = document.getElementById('txCat');
+  sel.innerHTML = cats.map(function(c){ return '<option>'+c+'</option>'; }).join('');
+}
+
+function editarTx(id){
+  var txs = getTxs();
+  var t = txs.find(function(x){ return x.id===id; });
+  if(!t) return;
+  S.editTxId = id;
+  document.getElementById('txModalTitle').textContent = 'Editar Transacción';
+  document.getElementById('tipoSelector').style.display = 'none';
+  document.getElementById('txDesc').value = t.desc;
+  document.getElementById('txMonto').value = t.monto;
+  document.getElementById('txFecha').value = t.fecha;
+  document.getElementById('txSaveBtn').textContent = '💾 Guardar cambios';
+  var cats = t.tipo==='ingreso'
+    ? ['Salario','Activos','Freelance','Renta','Inversión','Otros']
+    : ['Pagos','Compras','Servicios','Alimentación','Transporte','Otros'];
+  var sel = document.getElementById('txCat');
+  sel.innerHTML = cats.map(function(c){ return '<option'+(c===t.cat?' selected':'')+'>'+c+'</option>'; }).join('');
+  poblarCuentas(t.cuenta||'');
+  document.getElementById('txModal').classList.add('open');
+  setTimeout(function(){ document.getElementById('txDesc').focus(); }, 400);
+}
+
+// ── Aplica el movimiento en la cuenta seleccionada ──
+function aplicarMovimientoCuenta(cuentaVal, monto, tipo, desc, fecha, txId){
+  if(!cuentaVal) return;
+  var c = getCuentas();
+  var delta = tipo==='ingreso' ? monto : -monto;
+  if(cuentaVal==='efectivo'){
+    c.movEfectivo = c.movEfectivo||[];
+    c.movEfectivo.push({desc:desc, monto:Math.abs(delta), fecha:fecha, tipo:tipo==='ingreso'?'entrada':'salida', txId:txId});
+    c.efectivo = (c.efectivo||0) + delta;
+  } else if(cuentaVal.indexOf('cheque_')===0){
+    var idx = parseInt(cuentaVal.replace('cheque_',''));
+    if(c.cheques && c.cheques[idx]){
+      c.cheques[idx].saldo = (c.cheques[idx].saldo||0) + delta;
+    }
+  } else if(cuentaVal.indexOf('tc_')===0){
+    // Tarjeta de crédito: gasto AUMENTA la deuda, pago la REDUCE. NO toca efectivo ni banco.
+    var ti = parseInt(cuentaVal.replace('tc_',''));
+    if(c.tarjetas && c.tarjetas[ti]){
+      var cambio = tipo==='gasto' ? monto : -monto;
+      c.tarjetas[ti].balance = (Number(c.tarjetas[ti].balance)||0) + cambio;
+    }
+  }
+  saveCuentas(c);
+}
+
+function revertirMovimientoCuenta(cuentaVal, monto, tipo){
+  if(!cuentaVal) return;
+  var c = getCuentas();
+  var delta = tipo==='ingreso' ? -monto : monto;
+  if(cuentaVal==='efectivo'){
+    c.efectivo = (c.efectivo||0) + delta;
+  } else if(cuentaVal.indexOf('cheque_')===0){
+    var idx = parseInt(cuentaVal.replace('cheque_',''));
+    if(c.cheques && c.cheques[idx]){
+      c.cheques[idx].saldo = (c.cheques[idx].saldo||0) + delta;
+    }
+  } else if(cuentaVal.indexOf('tc_')===0){
+    var ti = parseInt(cuentaVal.replace('tc_',''));
+    if(c.tarjetas && c.tarjetas[ti]){
+      var cambio = tipo==='gasto' ? -monto : monto;
+      c.tarjetas[ti].balance = (Number(c.tarjetas[ti].balance)||0) + cambio;
+    }
+  }
+  saveCuentas(c);
+}
+
+function guardarTx(){
+  var desc  = document.getElementById('txDesc').value.trim();
+  var monto = parseFloat(document.getElementById('txMonto').value);
+  var cat   = document.getElementById('txCat').value;
+  var fecha = document.getElementById('txFecha').value || today();
+  var cuenta = document.getElementById('txCuenta').value;
+  var tipo  = document.getElementById('tipoGasto').classList.contains('selected') ? 'gasto' : 'ingreso';
+  if(!desc){ showToast('⚠ Escribe una descripción'); return; }
+  if(!monto || monto<=0){ showToast('⚠ Escribe un monto válido'); return; }
+  var txs = getTxs();
+  if(S.editTxId){
+    var ei = txs.findIndex(function(t){ return t.id===S.editTxId; });
+    if(ei>-1){
+      var prev = txs[ei];
+      // Revertir cuenta anterior si tenía
+      if(prev.cuenta) revertirMovimientoCuenta(prev.cuenta, Number(prev.monto), prev.tipo);
+      tipo = prev.tipo;
+      txs[ei] = Object.assign(prev, {desc:desc, monto:monto, cat:cat, fecha:fecha, cuenta:cuenta});
+      if(cuenta) aplicarMovimientoCuenta(cuenta, monto, tipo, desc, fecha, S.editTxId);
+    }
+    showToast('✓ Actualizado correctamente');
+  } else {
+    var id = Date.now();
+    txs.push({id:id, tipo:tipo, desc:desc, monto:monto, cat:cat, fecha:fecha, cuenta:cuenta});
+    if(cuenta) aplicarMovimientoCuenta(cuenta, monto, tipo, desc, fecha, id);
+    showToast('✓ '+( tipo==='ingreso'?'Ingreso':'Gasto')+' guardado'+(cuenta?' → '+nombreCuenta(cuenta):''));
+  }
+  saveTxs(txs);
+  cerrarTxModal();
+  renderTab(S.tab);
+}
+
+function nombreCuenta(val){
+  if(!val) return '';
+  if(val==='efectivo') return 'Efectivo';
+  if(val.indexOf('cheque_')===0){
+    var c=getCuentas(); var idx=parseInt(val.replace('cheque_',''));
+    return c.cheques&&c.cheques[idx] ? c.cheques[idx].banco : 'Banco';
+  }
+  return val;
+}
+
+function guardarTxInline(tipo, cat){
+  var sufijo = tipo==='ingreso' ? 'ingreso' : cat;
+  var descEl  = document.getElementById('inDesc_'+sufijo);
+  var montoEl = document.getElementById('inMonto_'+sufijo);
+  var fechaEl = document.getElementById('inFecha_'+sufijo);
+  var cuentaEl= document.getElementById('inCuenta_'+sufijo);
+  if(!descEl||!montoEl){ showToast('⚠ Error de formulario'); return; }
+  var desc  = descEl.value.trim();
+  var monto = parseFloat(montoEl.value);
+  var fecha = fechaEl ? fechaEl.value||today() : today();
+  var cuenta = cuentaEl ? cuentaEl.value : '';
+  var catFinal = tipo==='ingreso'
+    ? (document.getElementById('inCat_ingreso') ? document.getElementById('inCat_ingreso').value : 'Salario')
+    : cat;
+  if(!desc){ showToast('⚠ Escribe una descripción'); return; }
+  if(!monto||monto<=0){ showToast('⚠ Escribe un monto válido'); return; }
+  var txs = getTxs();
+  var id = Date.now();
+  txs.push({id:id, tipo:tipo, desc:desc, monto:monto, cat:catFinal, fecha:fecha, cuenta:cuenta});
+  saveTxs(txs);
+  if(cuenta) aplicarMovimientoCuenta(cuenta, monto, tipo, desc, fecha, id);
+  showToast('✓ Guardado'+(cuenta?' → '+nombreCuenta(cuenta):''));
+  var mapSub = {Pagos:'pagos', Compras:'compras', Servicios:'servicios', ingreso:'activos'};
+  var sub = mapSub[cat]||mapSub[tipo];
+  if(sub) goSub(sub);
+}
+
+function borrarTx(id){
+  if(!confirm('¿Eliminar esta transacción?')) return;
+  var txs = getTxs(); var eli = txs.find(function(t){ return t.id===id; });
+  saveTxs(txs.filter(function(t){ return t.id!==id; }));
+  renderTab(S.tab);
+  mostrarUndo('Transacción eliminada', function(){ var t2=getTxs(); t2.push(eli); saveTxs(t2); showToast('✓ Restaurado'); renderTab(S.tab); });
+}
+
+// ══════════════════════════════════════════
+// INICIO
+// ══════════════════════════════════════════
+function renderInicio(){
+  var txs = getTxs();
+  var ing = txs.filter(function(t){ return t.tipo==='ingreso'; }).reduce(function(s,t){ return s+Number(t.monto); },0);
+  var gas = txs.filter(function(t){ return t.tipo==='gasto'; }).reduce(function(s,t){ return s+Number(t.monto); },0);
+  var bal = ing - gas;
+  var rec = txs.slice(-5).reverse().map(function(t){ return txItem(t,true); }).join('') || '<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin transacciones aún</div>';
+  var creds = load('creditos',[]);
+  var debo   = creds.filter(function(c){ return c.tipo==='deuda'&&c.estado!=='pagado'; }).reduce(function(s,c){ return s+Number(c.monto-(c.abonado||0)); },0);
+  var meDebn = creds.filter(function(c){ return c.tipo==='prestamo'&&c.estado!=='pagado'; }).reduce(function(s,c){ return s+Number(c.monto-(c.abonado||0)); },0);
+
+  // Datos de cuentas reales
+  var cu = getCuentas();
+  var efec = cu.efectivo || 0;
+  var banco = (cu.cheques||[]).reduce(function(s,x){ return s+Number(x.saldo||0); },0);
+  var deudaTC = (cu.tarjetas||[]).reduce(function(s,t){ return s+Number(t.balance||0); },0);
+  var totalDisp = efec + banco;
+
+  // Tarjeta invitados (solo admin)
+  var invCard = '';
+  if(S.user.isAdmin){
+    var codigos = JSON.parse(localStorage.getItem('usala_codigos')||'[]');
+    var hoy = new Date();
+    var activos = codigos.filter(function(c){ return c.activo && new Date(c.vencimiento.split('-').join('/'))>=hoy; });
+    var usados  = codigos.filter(function(c){ return c.usado; });
+    invCard = '<div class="stat-card full" style="cursor:pointer;" onclick="goSub(\'codigos\')">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+      +'<div><div class="stat-label">👥 Invitados ›</div>'
+      +'<div style="font-size:0.75rem;margin-top:4px;">'
+      +'<span style="color:var(--accent2);">✅ '+usados.length+' conectados</span>'
+      +'&nbsp;&nbsp;<span style="color:var(--dim);">🔑 '+activos.length+' códigos activos</span>'
+      +'</div></div><div style="font-size:1.4rem;">›</div>'
+      +'</div></div>';
+  }
+
+  // Noticias para invitados
+  var noticiasBanner = '';
+  if(!S.user.isAdmin){
+    var noticias = JSON.parse(localStorage.getItem('usala_noticias')||'[]');
+    var sinLeer = noticias.filter(function(n){
+      var leidas = JSON.parse(localStorage.getItem('usala_leidas_'+S.user.codigo)||'[]');
+      return leidas.indexOf(n.id) === -1;
+    });
+    if(sinLeer.length){
+      noticiasBanner = '<div style="background:rgba(45,158,95,0.1);border:1.5px solid rgba(45,158,95,0.3);border-radius:14px;padding:14px;margin-bottom:12px;cursor:pointer;" onclick="goSub(\'noticias\')">'
+        +'<div style="display:flex;align-items:center;gap:8px;"><span style="font-size:1.2rem;">📢</span>'
+        +'<div><div style="font-weight:800;font-size:0.85rem;">'+sinLeer.length+' mensaje'+(sinLeer.length>1?'s':'')+' nuevo'+(sinLeer.length>1?'s':'')+' del administrador</div>'
+        +'<div style="font-size:0.72rem;color:var(--dim);margin-top:2px;">Toca para leer →</div></div>'
+        +'</div></div>';
+    }
+  }
+
+  // ── Balance Neto eliminado del Inicio (ver en Reportes) ──
+  var secFlujo = '';
+
+  // ── Sección 2: Dónde está tu dinero ──
+  var secCuentas = ''
+    +'<div style="font-size:0.62rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--dim);margin-bottom:8px;margin-top:4px;">🏦 Dónde está tu dinero</div>'
+    +'<div class="stat-grid" style="margin-bottom:6px;">'
+    +'<div class="stat-card" onclick="goSub(\'efectivo\');goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[1])">'
+    +'<div class="stat-label">💵 Efectivo ›</div><div class="stat-val">'+fmt(efec)+'</div></div>'
+    +'<div class="stat-card" onclick="goSub(\'cheques\');goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[1])">'
+    +'<div class="stat-label">🏧 Banco ›</div><div class="stat-val">'+fmt(banco)+'</div></div>'
+    // Total disponible
+    +'<div class="stat-card" onclick="goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[1])" style="background:rgba(45,158,95,0.07);border:1.5px solid rgba(45,158,95,0.2);">'
+    +'<div class="stat-label">✅ Total disponible</div><div class="stat-val" style="color:var(--accent2);">'+fmt(totalDisp)+'</div></div>'
+    // Deuda TC
+    +'<div class="stat-card" onclick="goSub(\'tarjetas_credito\');goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[1])" style="background:rgba(229,57,53,0.05);">'
+    +'<div class="stat-label">💳 Deuda TC ›</div><div class="stat-val red">'+fmt(deudaTC)+'</div></div>'
+    +'</div>';
+
+  // ── Sección 3: Créditos e invitados ──
+  var secExtra = ''
+    +'<div class="stat-grid" style="margin-bottom:6px;">'
+    +'<div class="stat-card full" onclick="goTab(\'creditos\',document.querySelectorAll(\'.nb\')[2])">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+    +'<div><div class="stat-label">🤝 Créditos ›</div>'
+    +'<div style="font-size:0.72rem;margin-top:4px;">'
+    +'<span style="color:var(--danger);">Debo '+fmt(debo)+'</span>'
+    +'&nbsp;&nbsp;<span style="color:var(--accent2);">Me deben '+fmt(meDebn)+'</span>'
+    +'</div></div></div></div>'
+    +(invCard||'')
+    +'</div>';
+
+  return noticiasBanner
+    +'<div style="margin-bottom:16px;padding-top:4px;">'
+    +'<div style="font-size:1.3rem;font-weight:900;">Hola 👋 '+S.user.nombre.split(' ')[0]+'</div>'
+    +'<div style="font-size:0.74rem;color:var(--dim);">Tus finanzas personales</div>'
+    +'</div>'
+    + secFlujo
+    + secCuentas
+    + secExtra
+    +'<div class="card"><div class="card-title">Últimas transacciones</div>'+rec+'</div>';
+}
+
+// ══════════════════════════════════════════
+// GASTOS
+// ══════════════════════════════════════════
+function renderGastos(){
+  return '<div class="page-header" style="padding-top:4px;margin-bottom:16px;"><div style="font-size:1.05rem;font-weight:800;">💳 Gastos</div></div>'
+    +'<div class="mod-list">'
+    +'<div class="mod-item" onclick="goSub(\'pagos\')"><div class="mod-icon">💵</div><div><div class="mod-label">Pagos</div><div class="mod-sub">Facturas, servicios, rentas</div></div><div class="mod-arrow">›</div></div>'
+    +'<div class="mod-item" onclick="goSub(\'compras\')"><div class="mod-icon">🛍️</div><div><div class="mod-label">Compras</div><div class="mod-sub">Productos y artículos</div></div><div class="mod-arrow">›</div></div>'
+    +'<div class="mod-item" onclick="goSub(\'servicios\')"><div class="mod-icon">⚡</div><div><div class="mod-label">Servicios</div><div class="mod-sub">Luz, agua, internet, etc.</div></div><div class="mod-arrow">›</div></div>'
+    +'</div>';
+}
+
+function renderSubTxs(titulo, icono, cat){
+  var txs = getTxs().filter(function(t){ return t.tipo==='gasto' && (cat==='all' || t.cat===cat); });
+  var total = txs.reduce(function(s,t){ return s+Number(t.monto); },0);
+  var items = txs.slice().reverse().map(function(t){
+    var cuentaLabel = t.cuenta ? ' <span style="font-size:0.65rem;background:var(--inp);padding:2px 6px;border-radius:6px;color:var(--dim);">'+nombreCuenta(t.cuenta)+'</span>' : '';
+    return txItem(t,true).replace('</div></div>','</div>'+cuentaLabel+'</div>');
+  }).join('') || '<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin registros</div>';
+  var cuentaOpts = buildCuentaOpts('');
+  return '<div class="page-header">'+backSubBtn()+'<div class="page-title">'+icono+' '+titulo+'</div></div>'
+    +'<div class="card" style="margin-bottom:12px;"><div class="stat-label">Total gastado</div><div class="stat-val red">'+fmt(total)+'</div></div>'
+    +'<div class="card" style="margin-bottom:14px;" id="formInline_'+cat+'">'
+    +'<div class="card-title">+ Agregar gasto</div>'
+    +'<label class="inp-label">Descripción</label><input class="inp" id="inDesc_'+cat+'" placeholder="Ej: Supermercado" autocomplete="off">'
+    +'<div class="form-row"><div><label class="inp-label">Monto ($)</label><input class="inp" id="inMonto_'+cat+'" type="number" inputmode="decimal" placeholder="0.00"></div>'
+    +'<div><label class="inp-label">Fecha</label><input class="inp" id="inFecha_'+cat+'" type="date" value="'+today()+'"></div></div>'
+    +'<label class="inp-label">💼 ¿De qué cuenta sale?</label>'
+    +'<select class="inp" id="inCuenta_'+cat+'">'+cuentaOpts+'</select>'
+    +'<button class="btn-main" onclick="guardarTxInline(\'gasto\',\''+cat+'\')">💾 Guardar gasto</button>'
+    +'</div>'
+    +'<div class="card"><div class="card-title">Registros</div>'+items+'</div>';
+}
+function renderPagos(){ return renderSubTxs('Pagos','💵','Pagos'); }
+function renderCompras(){ return renderSubTxs('Compras','🛍️','Compras'); }
+function renderServicios(){ return renderSubTxs('Servicios','⚡','Servicios'); }
+
+// ══════════════════════════════════════════
+// INGRESOS
+// ══════════════════════════════════════════
+function renderIngresos(){
+  return '<div class="page-header" style="padding-top:4px;margin-bottom:16px;"><div style="font-size:1.05rem;font-weight:800;">💰 Ingresos</div></div>'
+    +'<div class="mod-list">'
+    +'<div class="mod-item" onclick="goSub(\'activos\')"><div class="mod-icon">📥</div><div><div class="mod-label">Activos</div><div class="mod-sub">Salario, rentas, negocios</div></div><div class="mod-arrow">›</div></div>'
+    +'</div>';
+}
+function renderActivos(){
+  var txs = getTxs().filter(function(t){ return t.tipo==='ingreso'; });
+  var total = txs.reduce(function(s,t){ return s+Number(t.monto); },0);
+  var items = txs.slice().reverse().map(function(t){
+    var cuentaLabel = t.cuenta ? ' <span style="font-size:0.65rem;background:var(--inp);padding:2px 6px;border-radius:6px;color:var(--dim);">'+nombreCuenta(t.cuenta)+'</span>' : '';
+    return txItem(t,true).replace('</div></div>','</div>'+cuentaLabel+'</div>');
+  }).join('') || '<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin ingresos aún</div>';
+  var cuentaOpts = buildCuentaOpts('');
+  return '<div class="page-header">'+backSubBtn()+'<div class="page-title">📥 Activos</div></div>'
+    +'<div class="card" style="margin-bottom:12px;"><div class="stat-label">Total ingresos</div><div class="stat-val">'+fmt(total)+'</div></div>'
+    +'<div class="card" style="margin-bottom:14px;">'
+    +'<div class="card-title">+ Agregar ingreso</div>'
+    +'<label class="inp-label">Descripción</label><input class="inp" id="inDesc_ingreso" placeholder="Ej: Salario quincenal" autocomplete="off">'
+    +'<div class="form-row"><div><label class="inp-label">Monto ($)</label><input class="inp" id="inMonto_ingreso" type="number" inputmode="decimal" placeholder="0.00"></div>'
+    +'<div><label class="inp-label">Categoría</label><select class="inp" id="inCat_ingreso"><option>Salario</option><option>Activos</option><option>Freelance</option><option>Renta</option><option>Inversión</option><option>Otros</option></select></div></div>'
+    +'<label class="inp-label">💼 ¿A qué cuenta entra?</label>'
+    +'<select class="inp" id="inCuenta_ingreso">'+cuentaOpts+'</select>'
+    +'<label class="inp-label">Fecha</label><input class="inp" id="inFecha_ingreso" type="date" value="'+today()+'">'
+    +'<button class="btn-main" onclick="guardarTxInline(\'ingreso\',\'ingreso\')">💾 Guardar ingreso</button>'
+    +'</div>'
+    +'<div class="card"><div class="card-title">Registros</div>'+items+'</div>';
+}
+function renderCxC(){
+  var cxcs = load('cxc',[]);
+  var items = cxcs.length ? cxcs.map(function(c,i){
+    return '<div class="tx-item"><div class="tx-ico">📋</div><div class="tx-info"><div class="tx-name">'+c.nombre+'</div><div class="tx-date">'+c.fecha+(c.nota?' · '+c.nota:'')+'</div></div><div class="tx-right"><div class="tx-amt ing">'+fmt(c.monto)+'</div><button class="ic-btn" onclick="borrarCxC('+i+')">🗑️</button></div></div>';
+  }).join('') : '<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin cuentas por cobrar</div>';
+  return '<div class="page-header">'+backSubBtn()+'<div class="page-title">📋 Cuentas por Cobrar</div></div>'
+    +'<div class="card" style="margin-bottom:12px;">'
+    +'<label class="inp-label">Nombre / Concepto</label><input class="inp" id="cxcNombre" placeholder="¿Quién te debe?">'
+    +'<div class="form-row"><div><label class="inp-label">Monto</label><input class="inp" id="cxcMonto" type="number" placeholder="0.00"></div><div><label class="inp-label">Fecha</label><input class="inp" id="cxcFecha" type="date" value="'+today()+'"></div></div>'
+    +'<label class="inp-label">Nota (opcional)</label><input class="inp" id="cxcNota" placeholder="Concepto...">'
+    +'<button class="btn-main" onclick="guardarCxC()">+ Agregar</button>'
+    +'</div>'
+    +'<div class="card"><div class="card-title">Pendientes</div>'+items+'</div>';
+}
+function guardarCxC(){
+  var nombre=document.getElementById('cxcNombre').value.trim();
+  var monto=parseFloat(document.getElementById('cxcMonto').value);
+  var fecha=document.getElementById('cxcFecha').value||today();
+  var nota=document.getElementById('cxcNota').value.trim();
+  if(!nombre||!monto){ showToast('⚠ Completa nombre y monto'); return; }
+  var cxcs=load('cxc',[]); cxcs.push({nombre:nombre,monto:monto,fecha:fecha,nota:nota});
+  save('cxc',cxcs); showToast('✓ Guardado'); goSub('cxc');
+}
+function borrarCxC(i){
+  if(!confirm('¿Eliminar?')) return;
+  var cxcs=load('cxc',[]); var eli=cxcs[i]; cxcs.splice(i,1); save('cxc',cxcs); goSub('cxc');
+  mostrarUndo('Eliminado', function(){ var c2=load('cxc',[]); c2.splice(i,0,eli); save('cxc',c2); goSub('cxc'); });
+}
+
+// ══════════════════════════════════════════
+// CRÉDITOS
+// ══════════════════════════════════════════
+function renderCreditos(){
+  var creds = load('creditos',[]);
+  var debo = creds.filter(function(c){ return c.tipo==='deuda'&&c.estado!=='pagado'; }).reduce(function(s,c){ return s+Number(c.monto-(c.abonado||0)); },0);
+  var meDebn = creds.filter(function(c){ return c.tipo==='prestamo'&&c.estado!=='pagado'; }).reduce(function(s,c){ return s+Number(c.monto-(c.abonado||0)); },0);
+  return '<div style="font-size:1.05rem;font-weight:800;margin-bottom:4px;padding-top:4px;">🤝 Créditos</div>'
+    +'<div style="font-size:0.74rem;color:var(--dim);margin-bottom:14px;">Gestiona lo que debes y lo que te deben</div>'
+    +'<div class="stat-grid" style="margin-bottom:14px;">'
+    +'<div class="stat-card"><div class="stat-label">📤 Debo</div><div class="stat-val red">'+fmt(debo)+'</div></div>'
+    +'<div class="stat-card"><div class="stat-label">📥 Me deben</div><div class="stat-val">'+fmt(meDebn)+'</div></div>'
+    +'</div>'
+    +'<div class="mod-list">'
+    +'<div class="mod-item" onclick="goSub(\'creditos_debo\')"><div class="mod-icon">📤</div><div><div class="mod-label">Mis Deudas</div><div class="mod-sub">Dinero que yo pedí prestado</div></div><div class="mod-arrow">›</div></div>'
+    +'<div class="mod-item" onclick="goSub(\'creditos_cobrar\')"><div class="mod-icon">📥</div><div><div class="mod-label">Créditos por Cobrar</div><div class="mod-sub">Dinero que yo presté a otros</div></div><div class="mod-arrow">›</div></div>'
+    +'</div>';
+}
+
+function renderListaCreds(tipo){
+  var creds = load('creditos',[]).filter(function(c){ return c.tipo===tipo; });
+  if(!creds.length) return '<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin registros</div>';
+  return creds.map(function(c,i){
+    var pct = c.monto>0 ? Math.min(100,Math.round(((c.abonado||0)/c.monto)*100)) : 0;
+    var hoy = new Date();
+    var fv = c.fechaLimite ? (function(){ var p=c.fechaLimite.split('-'); return new Date(+p[0],+p[1]-1,+p[2]); })() : null;
+    var venc = fv && fv < hoy && c.estado!=='pagado';
+    var badge = c.estado==='pagado' ? '<span class="cred-badge badge-pagado">✅ Pagado</span>'
+              : venc ? '<span class="cred-badge badge-vencido">🔴 Vencido</span>'
+              : '<span class="cred-badge badge-pend">⏳ Pendiente</span>';
+    return '<div class="cred-item">'
+      +'<div class="cred-top"><div><div class="cred-persona">'+c.persona+'</div><div class="cred-desc">'+c.descripcion+(c.interes?' · '+c.interes+'% int.':'')+(c.fechaLimite?' · '+c.fechaLimite:'')+'</div></div>'+badge+'</div>'
+      +'<div class="cred-amounts"><span>Abonado: '+fmt(c.abonado||0)+'</span><span>Total: '+fmt(c.monto)+'</span></div>'
+      +'<div class="prog-wrap"><div class="prog-bar" style="width:'+pct+'%;'+(pct>=100?'background:#2d9e5f;':'')+'"></div></div>'
+      +'<div class="cred-btns">'
+      +(c.estado!=='pagado'?'<button class="cred-btn success" onclick="abonarCred('+i+',\''+tipo+'\')">+ Abonar</button>':'')
+      +(c.estado!=='pagado'?'<button class="cred-btn success" onclick="pagarCred('+i+',\''+tipo+'\')">✅</button>':'')
+      +'<button class="cred-btn" onclick="editarCred('+i+',\''+tipo+'\')">✏️</button>'
+      +'<button class="cred-btn danger" onclick="borrarCred('+i+',\''+tipo+'\')">🗑️</button>'
+      +'</div></div>';
+  }).join('');
+}
+
+function renderCreditosDebo(){
+  return '<div class="page-header">'+backSubBtn()+'<div class="page-title">📤 Mis Deudas</div></div>'
+    +'<button onclick="goSub(\'nueva_deuda\')" style="width:100%;padding:14px;background:var(--accent);color:var(--navtext);border:none;border-radius:12px;font-family:\'Outfit\',sans-serif;font-weight:700;cursor:pointer;margin-bottom:14px;">+ Nueva deuda</button>'
+    +renderListaCreds('deuda');
+}
+function renderCreditosCobrar(){
+  return '<div class="page-header">'+backSubBtn()+'<div class="page-title">📥 Créditos por Cobrar</div></div>'
+    +'<button onclick="goSub(\'nuevo_prestamo\')" style="width:100%;padding:14px;background:var(--accent);color:var(--navtext);border:none;border-radius:12px;font-family:\'Outfit\',sans-serif;font-weight:700;cursor:pointer;margin-bottom:14px;">+ Nuevo préstamo</button>'
+    +renderListaCreds('prestamo');
+}
+
+function renderFormCredito(tipo, data){
+  var esD = tipo==='deuda';
+  var d = data || {};
+  var titulo = (d.persona ? 'Editar' : 'Nuevo') + (esD?' · Deuda':' · Préstamo');
+  return '<div class="page-header">'+backSubBtn()+'<div class="page-title">'+(esD?'📤':'📥')+' '+titulo+'</div></div>'
+    +'<div class="card">'
+    +'<label class="inp-label">'+(esD?'¿A quién le debo?':'¿Quién me debe?')+'</label>'
+    +'<input class="inp" id="crPersona" placeholder="Nombre" value="'+(d.persona||'')+'">'
+    +'<label class="inp-label">Descripción</label>'
+    +'<input class="inp" id="crDesc" placeholder="Concepto del préstamo" value="'+(d.descripcion||'')+'">'
+    +'<div class="form-row">'
+    +'<div><label class="inp-label">Monto ($)</label><input class="inp" id="crMonto" type="number" placeholder="0.00" value="'+(d.monto||'')+'" ></div>'
+    +'<div><label class="inp-label">Interés (%)</label><input class="inp" id="crInteres" type="number" placeholder="0" value="'+(d.interes||0)+'"></div>'
+    +'</div>'
+    +'<label class="inp-label">Fecha límite</label>'
+    +'<input class="inp" id="crFecha" type="date" value="'+(d.fechaLimite||'')+'">'
+    +'<button class="btn-main" onclick="guardarCred(\''+tipo+'\')">💾 '+(d.persona?'Guardar cambios':'Registrar')+'</button>'
+    +'</div>';
+}
+
+function guardarCred(tipo){
+  var persona=document.getElementById('crPersona').value.trim();
+  var desc=document.getElementById('crDesc').value.trim();
+  var monto=parseFloat(document.getElementById('crMonto').value);
+  var interes=parseFloat(document.getElementById('crInteres').value)||0;
+  var fecha=document.getElementById('crFecha').value;
+  if(!persona||!desc||!monto){ showToast('⚠ Completa persona, descripción y monto'); return; }
+  var creds=load('creditos',[]);
+  if(S.editCrediIdx!==null){
+    var all=creds.filter(function(c){ return c.tipo===tipo; });
+    var item=all[S.editCrediIdx];
+    var ri=creds.indexOf(item);
+    if(ri>-1) creds[ri]=Object.assign(creds[ri],{persona:persona,descripcion:desc,monto:monto,interes:interes,fechaLimite:fecha});
+    showToast('✓ Actualizado');
+  } else {
+    creds.push({tipo:tipo,persona:persona,descripcion:desc,monto:monto,interes:interes,fechaLimite:fecha,abonado:0,estado:'pendiente',creado:today()});
+    showToast('✓ Registrado');
+  }
+  save('creditos',creds); S.editCrediIdx=null;
+  goSub(tipo==='deuda'?'creditos_debo':'creditos_cobrar');
+}
+
+function abonarCred(i,tipo){
+  var abono=parseFloat(prompt('Monto a abonar ($):')); if(!abono||abono<=0) return;
+  var creds=load('creditos',[]); var all=creds.filter(function(c){ return c.tipo===tipo; });
+  var item=all[i]; var ri=creds.indexOf(item);
+  creds[ri].abonado=(creds[ri].abonado||0)+abono;
+  if(creds[ri].abonado>=creds[ri].monto) creds[ri].estado='pagado';
+  save('creditos',creds); showToast('✓ Abono registrado');
+  goSub(tipo==='deuda'?'creditos_debo':'creditos_cobrar');
+}
+
+function pagarCred(i,tipo){
+  var creds=load('creditos',[]); var all=creds.filter(function(c){ return c.tipo===tipo; });
+  var item=all[i]; var ri=creds.indexOf(item);
+  creds[ri].estado='pagado'; creds[ri].abonado=creds[ri].monto;
+  save('creditos',creds); showToast('✅ Marcado como pagado');
+  goSub(tipo==='deuda'?'creditos_debo':'creditos_cobrar');
+}
+
+function editarCred(i,tipo){
+  var creds=load('creditos',[]).filter(function(c){ return c.tipo===tipo; });
+  S.editCrediIdx=i; S.editCrediTipo=tipo;
+  document.getElementById('mainContent').innerHTML=renderFormCredito(tipo,creds[i]);
+}
+
+function borrarCred(i,tipo){
+  if(!confirm('¿Eliminar este crédito?')) return;
+  var creds=load('creditos',[]); var all=creds.filter(function(c){ return c.tipo===tipo; });
+  var item=all[i]; var ri=creds.indexOf(item); var eli=creds[ri];
+  creds.splice(ri,1); save('creditos',creds);
+  goSub(tipo==='deuda'?'creditos_debo':'creditos_cobrar');
+  mostrarUndo('Crédito eliminado', function(){ var c2=load('creditos',[]); c2.splice(ri,0,eli); save('creditos',c2); goSub(tipo==='deuda'?'creditos_debo':'creditos_cobrar'); });
+}
+
+// ══════════════════════════════════════════
+// MÁS
+// ══════════════════════════════════════════
+function renderMas(){
+  var isAdmin = S.user && S.user.isAdmin;
+  return '<div style="font-size:1.05rem;font-weight:800;margin-bottom:14px;padding-top:4px;">⋯ Más opciones</div>'
+    +'<div class="mod-list">'
+    +'<div class="mod-item" onclick="goSub(\'reportes\')"><div class="mod-icon">📊</div><div><div class="mod-label">Reportes</div><div class="mod-sub">Ingresos, gastos y balance</div></div><div class="mod-arrow">›</div></div>'
+    +'<div class="mod-item" onclick="goSub(\'metas\')"><div class="mod-icon">🎯</div><div><div class="mod-label">Metas de Ahorro</div><div class="mod-sub">Seguimiento de objetivos</div></div><div class="mod-arrow">›</div></div>'
+    +'<div class="mod-item" onclick="goSub(\'presupuesto\')"><div class="mod-icon">🗂️</div><div><div class="mod-label">Presupuesto Mensual</div><div class="mod-sub">Control por categorías</div></div><div class="mod-arrow">›</div></div>'
+    +'<div class="mod-item" onclick="goSub(\'alertas\')"><div class="mod-icon">🔔</div><div><div class="mod-label">Alertas de Gasto</div><div class="mod-sub">Notificaciones de límites</div></div><div class="mod-arrow">›</div></div>'
+    +'<div class="mod-item" onclick="goSub(\'historial\')"><div class="mod-icon">📋</div><div><div class="mod-label">Historial</div><div class="mod-sub">Todas las transacciones</div></div><div class="mod-arrow">›</div></div>'
+    +'<div class="mod-item" onclick="goSub(\'conversor\')"><div class="mod-icon">💱</div><div><div class="mod-label">Conversor de Monedas</div></div><div class="mod-arrow">›</div></div>'
+    +(isAdmin?'<div class="mod-item" onclick="goSub(\'codigos\')"><div class="mod-icon">🔑</div><div><div class="mod-label">Códigos de Acceso</div><div class="mod-sub">Solo administrador</div></div><div class="mod-arrow">›</div></div>':'')
+    +(isAdmin?'<div class="mod-item" onclick="goSub(\'noticias\')"><div class="mod-icon">📢</div><div><div class="mod-label">Centro de Mensajes</div><div class="mod-sub">Noticias para tus invitados</div></div><div class="mod-arrow">›</div></div>':'')
+    +'<div class="mod-item" onclick="goSub(\'config\')"><div class="mod-icon">⚙️</div><div><div class="mod-label">Configuración</div></div><div class="mod-arrow">›</div></div>'
+    +'</div>';
+}
+
+// ══════════════════════════════════════════
+// METAS
+// ══════════════════════════════════════════
+function renderMetas(){
+  var metas=load('metas',[]);
+  var items=metas.length?metas.map(function(m,i){
+    var pct=m.meta>0?Math.min(100,Math.round((m.actual/m.meta)*100)):0;
+    return '<div class="card" style="margin-bottom:8px;">'
+      +'<div style="display:flex;justify-content:space-between;margin-bottom:6px;"><div style="font-weight:700;">'+m.nombre+'</div><span style="font-size:0.75rem;color:var(--dim);">'+pct+'%</span></div>'
+      +'<div class="prog-wrap"><div class="prog-bar" style="width:'+pct+'%;'+(pct>=100?'background:#2d9e5f;':'')+'"></div></div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--dim);margin-top:5px;margin-bottom:10px;"><span>'+fmt(m.actual)+'</span><span>Meta: '+fmt(m.meta)+'</span></div>'
+      +'<div style="display:flex;gap:6px;">'
+      +'<button class="cred-btn success" style="flex:2;" onclick="abonarMeta('+i+')">+ Abonar</button>'
+      +'<button class="cred-btn" onclick="editarMeta('+i+')">✏️</button>'
+      +'<button class="cred-btn danger" onclick="borrarMeta('+i+')">🗑️</button>'
+      +'</div></div>';
+  }).join(''):'<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin metas aún</div>';
+  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">🎯 Metas de Ahorro</div></div>'
+    +'<div class="card" style="margin-bottom:14px;">'
+    +'<label class="inp-label">Nombre de la meta</label><input class="inp" id="metaNombre" placeholder="Ej: Fondo de emergencia">'
+    +'<div class="form-row"><div><label class="inp-label">Objetivo ($)</label><input class="inp" id="metaObjetivo" type="number" placeholder="0.00"></div><div><label class="inp-label">Ya tengo ($)</label><input class="inp" id="metaActual" type="number" placeholder="0.00"></div></div>'
+    +'<button class="btn-main" onclick="guardarMeta()">+ Agregar meta</button>'
+    +'</div>'+items;
+}
+function guardarMeta(){
+  var n=document.getElementById('metaNombre').value.trim();
+  var o=parseFloat(document.getElementById('metaObjetivo').value);
+  var a=parseFloat(document.getElementById('metaActual').value)||0;
+  if(!n||!o){ showToast('⚠ Completa nombre y objetivo'); return; }
+  var m=load('metas',[]); m.push({nombre:n,meta:o,actual:a}); save('metas',m);
+  showToast('✓ Meta agregada'); goSub('metas');
+}
+function abonarMeta(i){ var a=parseFloat(prompt('Monto a abonar ($):')); if(!a) return; var m=load('metas',[]); m[i].actual=(m[i].actual||0)+a; if(m[i].actual>=m[i].meta) showToast('🎉 ¡Meta alcanzada!'); save('metas',m); goSub('metas'); }
+function editarMeta(i){ var m=load('metas',[]); var n=prompt('Nombre:',m[i].nombre); if(!n) return; var o=parseFloat(prompt('Objetivo ($):',m[i].meta)); if(!o) return; m[i]=Object.assign(m[i],{nombre:n,meta:o}); save('metas',m); showToast('✓ Actualizado'); goSub('metas'); }
+function borrarMeta(i){ if(!confirm('¿Borrar meta?')) return; var m=load('metas',[]); var e=m[i]; m.splice(i,1); save('metas',m); goSub('metas'); mostrarUndo('Meta eliminada',function(){ var m2=load('metas',[]); m2.splice(i,0,e); save('metas',m2); goSub('metas'); }); }
+
+// ══════════════════════════════════════════
+// PRESUPUESTO
+// ══════════════════════════════════════════
+function renderPresupuesto(){
+  var cats=['Pagos','Compras','Servicios','Alimentación','Transporte','Otros'];
+  var pres=load('presupuesto',{});
+  var txs=getTxs().filter(function(t){ return t.tipo==='gasto'; });
+  var rows=cats.map(function(c){
+    var lim=pres[c]||0; var gas=txs.filter(function(t){ return t.cat===c; }).reduce(function(s,t){ return s+Number(t.monto); },0);
+    var pct=lim>0?Math.min(100,Math.round((gas/lim)*100)):0;
+    var color=pct>=100?'var(--danger)':pct>=80?'#f57c00':'var(--accent)';
+    return '<div class="pres-item">'
+      +'<div style="flex:1"><div class="pres-name">'+c+'</div>'
+      +(lim?'<div class="prog-wrap" style="margin:4px 0 0;"><div class="prog-bar" style="width:'+pct+'%;background:'+color+'"></div></div>':'')
+      +'</div>'
+      +'<input type="number" placeholder="Límite" value="'+(lim||'')+'" style="width:90px;padding:6px 8px;background:var(--inp);border:1px solid var(--border);border-radius:8px;font-family:\'Outfit\',sans-serif;font-size:0.78rem;color:var(--text);text-align:right;" onchange="guardarPres(\''+c+'\',this.value)">'
+      +'<div class="pres-val" style="color:'+color+';margin-left:8px;width:70px;text-align:right;">'+fmt(gas)+'</div>'
+      +'</div>';
+  }).join('');
+  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">📊 Presupuesto</div></div>'
+    +'<div class="card"><div class="card-title">Categoría · Límite · Gastado</div>'+rows+'</div>';
+}
+function guardarPres(cat,val){ var p=load('presupuesto',{}); p[cat]=parseFloat(val)||0; save('presupuesto',p); showToast('✓ Límite guardado'); }
+
+// ══════════════════════════════════════════
+// ALERTAS
+// ══════════════════════════════════════════
+function renderAlertas(){
+  var alertas=load('alertas',[]);
+  var txs=getTxs();
+  var items=alertas.length?alertas.map(function(a,i){
+    var gastado=txs.filter(function(t){ return t.tipo==='gasto' && t.cat===a.nombre; }).reduce(function(s,t){ return s+Number(t.monto); },0);
+    var pct=a.limite>0?Math.min(100,Math.round((gastado/a.limite)*100)):0;
+    var color=pct>=100?'var(--danger)':pct>=75?'#f59e0b':'var(--accent2)';
+    return '<div class="card" style="margin-bottom:10px;padding:14px;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
+      +'<div style="font-weight:800;font-size:0.9rem;">'+(pct>=100?'🔴':pct>=75?'⚡':'🟢')+' '+a.nombre+'</div>'
+      +'<div style="display:flex;gap:6px;">'
+      +'<button class="ic-btn" onclick="editarAlerta('+i+')">✏️</button>'
+      +'<button class="ic-btn" onclick="borrarAlerta('+i+')">🗑️</button>'
+      +'</div></div>'
+      +'<div style="font-size:0.75rem;color:var(--dim);margin-bottom:6px;">'+fmt(gastado)+' de '+fmt(a.limite)+' · Vence: '+a.fecha+'</div>'
+      +'<div style="background:rgba(0,0,0,0.08);border-radius:8px;height:7px;overflow:hidden;">'
+      +'<div style="height:100%;border-radius:8px;background:'+color+';width:'+pct+'%;transition:width 0.4s;"></div></div>'
+      +'</div>';
+  }).join(''):'<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin alertas configuradas</div>';
+
+  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">🔔 Alertas de Gasto</div></div>'
+    +'<div class="card" style="margin-bottom:14px;" id="alertaForm">'
+    +'<div class="card-title">+ Nueva alerta</div>'
+    +'<label class="inp-label">Nombre / Categoría a vigilar</label>'
+    +'<input class="inp" id="alNombre" placeholder="Ej: Alimentación, Entretenimiento...">'
+    +'<div class="form-row">'
+    +'<div><label class="inp-label">Límite ($)</label><input class="inp" id="alLimite" type="number" inputmode="decimal" placeholder="0.00"></div>'
+    +'<div><label class="inp-label">Fecha límite</label><input class="inp" id="alFecha" type="date" value="'+today()+'"></div>'
+    +'</div>'
+    +'<button class="btn-main" id="alSaveBtn" onclick="guardarAlerta()">+ Agregar alerta</button>'
+    +'</div>'+items;
+}
+function guardarAlerta(){
+  var n=document.getElementById('alNombre').value.trim();
+  var l=parseFloat(document.getElementById('alLimite').value);
+  var f=document.getElementById('alFecha').value;
+  if(!n||!l||!f){ showToast('⚠ Completa todos los campos'); return; }
+  var alertas=load('alertas',[]);
+  if(window._editAlerta!==undefined){
+    alertas[window._editAlerta]=Object.assign(alertas[window._editAlerta],{nombre:n,limite:l,fecha:f});
+    delete window._editAlerta; showToast('✓ Alerta actualizada');
+  } else {
+    alertas.push({nombre:n,limite:l,fecha:f,activa:true});
+    showToast('✓ Alerta guardada');
+  }
+  save('alertas',alertas); goSub('alertas');
+}
+function editarAlerta(i){
+  var a=load('alertas',[])[i];
+  document.getElementById('alNombre').value=a.nombre;
+  document.getElementById('alLimite').value=a.limite;
+  document.getElementById('alFecha').value=a.fecha;
+  document.getElementById('alSaveBtn').textContent='💾 Guardar cambios';
+  window._editAlerta=i;
+  document.getElementById('alertaForm').scrollIntoView({behavior:'smooth'});
+}
+function borrarAlerta(i){ if(!confirm('¿Eliminar?')) return; var a=load('alertas',[]); var e=a[i]; a.splice(i,1); save('alertas',a); goSub('alertas'); mostrarUndo('Alerta eliminada',function(){ var a2=load('alertas',[]); a2.splice(i,0,e); save('alertas',a2); goSub('alertas'); }); }
+
+// ══════════════════════════════════════════
+// HISTORIAL
+// ══════════════════════════════════════════
+function renderHistorial(){
+  var txs = getTxs().slice().reverse();
+  var filtro = window._histFiltro || 'todos';
+
+  var txsFilt = txs.filter(function(t){
+    if(filtro==='ingresos') return t.tipo==='ingreso';
+    if(filtro==='gastos') return t.tipo==='gasto';
+    return true;
+  });
+
+  function fmtFecha(f){
+    if(!f) return '';
+    var p=f.split('-');
+    var meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    return p[2]+' '+meses[parseInt(p[1])-1]+' '+p[0];
+  }
+
+  var ing = txs.filter(function(t){ return t.tipo==='ingreso'; }).reduce(function(s,t){ return s+Number(t.monto); },0);
+  var gas = txs.filter(function(t){ return t.tipo==='gasto'; }).reduce(function(s,t){ return s+Number(t.monto); },0);
+
+  var items = txsFilt.length ? txsFilt.map(function(t){
+    var cuentaLabel = t.cuenta ? '<span style="font-size:0.6rem;background:rgba(45,158,95,0.12);color:var(--accent2);padding:1px 5px;border-radius:8px;margin-left:4px;">'+nombreCuenta(t.cuenta)+'</span>' : '';
+    return '<div class="tx-item" style="padding:12px 0;">'
+      +'<div class="tx-ico" style="font-size:1.3rem;">'+(t.tipo==='ingreso'?'💰':'💸')+'</div>'
+      +'<div class="tx-info" style="flex:1;">'
+      +'<div class="tx-name" style="font-size:0.88rem;font-weight:700;">'+t.desc+cuentaLabel+'</div>'
+      +'<div class="tx-date" style="font-size:0.7rem;margin-top:2px;">'+fmtFecha(t.fecha)+' · '+t.cat+'</div>'
+      +'</div>'
+      +'<div class="tx-right" style="align-items:flex-end;gap:6px;">'
+      +'<div class="tx-amt '+(t.tipo==='ingreso'?'ing':'gas')+'" style="font-size:0.95rem;">'+(t.tipo==='ingreso'?'+':'-')+fmt(t.monto)+'</div>'
+      +'<div style="display:flex;gap:4px;">'
+      +'<button class="ic-btn" onclick="editarTx('+t.id+')" title="Editar">✏️</button>'
+      +'<button class="ic-btn" onclick="borrarTx('+t.id+')" title="Eliminar">🗑️</button>'
+      +'</div></div></div>';
+  }).join('') : '<div style="text-align:center;padding:30px;color:var(--dim);font-size:0.83rem;">Sin movimientos '+(filtro!=='todos'?'en esta categoría':'aún')+'</div>';
+
+  function filtBtn(val, label){
+    var act = filtro===val;
+    return '<button onclick="window._histFiltro=\''+val+'\';goSub(\'historial\')" style="padding:7px 14px;border:none;border-radius:20px;font-family:\'Outfit\',sans-serif;font-size:0.75rem;font-weight:700;cursor:pointer;background:'+(act?'var(--accent)':'rgba(0,0,0,0.06)')+';color:'+(act?'var(--navtext)':'var(--dim)')+';">'+label+'</button>';
+  }
+
+  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">📋 Historial</div></div>'
+    // Resumen rápido
+    +'<div class="stat-grid" style="margin-bottom:12px;">'
+    +'<div class="stat-card" style="padding:12px;"><div class="stat-label" style="font-size:0.6rem;">💰 Total ingresos</div><div style="font-size:1rem;font-weight:900;color:var(--accent2);">'+fmt(ing)+'</div></div>'
+    +'<div class="stat-card" style="padding:12px;"><div class="stat-label" style="font-size:0.6rem;">💸 Total gastos</div><div style="font-size:1rem;font-weight:900;color:var(--danger);">'+fmt(gas)+'</div></div>'
+    +'</div>'
+    // Filtros
+    +'<div style="display:flex;gap:8px;margin-bottom:12px;">'
+    +filtBtn('todos','Todos ('+txs.length+')')
+    +filtBtn('ingresos','💰 Ingresos')
+    +filtBtn('gastos','💸 Gastos')
+    +'</div>'
+    +'<div class="card">'+items+'</div>';
+}
+
+
+// ══════════════════════════════════════════
+// CONVERSOR
+// ══════════════════════════════════════════
+function renderConversor(){
+  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">💱 Conversor</div></div>'
+    +'<div class="card">'
+    +'<label class="inp-label">Monto</label><input class="inp" id="convMonto" type="number" placeholder="0.00" oninput="convertir()">'
+    +'<div class="form-row">'
+    +'<div><label class="inp-label">De</label><select class="inp" id="convDe" onchange="convertir()"><option value="1">MXN</option><option value="0.05">USD</option><option value="0.046">EUR</option><option value="7.8">CNY</option></select></div>'
+    +'<div><label class="inp-label">A</label><select class="inp" id="convA" onchange="convertir()"><option value="0.05">USD</option><option value="1">MXN</option><option value="0.046">EUR</option><option value="7.8">CNY</option></select></div>'
+    +'</div>'
+    +'<div id="convResult" style="text-align:center;padding:16px;font-size:1.6rem;font-weight:900;color:var(--accent);font-family:\'JetBrains Mono\',monospace;"></div>'
+    +'<div style="font-size:0.65rem;color:var(--dim);text-align:center;">Tasas aproximadas de referencia</div>'
+    +'</div>';
+}
+function convertir(){
+  var m=parseFloat(document.getElementById('convMonto').value)||0;
+  var de=parseFloat(document.getElementById('convDe').value);
+  var a=parseFloat(document.getElementById('convA').value);
+  var res=(m/de)*a;
+  document.getElementById('convResult').textContent=res.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:4});
+}
+
+// ══════════════════════════════════════════
+// CÓDIGOS (ADMIN)
+// ══════════════════════════════════════════
+function renderCodigos(){
+  var codigos=JSON.parse(localStorage.getItem('usala_codigos')||'[]');
+  var activos=codigos.filter(function(c){ return c.activo && new Date(c.vencimiento.split('-').join('/'))>=new Date(); });
+  var usados=codigos.filter(function(c){ return c.usado; });
+  var solicitudes=JSON.parse(localStorage.getItem('usala_solicitudes')||'[]');
+  var pendientes=solicitudes.filter(function(s){ return s.estado==='pendiente'; });
+
+  // Bloque solicitudes pendientes (arriba de todo si hay)
+  var solBlock = '';
+  if(pendientes.length){
+    var solItems = pendientes.map(function(s,i){
+      var idx = solicitudes.indexOf(s);
+      return '<div style="border:1.5px solid rgba(255,159,10,0.3);border-radius:12px;padding:12px;margin-bottom:8px;background:rgba(255,159,10,0.05);">'
+        +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
+        +'<div style="flex:1;">'
+        +'<div style="font-weight:800;font-size:0.88rem;">👤 '+s.nombre+'</div>'
+        +'<div style="font-size:0.72rem;color:var(--dim);margin-top:3px;">📅 '+s.fecha+'</div>'
+        +'<div style="font-size:0.75rem;margin-top:5px;color:var(--text);">💬 '+s.motivo+'</div>'
+        +'<div style="font-size:0.72rem;margin-top:3px;color:var(--accent);">📞 '+s.contacto+'</div>'
+        +'</div>'
+        +'</div>'
+        +'<div style="display:flex;gap:8px;margin-top:10px;">'
+        +'<button onclick="aprobarSolicitud('+idx+')" style="flex:1;padding:9px;background:var(--accent2);color:#fff;border:none;border-radius:10px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:0.8rem;cursor:pointer;">✅ Aprobar y generar código</button>'
+        +'<button onclick="rechazarSolicitud('+idx+')" style="padding:9px 12px;background:rgba(229,57,53,0.1);color:var(--danger);border:1px solid rgba(229,57,53,0.2);border-radius:10px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:0.8rem;cursor:pointer;">✕</button>'
+        +'</div></div>';
+    }).join('');
+    solBlock = '<div class="card" style="margin-bottom:14px;border:1.5px solid rgba(255,159,10,0.35);">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">'
+      +'<div style="background:#ff9f0a;color:#fff;font-size:0.65rem;font-weight:800;padding:3px 8px;border-radius:20px;">'+pendientes.length+' NUEVA'+(pendientes.length>1?'S':'')+'</div>'
+      +'<div class="card-title" style="margin:0;">📩 Solicitudes de acceso</div>'
+      +'</div>'
+      + solItems
+      +'</div>';
+  }
+
+  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">🔑 Códigos de Acceso'+(pendientes.length?' <span style="background:#ff9f0a;color:#fff;font-size:0.55rem;font-weight:800;padding:2px 7px;border-radius:20px;vertical-align:middle;">'+pendientes.length+'</span>':'')+'</div></div>'
+    + solBlock
+    +'<div class="card" style="margin-bottom:14px;">'
+    +'<div class="card-title">+ Generar código manualmente</div>'
+    +'<label class="inp-label">Prefijo del código</label><input class="inp" id="codPrefijo" placeholder="Ej: FIN" value="FIN">'
+    +'<label class="inp-label">Para quién es (nombre)</label><input class="inp" id="codNota" placeholder="Ej: María García">'
+    +'<label class="inp-label">Vence en</label>'
+    +'<select class="inp" id="codVence"><option value="7">7 días</option><option value="15">15 días</option><option value="30" selected>1 mes</option><option value="90">3 meses</option><option value="365">1 año</option></select>'
+    +'<button class="btn-main" onclick="generarCodigo()">🔑 Generar y copiar código</button>'
+    +'</div>'
+    +'<div class="card" style="margin-bottom:12px;"><div class="card-title">✅ Códigos activos ('+activos.length+')</div>'
+    +activos.map(function(c){
+      return '<div class="code-item"><div><div class="code-text">'+c.codigo+'</div><div class="code-info">Vence: '+c.vencimiento+(c.nota?' · '+c.nota:'')+(c.nombreUsuario?' · '+c.nombreUsuario:'')+'</div></div>'
+        +'<button class="ic-btn" onclick="copiarCodigo(\''+c.codigo+'\')">📋</button>'
+        +'<button class="ic-btn" onclick="desactivarCodigo(\''+c.codigo+'\')">🗑️</button>'
+        +'</div>';
+    }).join('')||'<div style="text-align:center;padding:14px;color:var(--dim);font-size:0.83rem;">Sin códigos activos</div>'
+    +'</div>'
+    +(usados.length?'<div class="card"><div class="card-title">📋 Usados ('+usados.length+')</div>'+usados.map(function(c){ return '<div class="code-item"><div><div class="code-text" style="opacity:0.5;">'+c.codigo+'</div><div class="code-info">'+(c.nombreUsuario||'Sin nombre')+' · '+c.fechaUso+'</div></div></div>'; }).join('')+'</div>':'');
+}
+
+function aprobarSolicitud(idx){
+  var solicitudes=JSON.parse(localStorage.getItem('usala_solicitudes')||'[]');
+  var s=solicitudes[idx]; if(!s) return;
+  // Generar código automático con nombre
+  var prefijo=(s.nombre.split(' ')[0]).substring(0,4).toUpperCase()||'USR';
+  var rand=Math.random().toString(36).substring(2,5).toUpperCase();
+  var codigo=prefijo+'-'+rand;
+  var venc=new Date(); venc.setDate(venc.getDate()+30);
+  var vencStr=venc.toISOString().split('T')[0];
+  var codigos=JSON.parse(localStorage.getItem('usala_codigos')||'[]');
+  codigos.push({codigo:codigo,vencimiento:vencStr,nota:s.nombre,activo:true,usado:false,creado:today()});
+  localStorage.setItem('usala_codigos',JSON.stringify(codigos));
+  // Marcar solicitud como aprobada
+  solicitudes[idx].estado='aprobada';
+  solicitudes[idx].codigoGenerado=codigo;
+  localStorage.setItem('usala_solicitudes',JSON.stringify(solicitudes));
+  // Copiar código al portapapeles
+  navigator.clipboard.writeText(codigo).catch(function(){});
+  showToast('✅ Código '+codigo+' generado y copiado — compártelo con '+s.nombre);
+  goSub('codigos');
+}
+
+function rechazarSolicitud(idx){
+  if(!confirm('¿Rechazar esta solicitud?')) return;
+  var solicitudes=JSON.parse(localStorage.getItem('usala_solicitudes')||'[]');
+  solicitudes[idx].estado='rechazada';
+  localStorage.setItem('usala_solicitudes',JSON.stringify(solicitudes));
+  showToast('✓ Solicitud rechazada');
+  goSub('codigos');
+}
+
+function generarCodigo(){
+  var prefijo=document.getElementById('codPrefijo').value.trim().toUpperCase()||'FIN';
+  var dias=parseInt(document.getElementById('codVence').value);
+  var nota=document.getElementById('codNota').value.trim();
+  var rand=Math.random().toString(36).substring(2,6).toUpperCase();
+  var codigo=prefijo+'-'+rand;
+  var venc=new Date(); venc.setDate(venc.getDate()+dias);
+  var vencStr=venc.toISOString().split('T')[0];
+  var codigos=JSON.parse(localStorage.getItem('usala_codigos')||'[]');
+  codigos.push({codigo:codigo,vencimiento:vencStr,nota:nota,activo:true,usado:false,creado:today()});
+  localStorage.setItem('usala_codigos',JSON.stringify(codigos));
+  navigator.clipboard.writeText(codigo).catch(function(){});
+  showToast('✓ Código '+codigo+' copiado');
+  goSub('codigos');
+}
+function copiarCodigo(c){ navigator.clipboard.writeText(c).catch(function(){}); showToast('✓ Copiado: '+c); }
+function desactivarCodigo(c){ if(!confirm('¿Desactivar '+c+'?')) return; var cods=JSON.parse(localStorage.getItem('usala_codigos')||'[]'); var ci=cods.find(function(x){ return x.codigo===c; }); if(ci) ci.activo=false; localStorage.setItem('usala_codigos',JSON.stringify(cods)); goSub('codigos'); }
+
+// ══════════════════════════════════════════
+// CONFIGURACIÓN
+// ══════════════════════════════════════════
+function renderConfig(){
+  var isAdmin=S.user&&S.user.isAdmin;
+  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">⚙️ Configuración</div></div>'
+    +'<div class="card">'
+    +'<div class="set-item" onclick="pickTema()"><div><div class="set-label">🎨 Cambiar tema</div></div><div class="set-arrow">›</div></div>'
+    +'<div class="set-item" onclick="goSub(\'version\')"><div><div class="set-label">📋 Versión</div><div class="set-sub">v'+APP_VERSION+'</div></div><div class="set-arrow">›</div></div>'
+    +'<div class="set-item" onclick="cerrarSesion()"><div><div class="set-label" style="color:var(--danger);">🚪 Cerrar sesión</div></div><div class="set-arrow">›</div></div>'
+    +'</div>'
+    +(isAdmin?'<div class="card" style="margin-top:12px;"><div class="card-title">Admin</div>'
+    +'<div class="set-item"><div><div class="set-label">🔐 Nueva contraseña</div></div></div>'
+    +'<input class="inp" id="np1" type="password" placeholder="Nueva contraseña" style="margin-bottom:8px;">'
+    +'<input class="inp" id="np2" type="password" placeholder="Confirmar contraseña" style="margin-bottom:10px;">'
+    +'<button class="btn-main" onclick="cambiarPass()">Cambiar contraseña</button>'
+    +'</div>':'')
+    +'<div class="card" style="margin-top:12px;">'
+    +'<div class="danger-zone">'
+    +'<div class="danger-title">⚠️ Zona de peligro</div>'
+    +'<button class="danger-btn" onclick="resetTxs()">🗑️ Borrar mis transacciones</button>'
+    +'<button class="danger-btn" onclick="resetCuenta()">♻️ Restablecer toda mi cuenta</button>'
+    +'</div></div>';
+}
+
+function pickTema(){
+  localStorage.removeItem('usala_theme');
+  showScreen('themePicker');
+}
+function toggleUMenu(){
+  var menu = document.getElementById('uFabMenu');
+  var btn  = document.getElementById('uFabBtn');
+  if(!menu) return;
+  var abierto = menu.style.display === 'block';
+  if(abierto){
+    menu.style.opacity='0'; menu.style.transform='scale(0.85) translateY(-10px)';
+    setTimeout(function(){ menu.style.display='none'; }, 220);
+    if(btn) btn.style.transform='rotate(0deg)';
+  } else {
+    actualizarUMenu();
+    menu.style.display='block';
+    requestAnimationFrame(function(){
+      menu.style.opacity='1'; menu.style.transform='scale(1) translateY(0)';
+    });
+    if(btn) btn.style.transform='rotate(45deg)';
+    setTimeout(function(){
+      document.addEventListener('click', function cerrarFuera(e){
+        if(!menu.contains(e.target) && e.target.id!=='uFabBtn'){
+          menu.style.opacity='0'; menu.style.transform='scale(0.85) translateY(-10px)';
+          setTimeout(function(){ menu.style.display='none'; }, 220);
+          if(btn) btn.style.transform='rotate(0deg)';
+          document.removeEventListener('click', cerrarFuera);
+        }
+      });
+    }, 100);
+  }
+}
+
+function actualizarUMenu(){
+  var c = cargarCuentas();
+  var efectivo = Number(c.efectivo||0);
+  var banco = (c.cheques||[]).reduce(function(s,x){ return s+Number(x.saldo||0); },0);
+  var deudaTC = (c.tarjetas||[]).reduce(function(s,t){ return s+Number(t.balance||0); },0);
+  var ef = document.getElementById('uMenuEfectivo');
+  var ba = document.getElementById('uMenuBanco');
+  var tc = document.getElementById('uMenuTC');
+  if(ef) ef.textContent = '$' + efectivo.toLocaleString('es-MX', {minimumFractionDigits:2});
+  if(ba) ba.textContent = '$' + banco.toLocaleString('es-MX', {minimumFractionDigits:2});
+  if(tc) tc.textContent = 'Deuda: $' + deudaTC.toLocaleString('es-MX', {minimumFractionDigits:2});
+}
+
+function irACuenta(sub){
+  var menu = document.getElementById('uFabMenu');
+  var btn  = document.getElementById('uFabBtn');
+  if(menu){ menu.style.opacity='0'; menu.style.transform='scale(0.85) translateY(-10px)'; setTimeout(function(){ menu.style.display='none'; },200); }
+  if(btn) btn.style.transform='rotate(0deg)';
+  goTab('cuentas', document.querySelectorAll('.nb')[1]);
+  setTimeout(function(){ goSub(sub); }, 120);
+}
+
+function cerrarSesion(){
+  if(!confirm('¿Seguro que quieres cerrar sesión?\n\nTus datos quedan guardados y podrás volver a entrar con tu código.')) return;
+  localStorage.removeItem('usala_session');
+  S.user=null; S.tab='inicio';
+  document.getElementById('accNombre').value='';
+  document.getElementById('accCodigo').value='';
+  document.getElementById('panelSesion').style.display='none';
+  document.getElementById('panelCodigo').style.display='block';
+  // Ocultar botón U
+  var ub = document.getElementById('uFabBtn');
+  var um = document.getElementById('uFabMenu');
+  if(ub) ub.style.display='none';
+  if(um) um.style.display='none';
+  showScreen('accessScreen');
+}
+function cambiarPass(){
+  var p1=document.getElementById('np1').value;
+  var p2=document.getElementById('np2').value;
+  if(!p1||p1.length<4){ showToast('⚠ Mínimo 4 caracteres'); return; }
+  if(p1!==p2){ showToast('⚠ Las contraseñas no coinciden'); return; }
+  localStorage.setItem('usala_admin_pass',p1);
+  showToast('✓ Contraseña actualizada');
+}
+function resetTxs(){
+  if(!confirm('¿Borrar todas tus transacciones?\n\nTambién se resetearán los saldos de Efectivo y Cuentas bancarias vinculados.')) return;
+  save('txs',[]);
+  // También limpiar saldos de cuentas que se calculan desde txs
+  var uid = S.user.isAdmin ? 'admin' : 'u_'+S.user.codigo;
+  var cu = JSON.parse(localStorage.getItem('usala_cuentas_'+uid)||'{}');
+  cu.efectivo = 0;
+  cu.movEfectivo = [];
+  (cu.cheques||[]).forEach(function(ch){ ch.saldo = 0; });
+  localStorage.setItem('usala_cuentas_'+uid, JSON.stringify(cu));
+  showToast('✓ Transacciones y saldos borrados');
+  goSub('config');
+}
+function resetCuenta(){
+  if(!confirm('¿BORRAR TODA tu información?\n\nSe eliminarán transacciones, cuentas, créditos, metas, alertas y presupuestos.\n\nEsta acción NO se puede deshacer.')) return;
+  if(!confirm('⚠️ Última confirmación\n\n¿Estás completamente seguro?')) return;
+  var uid = S.user.isAdmin ? 'admin' : 'u_'+S.user.codigo;
+  var prefix = 'usala_'+uid+'_';
+  // Borrar claves con prefijo estándar
+  Object.keys(localStorage).filter(function(k){
+    return k.indexOf(prefix)===0;
+  }).forEach(function(k){ localStorage.removeItem(k); });
+  // Borrar clave de cuentas (usa formato diferente)
+  localStorage.removeItem('usala_cuentas_'+uid);
+  showToast('✅ Cuenta restablecida completamente');
+  setTimeout(function(){ goTab('inicio',document.querySelector('.nb')); },600);
+}
+
+// ══════════════════════════════════════════
+// VERSIÓN
+// ══════════════════════════════════════════
+function renderVersion(){
+  var isAdmin=S.user&&S.user.isAdmin;
+  return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">📋 Versión</div></div>'
+    +'<div class="card" style="text-align:center;padding:28px 20px;">'
+    +'<div style="font-size:2rem;font-weight:900;color:var(--accent);font-family:\'JetBrains Mono\',monospace;">v'+APP_VERSION+'</div>'
+    +'<div style="font-size:0.8rem;color:var(--dim);margin-top:8px;">'+APP_NOTAS+'</div>'
+    +'</div>'
+    +(isAdmin?'<div class="card"><div class="card-title">Editar versión</div>'
+    +'<label class="inp-label">Número</label><input class="inp" id="vNum" value="'+APP_VERSION+'">'
+    +'<label class="inp-label">Notas</label><textarea class="inp" id="vNotas" rows="3" style="resize:none;">'+APP_NOTAS+'</textarea>'
+    +'<button class="btn-main" onclick="guardarVersion()">💾 Guardar</button>'
+    +'</div>':'');
+}
+function guardarVersion(){
+  var v=document.getElementById('vNum').value.trim();
+  var n=document.getElementById('vNotas').value.trim();
+  if(!v) return;
+  localStorage.setItem('usala_version',v);
+  localStorage.setItem('usala_notas',n);
+  APP_VERSION=v; APP_NOTAS=n;
+  showToast('✓ Versión actualizada');
+  document.getElementById('verBadge').textContent='v'+v;
+  goSub('version');
+}
+
+// ══════════════════════════════════════════
+// AYUDA
+// ══════════════════════════════════════════
+function abrirAyuda(){ goTab('mas',document.querySelectorAll('.nb')[4]); setTimeout(function(){ goSub('ayuda'); },10); }
+
+// ══════════════════════════════════════════
+// MENÚ USUARIO
+// ══════════════════════════════════════════
+function abrirMenu(){
+  var u = S.user;
+  document.getElementById('menuNombre').textContent = u.isAdmin ? '⚙️ Administrador' : '👤 ' + u.nombre;
+
+  var opciones = [
+    {ico:'🎨', label:'Cambiar tema', accion:'tema'},
+    {ico:'⚙️', label:'Configuración', accion:'config'},
+    {ico:'🔑', label:'Códigos de acceso', accion:'codigos', soloAdmin:true},
+    {ico:'🚪', label:'Cerrar sesión', accion:'salir', rojo:true}
+  ];
+
+  var cont = document.getElementById('menuItems');
+  cont.innerHTML = '';
+
+  opciones.forEach(function(op){
+    if(op.soloAdmin && !S.user.isAdmin) return;
+    var div = document.createElement('div');
+    div.className = 'set-item';
+    div.style.cursor = 'pointer';
+    div.innerHTML = '<div class="set-label"'+(op.rojo?' style="color:var(--danger);"':'')+'>'+op.ico+' '+op.label+'</div><div class="set-arrow">›</div>';
+    div.addEventListener('click', function(){ menuAccion(op.accion); });
+    cont.appendChild(div);
+  });
+
+  document.getElementById('menuModal').classList.add('open');
+}
+// ══════════════════════════════════════════
+// NOTICIAS / CENTRO DE MENSAJES
+// ══════════════════════════════════════════
+function getNoticias(){ return JSON.parse(localStorage.getItem('usala_noticias')||'[]'); }
+function saveNoticias(n){ localStorage.setItem('usala_noticias', JSON.stringify(n)); }
+
+function renderNoticias(){
+  var isAdmin = S.user && S.user.isAdmin;
+  var noticias = getNoticias();
+
+  if(isAdmin){
+    // Vista admin: crear y gestionar mensajes
+    var lista = noticias.length ? noticias.slice().reverse().map(function(n,i){
+      var ri = noticias.length - 1 - i;
+      var leidas = JSON.parse(localStorage.getItem('usala_leidas_count_'+n.id)||'0');
+      return '<div class="card" style="margin-bottom:8px;">'
+        +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'
+        +'<div style="flex:1;">'
+        +'<div style="font-weight:800;font-size:0.88rem;">'+n.titulo+'</div>'
+        +'<div style="font-size:0.75rem;color:var(--dim);margin-top:4px;line-height:1.5;">'+n.mensaje+'</div>'
+        +'<div style="font-size:0.65rem;color:var(--dim);margin-top:6px;">📅 '+n.fecha+' &nbsp; 👁️ '+leidas+' lecturas</div>'
+        +'</div>'
+        +'<button class="ic-btn" onclick="borrarNoticia('+ri+')" style="flex-shrink:0;">🗑️</button>'
+        +'</div></div>';
+    }).join('') : '<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin mensajes enviados</div>';
+
+    return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">📢 Centro de Mensajes</div></div>'
+      +'<div class="card" style="margin-bottom:14px;">'
+      +'<div class="card-title">✍️ Nuevo mensaje</div>'
+      +'<label class="inp-label">Título</label>'
+      +'<input class="inp" id="notTitulo" placeholder="Ej: Nueva actualización disponible">'
+      +'<label class="inp-label">Mensaje</label>'
+      +'<textarea class="inp" id="notMensaje" rows="4" placeholder="Escribe aquí las novedades, mejoras o información importante para tus invitados..." style="resize:none;line-height:1.5;"></textarea>'
+      +'<label class="inp-label">Tipo</label>'
+      +'<select class="inp" id="notTipo">'
+      +'<option value="📢">📢 Anuncio general</option>'
+      +'<option value="🆕">🆕 Nueva función</option>'
+      +'<option value="🔧">🔧 Mejora / corrección</option>'
+      +'<option value="⚠️">⚠️ Aviso importante</option>'
+      +'<option value="🎉">🎉 Celebración</option>'
+      +'</select>'
+      +'<button class="btn-main" onclick="publicarNoticia()">📤 Publicar para todos los invitados</button>'
+      +'</div>'
+      +'<div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--dim);margin-bottom:8px;">Mensajes publicados ('+noticias.length+')</div>'
+      + lista;
+
+  } else {
+    // Vista invitado: leer mensajes
+    var leidas = JSON.parse(localStorage.getItem('usala_leidas_'+S.user.codigo)||'[]');
+    var items = noticias.length ? noticias.slice().reverse().map(function(n){
+      var yaLeida = leidas.indexOf(n.id) !== -1;
+      // Marcar como leída
+      if(!yaLeida){
+        leidas.push(n.id);
+        localStorage.setItem('usala_leidas_'+S.user.codigo, JSON.stringify(leidas));
+        // Contar lecturas
+        var cnt = parseInt(localStorage.getItem('usala_leidas_count_'+n.id)||'0');
+        localStorage.setItem('usala_leidas_count_'+n.id, cnt+1);
+      }
+      return '<div class="card" style="margin-bottom:10px;'+(yaLeida?'':'border-left:3px solid var(--accent);')+'">'
+        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">'
+        +'<span style="font-size:1.2rem;">'+n.tipo+'</span>'
+        +'<div style="font-weight:800;font-size:0.9rem;flex:1;">'+n.titulo+'</div>'
+        +(yaLeida?'':'<span style="font-size:0.6rem;background:var(--accent);color:var(--navtext);padding:2px 7px;border-radius:10px;font-weight:700;">NUEVO</span>')
+        +'</div>'
+        +'<div style="font-size:0.8rem;color:var(--dim);line-height:1.6;">'+n.mensaje+'</div>'
+        +'<div style="font-size:0.65rem;color:var(--dim);margin-top:8px;">'+n.fecha+'</div>'
+        +'</div>';
+    }).join('') : '<div style="text-align:center;padding:30px;color:var(--dim);font-size:0.83rem;">📭 No hay mensajes aún</div>';
+
+    return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">📢 Mensajes</div></div>'
+      + items;
+  }
+}
+
+function publicarNoticia(){
+  var titulo = document.getElementById('notTitulo').value.trim();
+  var mensaje = document.getElementById('notMensaje').value.trim();
+  var tipo = document.getElementById('notTipo').value;
+  if(!titulo || !mensaje){ showToast('⚠ Escribe título y mensaje'); return; }
+  var noticias = getNoticias();
+  noticias.push({
+    id: Date.now(),
+    titulo: titulo,
+    mensaje: mensaje,
+    tipo: tipo,
+    fecha: today()
+  });
+  saveNoticias(noticias);
+  showToast('✅ Mensaje publicado para todos los invitados');
+  goSub('noticias');
+}
+
+function borrarNoticia(i){
+  if(!confirm('¿Eliminar este mensaje?')) return;
+  var noticias = getNoticias();
+  noticias.splice(i, 1);
+  saveNoticias(noticias);
+  showToast('✓ Eliminado');
+  goSub('noticias');
+}
+
+// ── Helper: construye opciones de cuentas para selects ──
+function buildCuentaOpts(selVal){
+  var c = getCuentas();
+  var ops = '<option value="">— Sin asignar —</option>'
+    +'<option value="efectivo"'+(selVal==='efectivo'?' selected':'')+'>💵 Efectivo</option>';
+  (c.cheques||[]).forEach(function(ch, i){
+    var val='cheque_'+i;
+    ops+='<option value="'+val+'"'+(selVal===val?' selected':'')+'>🏧 '+ch.banco+' — '+ch.tipo+'</option>';
+  });
+  return ops;
+}
+
+// ── Calcula saldo real de una cuenta sumando transacciones vinculadas ──
+function saldoRealCuenta(cuentaVal){
+  var txs = getTxs().filter(function(t){ return t.cuenta===cuentaVal; });
+  return txs.reduce(function(s,t){
+    return s + (t.tipo==='ingreso' ? Number(t.monto) : -Number(t.monto));
+  }, 0);
+}
+
+// ══════════════════════════════════════════
+// MÓDULO CUENTAS
+// ══════════════════════════════════════════
+function getCuentas(){ return JSON.parse(localStorage.getItem('usala_cuentas_'+(S.user.isAdmin?'admin':'u_'+S.user.codigo))||'{"efectivo":0,"cheques":[],"tarjetas":[]}'); }
+function saveCuentas(c){ localStorage.setItem('usala_cuentas_'+(S.user.isAdmin?'admin':'u_'+S.user.codigo), JSON.stringify(c)); }
+
+function renderCuentas(){
+  var c = getCuentas();
+  var saldoEfec = (c.efectivo||0);
+  var totalCheques = (c.cheques||[]).reduce(function(s,x){ return s+Number(x.saldo||0); },0);
+  var totalTC = (c.tarjetas||[]).reduce(function(s,t){ return s+Number(t.balance||0); },0);
+  var totalActivos = saldoEfec + totalCheques;
+
+  var resCheques = (c.cheques||[]).map(function(ch){
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">'
+      +'<div style="font-size:0.8rem;font-weight:700;">🏧 '+ch.banco+' <span style="font-size:0.65rem;color:var(--dim);font-weight:400;">'+ch.tipo+'</span></div>'
+      +'<div style="font-weight:900;color:var(--accent);">'+fmt(ch.saldo||0)+'</div></div>';
+  }).join('');
+
+  return '<div style="font-size:1.05rem;font-weight:900;margin-bottom:4px;padding-top:4px;">🏦 Mis Cuentas</div>'
+    +'<div style="font-size:0.74rem;color:var(--dim);margin-bottom:14px;">Saldos actualizados con cada transacción</div>'
+    +'<div class="stat-grid" style="margin-bottom:14px;">'
+    +'<div class="stat-card" onclick="goSub(\'efectivo\')"><div class="stat-label">💵 Efectivo ›</div><div class="stat-val">'+fmt(saldoEfec)+'</div></div>'
+    +'<div class="stat-card" onclick="goSub(\'cheques\')"><div class="stat-label">🏧 Banco ›</div><div class="stat-val">'+fmt(totalCheques)+'</div></div>'
+    +'<div class="stat-card" style="background:rgba(45,158,95,0.08);border:1.5px solid rgba(45,158,95,0.2);"><div class="stat-label">✅ Total disponible</div><div class="stat-val">'+fmt(totalActivos)+'</div></div>'
+    +'<div class="stat-card" onclick="goSub(\'tarjetas_credito\')" style="background:rgba(229,57,53,0.05);"><div class="stat-label">💳 Deuda TC ›</div><div class="stat-val red">'+fmt(totalTC)+'</div></div>'
+    +'</div>'
+    +(resCheques?'<div class="card" style="margin-bottom:14px;"><div class="card-title">Cuentas bancarias</div>'+resCheques+'</div>':'')
+    +'<div class="mod-list">'
+    +'<div class="mod-item" onclick="goSub(\'efectivo\')"><div class="mod-icon">💵</div><div><div class="mod-label">Efectivo</div><div class="mod-sub">Saldo: '+fmt(saldoEfec)+'</div></div><div class="mod-arrow">›</div></div>'
+    +'<div class="mod-item" onclick="goSub(\'cheques\')"><div class="mod-icon">🏧</div><div><div class="mod-label">Cheques / Banco</div><div class="mod-sub">Transferencias, depósitos, ahorro</div></div><div class="mod-arrow">›</div></div>'
+    +'<div class="mod-item" onclick="goSub(\'tarjetas_credito\')"><div class="mod-icon">💳</div><div><div class="mod-label">Tarjetas de Crédito</div><div class="mod-sub">'+(c.tarjetas||[]).length+' tarjeta'+(((c.tarjetas||[]).length)!==1?'s':'')+' · Deuda: '+fmt(totalTC)+'</div></div><div class="mod-arrow">›</div></div>'
+    +'</div>';
+}
+
+// ── EFECTIVO ──
+function renderEfectivo(){
+  var c = getCuentas();
+  // Movimientos = todas las txs vinculadas a efectivo
+  var txs = getTxs().filter(function(t){ return t.cuenta==='efectivo'; });
+  var items = txs.slice().reverse().map(function(t){
+    return '<div class="tx-item">'
+      +'<div class="tx-ico">'+(t.tipo==='ingreso'?'💵':'💸')+'</div>'
+      +'<div class="tx-info"><div class="tx-name">'+t.desc+'</div>'
+      +'<div class="tx-date">'+t.fecha+' · '+t.cat+'</div></div>'
+      +'<div class="tx-right"><div class="tx-amt '+(t.tipo==='ingreso'?'ing':'gas')+'">'
+      +(t.tipo==='ingreso'?'+':'-')+fmt(t.monto)+'</div>'
+      +'<button class="ic-btn" onclick="borrarTx('+t.id+')">🗑️</button></div></div>';
+  }).join('')||'<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin movimientos</div>';
+
+  var catEnt = ['Salario','Freelance','Negocio','Venta','Regalo','Otros ingresos'];
+  var catSal = ['Alimentación','Transporte','Servicios','Compras','Pagos','Entretenimiento','Otros gastos'];
+
+  return '<div class="page-header">'+backBtn('cuentas',1)+'<div class="page-title">💵 Efectivo</div></div>'
+    +'<div class="card" style="margin-bottom:14px;text-align:center;padding:22px;">'
+    +'<div style="font-size:0.65rem;font-weight:700;color:var(--dim);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Saldo en efectivo</div>'
+    +'<div style="font-size:2.4rem;font-weight:900;color:var(--accent);">'+fmt(c.efectivo||0)+'</div>'
+    +'</div>'
+    +'<div class="card" style="margin-bottom:14px;">'
+    +'<div class="card-title">Registrar movimiento</div>'
+    +'<div class="tipo-selector" style="margin-bottom:12px;">'
+    +'<div class="tipo-opt selected" id="efTipoEnt" onclick="selEfTipo(\'ingreso\')">💵 Entrada (ingreso)</div>'
+    +'<div class="tipo-opt" id="efTipoSal" onclick="selEfTipo(\'gasto\')">💸 Salida (gasto)</div>'
+    +'</div>'
+    +'<label class="inp-label">Descripción</label>'
+    +'<input class="inp" id="efDesc" placeholder="Ej: Cobré trabajo / Compré despensa" autocomplete="off">'
+    +'<div class="form-row">'
+    +'<div><label class="inp-label">Monto ($)</label><input class="inp" id="efMonto" type="number" inputmode="decimal" placeholder="0.00"></div>'
+    +'<div><label class="inp-label">Categoría</label>'
+    +'<select class="inp" id="efCat">'
+    + catEnt.map(function(c){ return '<option>'+c+'</option>'; }).join('')
+    +'</select></div>'
+    +'</div>'
+    +'<label class="inp-label">Fecha</label>'
+    +'<input class="inp" id="efFecha" type="date" value="'+today()+'">'
+    +'<button class="btn-main" onclick="guardarMovEfectivo()">💾 Guardar</button>'
+    +'</div>'
+    +'<div class="card"><div class="card-title">Movimientos ('+txs.length+')</div>'+items+'</div>';
+}
+function selEfTipo(t){
+  var esEnt = t==='ingreso';
+  document.getElementById('efTipoEnt').classList.toggle('selected', esEnt);
+  document.getElementById('efTipoSal').classList.toggle('selected', !esEnt);
+  var cats = esEnt
+    ? ['Salario','Freelance','Negocio','Venta','Regalo','Otros ingresos']
+    : ['Alimentación','Transporte','Servicios','Compras','Pagos','Entretenimiento','Otros gastos'];
+  var sel = document.getElementById('efCat');
+  if(sel) sel.innerHTML = cats.map(function(c){ return '<option>'+c+'</option>'; }).join('');
+}
+function guardarMovEfectivo(){
+  var desc  = document.getElementById('efDesc').value.trim();
+  var monto = parseFloat(document.getElementById('efMonto').value);
+  var fecha = document.getElementById('efFecha').value||today();
+  var cat   = document.getElementById('efCat').value;
+  var tipo  = document.getElementById('efTipoEnt').classList.contains('selected')?'ingreso':'gasto';
+  if(!desc||!monto||monto<=0){ showToast('⚠ Completa descripción y monto'); return; }
+  // Crear transacción real vinculada a efectivo
+  var id = Date.now();
+  var txs = getTxs();
+  txs.push({id:id, tipo:tipo, desc:desc, monto:monto, cat:cat, fecha:fecha, cuenta:'efectivo'});
+  saveTxs(txs);
+  // Actualizar saldo efectivo
+  var c = getCuentas();
+  c.efectivo = (c.efectivo||0) + (tipo==='ingreso'?monto:-monto);
+  saveCuentas(c);
+  showToast('✓ '+(tipo==='ingreso'?'Ingreso':'Gasto')+' registrado en Efectivo');
+  goSub('efectivo');
+}
+
+
+// ── CHEQUES / BANCO ──
+function renderCheques(){
+  var c=getCuentas(); var cuentas=c.cheques||[];
+  var total=cuentas.reduce(function(s,x){ return s+Number(x.saldo||0); },0);
+
+  // Sub-vista por banco seleccionado o lista
+  var items=cuentas.length ? cuentas.map(function(ct,i){
+    var cval='cheque_'+i;
+    var txsCuenta=getTxs().filter(function(t){ return t.cuenta===cval; });
+    var ultMov=txsCuenta.length ? txsCuenta[txsCuenta.length-1] : null;
+    return '<div class="cred-item" onclick="goSub(\'banco_\'+'+i+')" style="cursor:pointer;">'
+      +'<div class="cred-top"><div><div class="cred-persona">🏧 '+ct.banco+'</div>'
+      +'<div class="cred-desc">'+ct.tipo+(ct.numCuenta?' · ***'+ct.numCuenta.slice(-4):'')+(ultMov?' · Último mov: '+ultMov.fecha:'')+'</div></div>'
+      +'<div><div style="font-size:1.1rem;font-weight:900;color:var(--accent);">'+fmt(ct.saldo||0)+'</div>'
+      +'<div style="font-size:0.62rem;color:var(--dim);text-align:right;">'+txsCuenta.length+' mov.</div></div></div>'
+      +(ct.nota?'<div style="font-size:0.72rem;color:var(--dim);margin-top:2px;">📝 '+ct.nota+'</div>':'')
+      +'</div>';
+  }).join('') : '<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin cuentas bancarias. Agrega una abajo.</div>';
+
+  return '<div class="page-header">'+backBtn('cuentas',1)+'<div class="page-title">🏧 Mis Bancos</div></div>'
+    +'<div class="card" style="text-align:center;padding:18px;margin-bottom:14px;">'
+    +'<div style="font-size:0.65rem;font-weight:700;color:var(--dim);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Total en bancos</div>'
+    +'<div style="font-size:2rem;font-weight:900;color:var(--accent);">'+fmt(total)+'</div>'
+    +'</div>'
+    + items
+    +'<div class="card" style="margin-top:14px;" id="chequesForm">'
+    +'<div class="card-title" id="chFormTitle">+ Agregar cuenta bancaria</div>'
+    +'<label class="inp-label">Banco / Institución</label>'
+    +'<input class="inp" id="chBanco" placeholder="Ej: BBVA, Santander, HSBC...">'
+    +'<div class="form-row">'
+    +'<div><label class="inp-label">Tipo</label>'
+    +'<select class="inp" id="chTipo"><option>Débito</option><option>Ahorro</option><option>Nómina</option><option>Inversión</option><option>Otro</option></select></div>'
+    +'<div><label class="inp-label">Saldo inicial ($)</label><input class="inp" id="chSaldo" type="number" inputmode="decimal" placeholder="0.00"></div>'
+    +'</div>'
+    +'<label class="inp-label">No. cuenta (últimos 4 dígitos)</label>'
+    +'<input class="inp" id="chNum" placeholder="Ej: 4521" maxlength="4" inputmode="numeric">'
+    +'<label class="inp-label">Nota (opcional)</label>'
+    +'<input class="inp" id="chNota" placeholder="Ej: Cuenta de nómina principal">'
+    +'<button class="btn-main" id="chSaveBtn" onclick="guardarCuenta()">💾 Guardar cuenta</button>'
+    +'</div>';
+}
+
+// Vista detalle de un banco específico con sus movimientos
+function renderBancoDetalle(idx){
+  var c=getCuentas(); var ct=c.cheques[idx];
+  if(!ct) return renderCheques();
+  var cval='cheque_'+idx;
+  var txs=getTxs().filter(function(t){ return t.cuenta===cval; });
+  var catEnt=['Salario','Depósito','Transferencia recibida','Nómina','Inversión','Otros ingresos'];
+  var catSal=['Pago de servicio','Transferencia enviada','Compra','Retiro','Otros gastos'];
+  var items=txs.slice().reverse().map(function(t){
+    return '<div class="tx-item">'
+      +'<div class="tx-ico">'+(t.tipo==='ingreso'?'📥':'📤')+'</div>'
+      +'<div class="tx-info"><div class="tx-name">'+t.desc+'</div>'
+      +'<div class="tx-date">'+t.fecha+' · '+t.cat+'</div></div>'
+      +'<div class="tx-right"><div class="tx-amt '+(t.tipo==='ingreso'?'ing':'gas')+'">'
+      +(t.tipo==='ingreso'?'+':'-')+fmt(t.monto)+'</div>'
+      +'<button class="ic-btn" onclick="borrarTxBanco('+t.id+','+idx+')">🗑️</button></div></div>';
+  }).join('')||'<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin movimientos</div>';
+
+  return '<div class="page-header">'+backBtn('cheques',1)+'<div class="page-title">🏧 '+ct.banco+'</div></div>'
+    +'<div class="card" style="text-align:center;padding:18px;margin-bottom:14px;">'
+    +'<div style="font-size:0.65rem;font-weight:700;color:var(--dim);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">Saldo</div>'
+    +'<div style="font-size:2.2rem;font-weight:900;color:var(--accent);">'+fmt(ct.saldo||0)+'</div>'
+    +'<div style="font-size:0.7rem;color:var(--dim);margin-top:4px;">'+ct.tipo+(ct.numCuenta?' · ***'+ct.numCuenta:'')+'</div>'
+    +'<div style="display:flex;gap:8px;justify-content:center;margin-top:10px;">'
+    +'<button class="cred-btn" onclick="editarCuenta('+idx+');goSub(\'cheques\')">✏️ Editar</button>'
+    +'<button class="cred-btn danger" onclick="borrarCuenta('+idx+')">🗑️ Eliminar</button>'
+    +'</div></div>'
+    +'<div class="card" style="margin-bottom:14px;">'
+    +'<div class="card-title">Registrar movimiento</div>'
+    +'<div class="tipo-selector" style="margin-bottom:12px;">'
+    +'<div class="tipo-opt selected" id="bkTipoEnt" onclick="selBkTipo(\'ingreso\','+idx+')">📥 Entrada</div>'
+    +'<div class="tipo-opt" id="bkTipoSal" onclick="selBkTipo(\'gasto\','+idx+')">📤 Salida</div>'
+    +'</div>'
+    +'<label class="inp-label">Descripción</label>'
+    +'<input class="inp" id="bkDesc" placeholder="Ej: Nómina quincenal / Pago luz" autocomplete="off">'
+    +'<div class="form-row">'
+    +'<div><label class="inp-label">Monto ($)</label><input class="inp" id="bkMonto" type="number" inputmode="decimal" placeholder="0.00"></div>'
+    +'<div><label class="inp-label">Categoría</label>'
+    +'<select class="inp" id="bkCat">'
+    +catEnt.map(function(c){ return '<option>'+c+'</option>'; }).join('')
+    +'</select></div></div>'
+    +'<label class="inp-label">Fecha</label>'
+    +'<input class="inp" id="bkFecha" type="date" value="'+today()+'">'
+    +'<button class="btn-main" onclick="guardarMovBanco('+idx+')">💾 Guardar</button>'
+    +'</div>'
+    +'<div class="card"><div class="card-title">Movimientos ('+txs.length+')</div>'+items+'</div>';
+}
+function selBkTipo(t, idx){
+  var esEnt=t==='ingreso';
+  document.getElementById('bkTipoEnt').classList.toggle('selected',esEnt);
+  document.getElementById('bkTipoSal').classList.toggle('selected',!esEnt);
+  var cats=esEnt?['Salario','Depósito','Transferencia recibida','Nómina','Inversión','Otros ingresos']:['Pago de servicio','Transferencia enviada','Compra','Retiro','Otros gastos'];
+  var sel=document.getElementById('bkCat'); if(sel) sel.innerHTML=cats.map(function(c){ return '<option>'+c+'</option>'; }).join('');
+}
+function guardarMovBanco(idx){
+  var desc=document.getElementById('bkDesc').value.trim();
+  var monto=parseFloat(document.getElementById('bkMonto').value);
+  var fecha=document.getElementById('bkFecha').value||today();
+  var cat=document.getElementById('bkCat').value;
+  var tipo=document.getElementById('bkTipoEnt').classList.contains('selected')?'ingreso':'gasto';
+  if(!desc||!monto||monto<=0){ showToast('⚠ Completa descripción y monto'); return; }
+  var cval='cheque_'+idx;
+  var id=Date.now(); var txs=getTxs();
+  txs.push({id:id,tipo:tipo,desc:desc,monto:monto,cat:cat,fecha:fecha,cuenta:cval});
+  saveTxs(txs);
+  var c=getCuentas();
+  c.cheques[idx].saldo=(c.cheques[idx].saldo||0)+(tipo==='ingreso'?monto:-monto);
+  saveCuentas(c);
+  showToast('✓ '+(tipo==='ingreso'?'Ingreso':'Gasto')+' en '+c.cheques[idx].banco);
+  goSub('banco_'+idx);
+}
+function borrarTxBanco(id,idx){
+  if(!confirm('¿Eliminar este movimiento?')) return;
+  var txs=getTxs(); var t=txs.find(function(x){ return x.id===id; });
+  if(t){
+    var c=getCuentas();
+    c.cheques[idx].saldo=(c.cheques[idx].saldo||0)-(t.tipo==='ingreso'?t.monto:-t.monto);
+    saveCuentas(c);
+    saveTxs(txs.filter(function(x){ return x.id!==id; }));
+  }
+  showToast('✓ Movimiento eliminado'); goSub('banco_'+idx);
+}
+
+var _editCuentaIdx=null;
+function guardarCuenta(){
+  var banco=document.getElementById('chBanco').value.trim();
+  var tipo=document.getElementById('chTipo').value;
+  var saldo=parseFloat(document.getElementById('chSaldo').value)||0;
+  var num=document.getElementById('chNum').value.trim();
+  var nota=document.getElementById('chNota').value.trim();
+  if(!banco){ showToast('⚠ Escribe el nombre del banco'); return; }
+  var c=getCuentas(); c.cheques=c.cheques||[];
+  if(_editCuentaIdx!==null){
+    c.cheques[_editCuentaIdx]=Object.assign(c.cheques[_editCuentaIdx],{banco:banco,tipo:tipo,saldo:saldo,numCuenta:num,nota:nota});
+    _editCuentaIdx=null; showToast('✓ Cuenta actualizada');
+  } else {
+    c.cheques.push({banco:banco,tipo:tipo,saldo:saldo,numCuenta:num,nota:nota});
+    showToast('✓ Cuenta bancaria agregada');
+  }
+  saveCuentas(c); goSub('cheques');
+}
+function abonarCuenta(i){
+  var nuevo=parseFloat(prompt('Nuevo saldo de la cuenta ($):')); if(isNaN(nuevo)) return;
+  var c=getCuentas(); c.cheques[i].saldo=nuevo; saveCuentas(c); showToast('✓ Saldo actualizado'); goSub('cheques');
+}
+function editarCuenta(i){
+  var c=getCuentas(); var ct=c.cheques[i]; _editCuentaIdx=i;
+  goSub('cheques');
+  setTimeout(function(){
+    document.getElementById('chBanco').value=ct.banco;
+    document.getElementById('chTipo').value=ct.tipo;
+    document.getElementById('chSaldo').value=ct.saldo||0;
+    document.getElementById('chNum').value=ct.numCuenta||'';
+    document.getElementById('chNota').value=ct.nota||'';
+    document.getElementById('chFormTitle').textContent='✏️ Editar cuenta';
+    document.getElementById('chSaveBtn').textContent='💾 Guardar cambios';
+    document.getElementById('chequesForm').scrollIntoView({behavior:'smooth'});
+  },100);
+}
+function borrarCuenta(i){
+  if(!confirm('¿Eliminar esta cuenta bancaria?\nSus movimientos quedarán sin cuenta asignada.')) return;
+  var c=getCuentas(); c.cheques.splice(i,1); saveCuentas(c); goSub('cheques');
+}
+
+// ══════════════════════════════════════════
+// REPORTES (reemplaza Ingresos y Gastos)
+// ══════════════════════════════════════════
+function renderReportes(){
+  var txs = getTxs();
+  var ing = txs.filter(function(t){ return t.tipo==='ingreso'; }).reduce(function(s,t){ return s+Number(t.monto); },0);
+  var gas = txs.filter(function(t){ return t.tipo==='gasto'; }).reduce(function(s,t){ return s+Number(t.monto); },0);
+
+  // Agrupar gastos por categoría
+  var porCat = {};
+  txs.filter(function(t){ return t.tipo==='gasto'; }).forEach(function(t){
+    porCat[t.cat] = (porCat[t.cat]||0) + Number(t.monto);
+  });
+  var catItems = Object.keys(porCat).sort(function(a,b){ return porCat[b]-porCat[a]; }).map(function(cat){
+    var pct = gas>0 ? Math.round((porCat[cat]/gas)*100) : 0;
+    return '<div style="margin-bottom:10px;">'
+      +'<div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:4px;">'
+      +'<span style="font-weight:700;">'+cat+'</span>'
+      +'<span>'+fmt(porCat[cat])+' ('+pct+'%)</span></div>'
+      +'<div class="prog-wrap"><div class="prog-bar" style="width:'+pct+'%;background:var(--danger);"></div></div>'
+      +'</div>';
+  }).join('')||'<div style="color:var(--dim);font-size:0.83rem;">Sin gastos registrados</div>';
+
+  // Agrupar ingresos por categoría
+  var porCatIng = {};
+  txs.filter(function(t){ return t.tipo==='ingreso'; }).forEach(function(t){
+    porCatIng[t.cat] = (porCatIng[t.cat]||0) + Number(t.monto);
+  });
+  var catIngItems = Object.keys(porCatIng).sort(function(a,b){ return porCatIng[b]-porCatIng[a]; }).map(function(cat){
+    var pct = ing>0 ? Math.round((porCatIng[cat]/ing)*100) : 0;
+    return '<div style="margin-bottom:10px;">'
+      +'<div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:4px;">'
+      +'<span style="font-weight:700;">'+cat+'</span>'
+      +'<span>'+fmt(porCatIng[cat])+' ('+pct+'%)</span></div>'
+      +'<div class="prog-wrap"><div class="prog-bar" style="width:'+pct+'%;background:var(--accent2);"></div></div>'
+      +'</div>';
+  }).join('')||'<div style="color:var(--dim);font-size:0.83rem;">Sin ingresos registrados</div>';
+
+  // Últimas txs completas
+  var ultimas = txs.slice().reverse().slice(0,10).map(function(t){ return txItem(t,true); }).join('')
+    ||'<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin movimientos</div>';
+
+  return '<div style="font-size:1.05rem;font-weight:900;margin-bottom:4px;padding-top:4px;">📊 Reportes</div>'
+    +'<div style="font-size:0.74rem;color:var(--dim);margin-bottom:14px;">Resumen de todos tus movimientos</div>'
+    // Resumen
+    +'<div class="stat-grid" style="margin-bottom:14px;">'
+    +'<div class="stat-card"><div class="stat-label">💰 Total ingresos</div><div class="stat-val">'+fmt(ing)+'</div></div>'
+    +'<div class="stat-card"><div class="stat-label">💸 Total gastos</div><div class="stat-val red">'+fmt(gas)+'</div></div>'
+    +'<div class="stat-card full" style="background:'+(ing-gas>=0?'rgba(45,158,95,0.08)':'rgba(229,57,53,0.06)')+';border:1.5px solid '+(ing-gas>=0?'rgba(45,158,95,0.2)':'rgba(229,57,53,0.2)')+';">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+    +'<div><div class="stat-label">⚖️ Flujo neto</div><div style="font-size:0.68rem;color:var(--dim);">Ingresos − Gastos</div></div>'
+    +'<div style="font-size:1.4rem;font-weight:900;color:'+(ing-gas>=0?'var(--accent2)':'var(--danger)')+';">'+(ing-gas>=0?'+':'')+fmt(ing-gas)+'</div>'
+    +'</div></div>'
+    +'</div>'
+    // Gastos por categoría
+    +'<div class="card" style="margin-bottom:14px;">'
+    +'<div class="card-title">💸 Gastos por categoría</div>'
+    + catItems
+    +'</div>'
+    // Ingresos por categoría
+    +'<div class="card" style="margin-bottom:14px;">'
+    +'<div class="card-title">💰 Ingresos por fuente</div>'
+    + catIngItems
+    +'</div>'
+    // Historial completo
+    +'<div class="card">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'
+    +'<div class="card-title" style="margin:0;">Últimos movimientos</div>'
+    +'<button onclick="goSub(\'historial\')" style="font-size:0.72rem;color:var(--accent);background:none;border:none;cursor:pointer;font-weight:700;">Ver todos ›</button>'
+    +'</div>'
+    + ultimas
+    +'</div>';
+}
+
+// ── TARJETAS DE CRÉDITO ──
+function renderTarjetasCredito(){
+  var c=getCuentas(); var tcs=c.tarjetas||[];
+  var txs=getTxs();
+
+  var items=tcs.map(function(t,i){
+    var pct=t.limite>0?Math.min(100,Math.round((t.balance/t.limite)*100)):0;
+    var disp=Math.max(0,(t.limite||0)-(t.balance||0));
+    var color=pct>=90?'var(--danger)':pct>=70?'#f57c00':'var(--accent)';
+    var hoy=new Date(); var diasCorte='';
+
+    // ── Calcular saldo al corte automáticamente ──
+    // Suma todas las compras con esta TC (cuenta='tc_i') hechas hasta la fecha de corte
+    var saldoAutoCorte = 0;
+    if(t.fechaCorte){
+      var fc=new Date(t.fechaCorte.split('-').join('/'));
+      var diff=Math.ceil((fc-hoy)/(1000*60*60*24));
+      diasCorte=diff>0?diff+' días para corte':'Cortó hace '+Math.abs(diff)+' días';
+
+      // Buscar el inicio del período anterior (fecha de corte menos 1 mes aprox)
+      var fcPrev = new Date(fc);
+      fcPrev.setMonth(fcPrev.getMonth()-1);
+
+      txs.forEach(function(tx){
+        if(tx.cuenta==='tc_'+i && tx.tipo==='gasto'){
+          var txDate = new Date(tx.fecha.split('-').join('/'));
+          // Sumar compras del período actual: desde corte anterior hasta corte actual
+          if(txDate >= fcPrev && txDate <= fc){
+            saldoAutoCorte += Number(tx.monto);
+          }
+        }
+      });
+    } else {
+      // Sin fecha de corte: sumar todas las compras de esta TC
+      txs.forEach(function(tx){
+        if(tx.cuenta==='tc_'+i && tx.tipo==='gasto'){
+          saldoAutoCorte += Number(tx.monto);
+        }
+      });
+    }
+
+    return '<div class="cred-item">'
+      +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'
+      +'<div style="width:42px;height:28px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:#fff;font-weight:800;">'+t.banco.substring(0,4).toUpperCase()+'</div>'
+      +'<div style="flex:1;"><div style="font-weight:800;font-size:0.9rem;">'+t.banco+'</div>'
+      +'<div style="font-size:0.68rem;color:var(--dim);">'+t.tipo+(t.ultimos?' · ***'+t.ultimos:'')+'</div></div>'
+      +'<span class="cred-badge '+(t.pagoPendiente?'badge-vencido':'badge-pagado')+'">'+(t.pagoPendiente?'⚠ Pago pend.':'✅ Al corriente')+'</span>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
+      +'<div style="background:var(--inp);border-radius:10px;padding:10px;">'
+      +'<div style="font-size:0.6rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:0.05em;">Saldo usado</div>'
+      +'<div style="font-size:1rem;font-weight:900;color:var(--danger);">'+fmt(t.balance||0)+'</div></div>'
+      +'<div style="background:var(--inp);border-radius:10px;padding:10px;">'
+      +'<div style="font-size:0.6rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:0.05em;">Disponible</div>'
+      +'<div style="font-size:1rem;font-weight:900;color:var(--accent);">'+fmt(disp)+'</div></div>'
+      +'<div style="background:var(--inp);border-radius:10px;padding:10px;">'
+      +'<div style="font-size:0.6rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:0.05em;">Límite</div>'
+      +'<div style="font-size:1rem;font-weight:900;">'+fmt(t.limite||0)+'</div></div>'
+      +'<div style="background:var(--inp);border-radius:10px;padding:10px;">'
+      +'<div style="font-size:0.6rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:0.05em;">Interés anual</div>'
+      +'<div style="font-size:1rem;font-weight:900;color:#f57c00;">'+(t.interes||0)+'%</div></div>'
+      +'</div>'
+      +'<div class="prog-wrap"><div class="prog-bar" style="width:'+pct+'%;background:'+color+';"></div></div>'
+      +'<div style="display:flex;justify-content:space-between;font-size:0.68rem;color:var(--dim);margin-top:4px;margin-bottom:8px;">'
+      +'<span>Usado: '+pct+'%</span><span>'+(diasCorte||'')+'</span></div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.68rem;margin-bottom:8px;">'
+      +(t.fechaCorte?'<div style="background:var(--inp);border-radius:8px;padding:8px;"><div style="color:var(--dim);">✂️ Fecha de corte</div><div style="font-weight:700;margin-top:2px;">'+t.fechaCorte+'</div></div>':'')
+      +(t.diaPago?'<div style="background:rgba(229,57,53,0.06);border-radius:8px;padding:8px;"><div style="color:var(--dim);">📅 Día de pago</div><div style="font-weight:700;color:var(--danger);margin-top:2px;">Día '+t.diaPago+'</div></div>':'')
+      // Saldo al corte automático — naranja con badge "AUTO"
+      +'<div style="background:rgba(245,124,0,0.07);border-radius:8px;padding:8px;grid-column:1/-1;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+      +'<div style="color:var(--dim);">📋 Saldo al corte</div>'
+      +'<span style="font-size:0.55rem;background:rgba(245,124,0,0.2);color:#f57c00;padding:2px 6px;border-radius:8px;font-weight:800;">AUTO</span>'
+      +'</div>'
+      +'<div style="font-weight:900;font-size:1rem;color:#f57c00;margin-top:3px;">'+fmt(saldoAutoCorte)+'</div>'
+      +(saldoAutoCorte===0?'<div style="font-size:0.6rem;color:var(--dim);margin-top:2px;">Sin compras registradas en este período</div>':'')
+      +'</div>'
+      +(t.pagoMinimo?'<div style="background:var(--inp);border-radius:8px;padding:8px;"><div style="color:var(--dim);">💳 Pago mínimo</div><div style="font-weight:700;margin-top:2px;">'+fmt(t.pagoMinimo)+'</div></div>':'')
+      +(t.pagoTotal?'<div style="background:var(--inp);border-radius:8px;padding:8px;"><div style="color:var(--dim);">💰 Para no pagar int.</div><div style="font-weight:700;margin-top:2px;">'+fmt(t.pagoTotal)+'</div></div>':'')
+      +'</div>'
+      +'<div class="cred-btns">'
+      +'<button class="cred-btn" onclick="editarTC('+i+')">✏️ Editar</button>'
+      +'<button class="cred-btn success" onclick="toggleFormCompraTC('+i+')">🛒 Registrar compra</button>'
+      +'<button class="cred-btn" onclick="registrarPagoTC('+i+')" style="background:rgba(45,158,95,0.1);color:var(--accent2);border:1px solid rgba(45,158,95,0.2);">💳 Pago</button>'
+      +'<button class="cred-btn danger" onclick="borrarTC('+i+')">🗑️</button>'
+      +'</div>'
+      // Formulario inline de compra (oculto por defecto)
+      +'<div id="formCompraTC_'+i+'" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">'
+      +'<div style="font-size:0.75rem;font-weight:800;color:var(--accent);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">🛒 Nueva compra con '+t.banco+'</div>'
+      +'<input class="inp" id="tcCDesc_'+i+'" placeholder="Descripción (ej: Supermercado, Netflix...)" style="margin-bottom:8px;">'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
+      +'<input class="inp" id="tcCMonto_'+i+'" type="number" inputmode="decimal" placeholder="Monto $">'
+      +'<select class="inp" id="tcCCat_'+i+'">'
+      +'<option>Compras</option><option>Alimentación</option><option>Servicios</option>'
+      +'<option>Transporte</option><option>Entretenimiento</option><option>Salud</option>'
+      +'<option>Ropa</option><option>Pagos</option><option>Otros</option>'
+      +'</select></div>'
+      +'<input class="inp" id="tcCFecha_'+i+'" type="date" value="'+today()+'" style="margin-bottom:8px;">'
+      +'<div style="display:flex;gap:8px;">'
+      +'<button onclick="guardarCompraTC('+i+')" style="flex:1;padding:11px;background:var(--accent);color:var(--navtext);border:none;border-radius:12px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:0.85rem;cursor:pointer;">✅ Guardar compra</button>'
+      +'<button onclick="toggleFormCompraTC('+i+')" style="padding:11px 14px;background:var(--inp);color:var(--dim);border:none;border-radius:12px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:0.85rem;cursor:pointer;">✕</button>'
+      +'</div></div>'
+      +'</div>';
+  }).join('')||'<div style="text-align:center;padding:24px;color:var(--dim);font-size:0.83rem;">Sin tarjetas registradas</div>';
+
+  return '<div class="page-header">'+backBtn('cuentas',1)+'<div class="page-title">💳 Tarjetas de Crédito</div></div>'
+    +items
+    +'<div style="height:80px;"></div>'
+    +'<div style="position:fixed;bottom:75px;left:12px;right:12px;z-index:40;">'
+    +'<button onclick="goSub(\'nueva_tc\')" style="width:100%;padding:16px;background:var(--accent);color:var(--navtext);border:none;border-radius:16px;font-family:\'Outfit\',sans-serif;font-size:1rem;font-weight:800;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.2);">+ Agregar Tarjeta</button>'
+    +'</div>';
+}
+
+function renderFormTC(data){
+  var d=data||{}; var titulo=d.banco?'Editar tarjeta':'Nueva Tarjeta';
+  return '<div class="page-header">'+backBtn('cuentas',1)+'<div class="page-title">💳 '+titulo+'</div></div>'
+    +'<div class="card">'
+    +'<label class="inp-label">Banco / Emisor</label>'
+    +'<input class="inp" id="tcBanco" placeholder="Ej: BBVA, Santander, Citibanamex..." value="'+(d.banco||'')+'">'
+    +'<div class="form-row">'
+    +'<div><label class="inp-label">Tipo</label>'
+    +'<select class="inp" id="tcTipo">'
+    +'<option'+(d.tipo==='Visa'?' selected':'')+'>Visa</option>'
+    +'<option'+(d.tipo==='Mastercard'?' selected':'')+'>Mastercard</option>'
+    +'<option'+(d.tipo==='Amex'?' selected':'')+'>Amex</option>'
+    +'<option'+(d.tipo==='Otro'?' selected':'')+'>Otro</option>'
+    +'</select></div>'
+    +'<div><label class="inp-label">Últimos 4 dígitos</label>'
+    +'<input class="inp" id="tcUltimos" placeholder="1234" maxlength="4" inputmode="numeric" value="'+(d.ultimos||'')+'">'
+    +'</div></div>'
+    +'<div class="form-row">'
+    +'<div><label class="inp-label">Límite de crédito ($)</label><input class="inp" id="tcLimite" type="number" inputmode="decimal" placeholder="0.00" value="'+(d.limite||'')+'" ></div>'
+    +'<div><label class="inp-label">Saldo usado ($)</label><input class="inp" id="tcBalance" type="number" inputmode="decimal" placeholder="0.00" value="'+(d.balance||'')+'" ></div>'
+    +'</div>'
+    +'<div class="form-row">'
+    +'<div><label class="inp-label">Interés anual (%)</label><input class="inp" id="tcInteres" type="number" inputmode="decimal" placeholder="Ej: 36" value="'+(d.interes||'')+'" ></div>'
+    +'<div><label class="inp-label">Día de pago</label><input class="inp" id="tcDiaPago" type="number" inputmode="numeric" placeholder="Ej: 15" min="1" max="31" value="'+(d.diaPago||'')+'" ></div>'
+    +'</div>'
+    +'<label class="inp-label">Fecha de corte</label>'
+    +'<input class="inp" id="tcFechaCorte" type="date" value="'+(d.fechaCorte||'')+'">'
+    +'<div class="form-row">'
+    +'<div><label class="inp-label">Saldo al corte ($)</label><input class="inp" id="tcSaldoCorte" type="number" inputmode="decimal" placeholder="0.00" value="'+(d.saldoCorte||'')+'" ></div>'
+    +'<div><label class="inp-label">Pago mínimo ($)</label><input class="inp" id="tcPagoMin" type="number" inputmode="decimal" placeholder="0.00" value="'+(d.pagoMinimo||'')+'" ></div>'
+    +'</div>'
+    +'<div class="form-row">'
+    +'<div><label class="inp-label">Para no pagar interés ($)</label><input class="inp" id="tcPagoTotal" type="number" inputmode="decimal" placeholder="0.00" value="'+(d.pagoTotal||'')+'" ></div>'
+    +'<div></div>'
+    +'</div>'
+    +'<div style="display:flex;align-items:center;gap:10px;padding:12px 0;">'
+    +'<input type="checkbox" id="tcPagoPend" style="width:18px;height:18px;accent-color:var(--accent);"'+(d.pagoPendiente?' checked':'')+'>'
+    +'<label for="tcPagoPend" style="font-size:0.85rem;font-weight:600;cursor:pointer;">⚠️ Tiene pago pendiente</label>'
+    +'</div>'
+    +'<button class="btn-main" onclick="guardarTC()">💾 '+(d.banco?'Guardar cambios':'Registrar tarjeta')+'</button>'
+    +'</div>';
+}
+
+var _editTCIdx=null;
+function guardarTC(){
+  var banco=document.getElementById('tcBanco').value.trim();
+  if(!banco){ showToast('⚠ Escribe el banco'); return; }
+  var tc={
+    banco:banco,
+    tipo:document.getElementById('tcTipo').value,
+    ultimos:document.getElementById('tcUltimos').value.trim(),
+    limite:parseFloat(document.getElementById('tcLimite').value)||0,
+    balance:parseFloat(document.getElementById('tcBalance').value)||0,
+    interes:parseFloat(document.getElementById('tcInteres').value)||0,
+    diaPago:document.getElementById('tcDiaPago').value,
+    fechaCorte:document.getElementById('tcFechaCorte').value,
+    pagoMinimo:parseFloat(document.getElementById('tcPagoMin').value)||0,
+    pagoTotal:parseFloat(document.getElementById('tcPagoTotal').value)||0,
+    saldoCorte:parseFloat(document.getElementById('tcSaldoCorte').value)||0,
+    pagoPendiente:document.getElementById('tcPagoPend').checked
+  };
+  var c=getCuentas(); c.tarjetas=c.tarjetas||[];
+  if(_editTCIdx!==null){ c.tarjetas[_editTCIdx]=tc; _editTCIdx=null; showToast('✓ Tarjeta actualizada'); }
+  else { c.tarjetas.push(tc); showToast('✓ Tarjeta registrada'); }
+  saveCuentas(c); goSub('tarjetas_credito');
+}
+function editarTC(i){
+  _editTCIdx=i;
+  var c=getCuentas();
+  document.getElementById('mainContent').innerHTML=renderFormTC(c.tarjetas[i]);
+}
+function toggleFormCompraTC(i){
+  var f = document.getElementById('formCompraTC_'+i);
+  if(!f) return;
+  var abierto = f.style.display !== 'none';
+  f.style.display = abierto ? 'none' : 'block';
+  if(!abierto) document.getElementById('tcCDesc_'+i).focus();
+}
+
+function guardarCompraTC(i){
+  var desc  = (document.getElementById('tcCDesc_'+i).value||'').trim();
+  var monto = parseFloat(document.getElementById('tcCMonto_'+i).value);
+  var cat   = document.getElementById('tcCCat_'+i).value;
+  var fecha = document.getElementById('tcCFecha_'+i).value || today();
+  if(!desc){ showToast('⚠ Escribe una descripción'); return; }
+  if(!monto||monto<=0){ showToast('⚠ Escribe un monto válido'); return; }
+
+  // Crear transacción vinculada a esta TC
+  var txs = getTxs();
+  var id = Date.now();
+  txs.push({ id:id, tipo:'gasto', desc:desc, monto:monto, cat:cat, fecha:fecha, cuenta:'tc_'+i });
+  saveTxs(txs);
+
+  // Actualizar balance de la TC
+  var c = getCuentas();
+  c.tarjetas = c.tarjetas||[];
+  if(c.tarjetas[i]){
+    c.tarjetas[i].balance = (Number(c.tarjetas[i].balance)||0) + monto;
+    c.tarjetas[i].pagoPendiente = true;
+    saveCuentas(c);
+  }
+
+  showToast('✅ Compra de '+fmt(monto)+' registrada en '+( c.tarjetas[i]?c.tarjetas[i].banco:'TC'));
+  goSub('tarjetas_credito');
+}
+
+function registrarPagoTC(i){
+  var pago=parseFloat(prompt('Monto del pago ($):')); if(!pago||pago<=0) return;
+  var c=getCuentas(); c.tarjetas[i].balance=Math.max(0,(c.tarjetas[i].balance||0)-pago);
+  if(c.tarjetas[i].balance===0) c.tarjetas[i].pagoPendiente=false;
+  saveCuentas(c); showToast('✓ Pago registrado'); goSub('tarjetas_credito');
+}
+function borrarTC(i){
+  if(!confirm('¿Eliminar esta tarjeta?')) return;
+  var c=getCuentas(); c.tarjetas.splice(i,1); saveCuentas(c); goSub('tarjetas_credito');
+}
+
+function menuAccion(accion){
+  document.getElementById('menuModal').classList.remove('open');
+  var nbs = document.querySelectorAll('.nb');
+  function irMas(sub){
+    nbs.forEach(function(b){ b.classList.remove('active'); });
+    nbs[4].classList.add('active');
+    S.tab='mas'; S.subtab=sub;
+    var renders = {config:renderConfig, codigos:renderCodigos, noticias:renderNoticias};
+    document.getElementById('mainContent').innerHTML = renders[sub] ? renders[sub]() : '';
+  }
+  if(accion==='tema'){ pickTema(); }
+  else if(accion==='salir'){ cerrarSesion(); }
+  else if(accion==='config'){ irMas('config'); }
+  else if(accion==='codigos'){ irMas('codigos'); }
+  else if(accion==='noticias'){ irMas('noticias'); }
+}
+function cerrarMenu(){ var m=document.getElementById('menuModal'); if(m) m.classList.remove('open'); }
+// ══════════════════════════════════════════
+var FAQS = [
+  // ── INICIO ──
+  {cat:'🏠 Inicio', q:'¿Qué muestra la pantalla de Inicio?',
+   a:'Muestra tu balance neto, el resumen de tus cuentas (Efectivo, Banco, Total disponible, Deuda TC), Créditos, Invitados (solo admin) y las últimas transacciones. Toca cualquier tarjeta para ir al módulo correspondiente.'},
+  {cat:'🏠 Inicio', q:'¿Cómo registro un ingreso o gasto rápido?',
+   a:'Todo se registra desde 🏦 Cuentas. Usa el botón U azul en la barra superior para acceder en un toque a Efectivo, Banco o Tarjetas de Crédito desde cualquier pantalla.'},
+  {cat:'🏠 Inicio', q:'¿Qué es el Balance Neto?',
+   a:'Es la suma de todos tus ingresos menos todos tus gastos registrados. Tócalo para ir a la pantalla de Reportes y ver el detalle completo.'},
+
+  // ── BOTÓN U ──
+  {cat:'🔵 Botón U', q:'¿Para qué sirve el botón U azul en la barra superior?',
+   a:'Es un acceso rápido a tus 3 cuentas principales. Tócalo y aparece un menú con Efectivo, Cheques/Banco y Tarjetas de Crédito, cada uno mostrando el saldo actual. Toca cualquiera y vas directo a esa sección.'},
+  {cat:'🔵 Botón U', q:'¿Desde dónde funciona el botón U?',
+   a:'Desde cualquier pantalla del dashboard. No importa en qué pestaña estés — el botón U siempre está en la barra superior y te lleva directo a la cuenta que necesites.'},
+
+  // ── CUENTAS ──
+  {cat:'🏦 Cuentas', q:'¿Qué módulos tiene Cuentas?',
+   a:'Tiene 3 secciones: 💵 Efectivo (tu dinero en mano), 🏧 Cheques/Banco (tus cuentas bancarias) y 💳 Tarjetas de Crédito. Cada una tiene su propio registro de movimientos.'},
+  {cat:'🏦 Cuentas', q:'¿Cómo registro un movimiento de Efectivo?',
+   a:'Ve a Cuentas → Efectivo (o usa el botón U). Elige Entrada o Salida, escribe descripción, monto, categoría y fecha. Al guardar se actualiza tu saldo automáticamente.'},
+  {cat:'🏦 Cuentas', q:'¿Cómo registro un movimiento bancario?',
+   a:'Ve a Cuentas → Cheques/Banco → toca el banco específico. Verás sus movimientos y un formulario de entrada/salida. Cada movimiento actualiza el saldo de esa cuenta.'},
+  {cat:'🏦 Cuentas', q:'¿Cómo agrego una cuenta bancaria?',
+   a:'Ve a Cuentas → Cheques/Banco → llena el formulario: nombre del banco, tipo de cuenta, saldo inicial. Toca Guardar.'},
+  {cat:'🏦 Cuentas', q:'¿Las compras con TC afectan mi efectivo?',
+   a:'No. Las compras con tarjeta solo aumentan la deuda de esa TC. Tu efectivo y banco NO se ven afectados.'},
+
+  // ── TARJETAS ──
+  {cat:'💳 Tarjetas de Crédito', q:'¿Qué información puedo registrar de mi TC?',
+   a:'Banco, tipo (Visa/Mastercard/Amex), últimos 4 dígitos, límite, saldo usado, interés anual, día de pago, fecha de corte, pago mínimo y monto para no pagar intereses.'},
+  {cat:'💳 Tarjetas de Crédito', q:'¿Qué es el Saldo al Corte AUTO?',
+   a:'Se calcula automáticamente sumando todas las compras registradas con esa TC en el período actual. Aparece con badge naranja "AUTO". No necesitas calcularlo manualmente.'},
+  {cat:'💳 Tarjetas de Crédito', q:'¿Cómo registro una compra con TC?',
+   a:'En la tarjeta toca "🛒 Registrar compra". Llena descripción, monto, categoría y fecha. La deuda aumenta pero NO afecta tu efectivo ni banco.'},
+  {cat:'💳 Tarjetas de Crédito', q:'¿Cómo registro un pago de TC?',
+   a:'Toca "💳 Pago" en la tarjeta. Ingresa el monto pagado. El saldo se reduce automáticamente. Si llega a $0 se marca como "Al corriente".'},
+
+  // ── REPORTES ──
+  {cat:'📊 Reportes', q:'¿Qué muestra la pantalla de Reportes?',
+   a:'Ingresos totales, gastos totales y flujo neto del período. Gastos por categoría con barras de progreso, ingresos por fuente y últimos movimientos.'},
+  {cat:'📊 Reportes', q:'¿Cómo llego a Reportes?',
+   a:'Toca 📊 Reportes en la barra inferior (cuarto ícono). También puedes llegar tocando el Balance Neto en Inicio.'},
+
+  // ── CRÉDITOS ──
+  {cat:'🤝 Créditos', q:'¿Qué son los Créditos?',
+   a:'"Mis Deudas" = dinero que tú pediste prestado. "Créditos por Cobrar" = dinero que tú prestaste. Ambos llevan seguimiento de abonos y fechas.'},
+  {cat:'🤝 Créditos', q:'¿Cómo abono a una deuda?',
+   a:'Toca "+ Abonar" en el crédito. La barra de progreso se actualiza al instante. Al llegar al 100% se marca como pagado.'},
+  {cat:'🤝 Créditos', q:'¿Qué significan los colores?',
+   a:'⏳ Amarillo = Pendiente (en plazo). 🔴 Rojo = Vencido. ✅ Verde = Pagado completamente.'},
+
+  // ── HISTORIAL ──
+  {cat:'📋 Historial', q:'¿Qué muestra el Historial?',
+   a:'Ve a Más → Historial. Todas tus transacciones con resumen de ingresos y gastos. Filtra por Todos, 💰 Ingresos o 💸 Gastos. Cada registro muestra la cuenta de origen y tiene botones de editar y eliminar.'},
+  {cat:'📋 Historial', q:'¿Puedo filtrar el historial?',
+   a:'Sí. Tres botones al inicio: "Todos", "💰 Ingresos" y "💸 Gastos". Toca el que necesites.'},
+
+  // ── LOGIN ──
+  {cat:'🔐 Login', q:'¿Cómo entro más rápido la próxima vez?',
+   a:'La app recuerda tu sesión automáticamente. La próxima vez que abras USALA verás tu nombre y un botón "¡Continuar! →". Un solo toque y estás adentro.'},
+  {cat:'🔐 Login', q:'¿Puedo cerrar sesión y entrar con otro código?',
+   a:'Sí. En la pantalla de sesión recordada toca "No soy yo — ingresar con otro código". También puedes cerrar sesión desde Más → Configuración → Cerrar sesión.'},
+
+  // ── VOZ ──
+  {cat:'🎙️ Comandos de Voz', q:'¿Cómo activo los comandos de voz?',
+   a:'Toca el ícono 🎙️ en la barra superior. Habla claramente tu comando. La app lo procesa y ejecuta la acción automáticamente.'},
+  {cat:'🎙️ Comandos de Voz', q:'¿Qué comandos de voz puedo usar?',
+   a:'Puedes decir: "ir a efectivo", "ir a banco", "ir a tarjetas", "ir a créditos", "ir a reportes", "ir a inicio", "abrir calculadora", "ir a historial", "ir a metas", "ir a presupuesto". También puedes decir "ayuda" para abrir esta pantalla.'},
+  {cat:'🎙️ Comandos de Voz', q:'¿En qué idioma funcionan los comandos?',
+   a:'En español. Habla de forma natural y corta. Por ejemplo: "efectivo", "banco", "tarjetas", "inicio". La app reconoce la palabra clave dentro de lo que dices.'},
+  {cat:'🎙️ Comandos de Voz', q:'¿Funciona en todos los teléfonos?',
+   a:'Funciona en la mayoría de navegadores modernos (Chrome, Edge, Safari en iOS 15+). Si tu navegador no soporta reconocimiento de voz, el botón no aparecerá.'},
+
+  // ── ACCESO ──
+  {cat:'🔑 Acceso', q:'¿Cómo entran otras personas?',
+   a:'El admin genera un código en Más → Códigos de Acceso y lo comparte. O el visitante toca "📩 Solicitar acceso" en el login y el admin aprueba generando el código automáticamente.'},
+  {cat:'🔑 Acceso', q:'¿Cómo apruebo una solicitud?',
+   a:'Aparece un badge 🔴 en el topbar. Tócalo → Códigos de Acceso → Solicitudes pendientes. Toca "✅ Aprobar" para generar el código y copiarlo al portapapeles.'},
+  {cat:'🔑 Acceso', q:'¿Los datos de cada usuario son privados?',
+   a:'Sí. Cada usuario tiene su propio espacio aislado. Los invitados no ven datos del admin ni entre ellos.'},
+  {cat:'🔑 Acceso', q:'¿Olvidé mi contraseña de admin?',
+   a:'En el login toca "🔐 Admin" → "¿Olvidaste tu contraseña? Restablecer". Podrás usar la clave maestra admin1234.'},
+
+  // ── CONFIG ──
+  {cat:'⚙️ Config', q:'¿Cómo cambio el tema visual?',
+   a:'Más → Configuración → Cambiar tema. 5 temas: Verde Natural, Oscuro Pro, Dorado Élite, Océano y Rosa Elegante.'},
+  {cat:'⚙️ Config', q:'¿Cómo cambio mi contraseña?',
+   a:'Más → Configuración → escribe y confirma tu nueva contraseña (mínimo 4 caracteres).'},
+  {cat:'⚙️ Config', q:'¿Cómo borro mis datos?',
+   a:'Más → Configuración → Zona de peligro. Puedes borrar solo las transacciones o restablecer toda tu cuenta. No se puede deshacer.'},
+
+  // ── GENERAL ──
+  {cat:'↩️ General', q:'¿Puedo deshacer un borrado?',
+   a:'Sí. Tienes 6 segundos después de eliminar para tocar "Deshacer" en la barra verde que aparece abajo.'},
+  {cat:'↩️ General', q:'¿La app guarda automáticamente?',
+   a:'Sí. Todo se guarda automáticamente en tu dispositivo al instante.'},
+  {cat:'↩️ General', q:'¿Funciona sin internet?',
+   a:'Sí. Una vez cargada funciona completamente sin conexión. Los datos se guardan localmente.'},
+  {cat:'↩️ General', q:'¿Cómo uso la calculadora?',
+   a:'Toca 🔢 en la barra superior. Puedes arrastrarla, minimizarla con el botón amarillo (−) sin perder tus cálculos, o cerrarla con el botón rojo (✕).'},
+];
+
+function renderAyuda(){
+  var html = '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">❓ Ayuda</div></div>'
+    +'<div style="position:relative;margin-bottom:14px;">'
+    +'<input class="inp" id="ayudaBusca" placeholder="🔍 Buscar en la ayuda..." oninput="filtrarAyuda()" style="padding-left:16px;">'
+    +'</div>'
+    +'<div id="ayudaLista">'+renderFaqs('')+'</div>';
+  return html;
+}
+function renderFaqs(q){
+  var term = q.toLowerCase().trim();
+  var filtrados = FAQS.filter(function(f){
+    return !term || f.q.toLowerCase().includes(term) || f.a.toLowerCase().includes(term) || f.cat.toLowerCase().includes(term);
+  });
+  if(!filtrados.length) return '<div style="text-align:center;padding:24px;color:var(--dim);font-size:0.83rem;">No se encontraron resultados para "'+q+'"</div>';
+  var porCat = {};
+  filtrados.forEach(function(f){ if(!porCat[f.cat]) porCat[f.cat]=[]; porCat[f.cat].push(f); });
+  return Object.keys(porCat).map(function(cat){
+    return '<div style="font-size:0.65rem;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);margin:14px 0 6px;">'+cat+'</div>'
+      + porCat[cat].map(function(f,i){
+          var id='faq_'+cat.replace(/\W/g,'')+'_'+i;
+          return '<div class="card" style="margin-bottom:6px;cursor:pointer;" onclick="toggleFaq(\''+id+'\')">'
+            +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+            +'<div style="font-weight:700;font-size:0.85rem;flex:1;padding-right:8px;">'+f.q+'</div>'
+            +'<div id="arr_'+id+'" style="color:var(--dim);font-size:1rem;flex-shrink:0;">›</div>'
+            +'</div>'
+            +'<div id="'+id+'" style="display:none;font-size:0.78rem;color:var(--dim);line-height:1.6;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">'+f.a+'</div>'
+            +'</div>';
+        }).join('');
+  }).join('');
+}
+function filtrarAyuda(){
+  var q=document.getElementById('ayudaBusca').value;
+  document.getElementById('ayudaLista').innerHTML=renderFaqs(q);
+}
+function toggleFaq(id){
+  var el=document.getElementById(id);
+  var arr=document.getElementById('arr_'+id);
+  if(!el) return;
+  var open=el.style.display==='block';
+  el.style.display=open?'none':'block';
+  arr.textContent=open?'›':'↓';
+}
+</script>
+</body>
+</html>
