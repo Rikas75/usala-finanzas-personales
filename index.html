@@ -2425,7 +2425,7 @@ function renderEfectivo(){
     +'<div><label class="inp-label">Monto ($)</label><input class="inp" id="efMonto" type="number" inputmode="decimal" placeholder="0.00"></div>'
     +'<div><label class="inp-label">Categoría</label>'
     +'<select class="inp" id="efCat">'
-    + catEnt.map(function(c){ return '<option>'+c+'</option>'; }).join('')
+    + catEnt.map(function(cat){ return '<option>'+cat+'</option>'; }).join('')
     +'</select></div>'
     +'</div>'
     +'<label class="inp-label">Fecha</label>'
@@ -2447,7 +2447,7 @@ function selEfTipo(t){
     ? ['Salario','Freelance','Negocio','Venta','Regalo','Otros ingresos']
     : ['Alimentación','Transporte','Servicios','Compras','Pagos','Entretenimiento','Transferencia a banco','Otros gastos'];
   var sel = document.getElementById('efCat');
-  if(sel) sel.innerHTML = cats.map(function(c){ return '<option>'+c+'</option>'; }).join('');
+  if(sel) sel.innerHTML = cats.map(function(cat){ return '<option>'+cat+'</option>'; }).join('');
   // Mostrar/ocultar selector de banco destino
   var destRow = document.getElementById('efDestRow');
   if(destRow) destRow.style.display = esEnt ? 'none' : 'block';
@@ -2566,7 +2566,7 @@ function renderBancoDetalle(idx){
     +'<div><label class="inp-label">Monto ($)</label><input class="inp" id="bkMonto" type="number" inputmode="decimal" placeholder="0.00"></div>'
     +'<div><label class="inp-label">Categoría</label>'
     +'<select class="inp" id="bkCat">'
-    +catEnt.map(function(c){ return '<option>'+c+'</option>'; }).join('')
+    +catEnt.map(function(cat){ return '<option>'+cat+'</option>'; }).join('')
     +'</select></div></div>'
     +'<label class="inp-label">Fecha</label>'
     +'<input class="inp" id="bkFecha" type="date" value="'+today()+'">'
@@ -2579,7 +2579,7 @@ function selBkTipo(t, idx){
   document.getElementById('bkTipoEnt').classList.toggle('selected',esEnt);
   document.getElementById('bkTipoSal').classList.toggle('selected',!esEnt);
   var cats=esEnt?['Salario','Depósito','Transferencia recibida','Nómina','Inversión','Otros ingresos']:['Pago de servicio','Transferencia enviada','Compra','Retiro','Otros gastos'];
-  var sel=document.getElementById('bkCat'); if(sel) sel.innerHTML=cats.map(function(c){ return '<option>'+c+'</option>'; }).join('');
+  var sel=document.getElementById('bkCat'); if(sel) sel.innerHTML=cats.map(function(cat){ return '<option>'+cat+'</option>'; }).join('');
 }
 function guardarMovBanco(idx){
   var desc=document.getElementById('bkDesc').value.trim();
