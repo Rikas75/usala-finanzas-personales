@@ -2062,27 +2062,40 @@ function toggleUMenu(){
   if(!menu) return;
   var abierto = menu.style.display === 'block';
   if(abierto){
-    menu.style.opacity='0'; menu.style.transform='scale(0.85) translateY(-10px)';
-    setTimeout(function(){ menu.style.display='none'; }, 220);
-    if(btn) btn.style.transform='rotate(0deg)';
+    cerrarUMenu();
   } else {
     actualizarUMenu();
-    menu.style.display='block';
+    menu.style.display = 'block';
     requestAnimationFrame(function(){
-      menu.style.opacity='1'; menu.style.transform='scale(1) translateY(0)';
+      menu.style.opacity = '1';
+      menu.style.transform = 'scale(1) translateY(0)';
     });
-    if(btn) btn.style.transform='rotate(45deg)';
+    if(btn) btn.style.background = 'var(--accent2,#4f8ef7)';
+    // Cerrar al tocar fuera — esperar 300ms para que no cierre al instante
     setTimeout(function(){
-      document.addEventListener('click', function cerrarFuera(e){
-        if(!menu.contains(e.target) && e.target.id!=='uFabBtn'){
-          menu.style.opacity='0'; menu.style.transform='scale(0.85) translateY(-10px)';
-          setTimeout(function(){ menu.style.display='none'; }, 220);
-          if(btn) btn.style.transform='rotate(0deg)';
+      function cerrarFuera(e){
+        var dentroMenu = menu.contains(e.target);
+        var esBtn = btn && (btn === e.target || btn.contains(e.target));
+        if(!dentroMenu && !esBtn){
+          cerrarUMenu();
+          document.removeEventListener('touchstart', cerrarFuera);
           document.removeEventListener('click', cerrarFuera);
         }
-      });
-    }, 100);
+      }
+      document.addEventListener('touchstart', cerrarFuera, {passive:true});
+      document.addEventListener('click', cerrarFuera);
+    }, 300);
   }
+}
+
+function cerrarUMenu(){
+  var menu = document.getElementById('uFabMenu');
+  var btn  = document.getElementById('uFabBtn');
+  if(!menu) return;
+  menu.style.opacity = '0';
+  menu.style.transform = 'scale(0.85) translateY(-10px)';
+  setTimeout(function(){ menu.style.display = 'none'; }, 220);
+  if(btn) btn.style.background = 'linear-gradient(135deg,var(--accent),var(--accent2))';
 }
 
 function actualizarUMenu(){
@@ -2099,10 +2112,7 @@ function actualizarUMenu(){
 }
 
 function irACuenta(sub){
-  var menu = document.getElementById('uFabMenu');
-  var btn  = document.getElementById('uFabBtn');
-  if(menu){ menu.style.opacity='0'; menu.style.transform='scale(0.85) translateY(-10px)'; setTimeout(function(){ menu.style.display='none'; },200); }
-  if(btn) btn.style.transform='rotate(0deg)';
+  cerrarUMenu();
   goTab('cuentas', document.querySelectorAll('.nb')[1]);
   setTimeout(function(){ goSub(sub); }, 120);
 }
