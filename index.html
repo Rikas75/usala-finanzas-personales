@@ -545,9 +545,9 @@ select.inp{appearance:none;-webkit-appearance:none;}
     </div>
     <div style="display:flex;gap:6px;align-items:center;">
       <!-- Botón minimizar -->
-      <button id="calcMinBtn" style="background:rgba(255,200,0,0.2);border:none;color:#ffd60a;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1rem;font-weight:900;line-height:28px;text-align:center;flex-shrink:0;" title="Minimizar">−</button>
+      <button id="calcMinBtn" onclick="minimizarCalc()" style="background:rgba(255,200,0,0.2);border:none;color:#ffd60a;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1rem;font-weight:900;line-height:28px;text-align:center;flex-shrink:0;" title="Minimizar">−</button>
       <!-- Botón cerrar -->
-      <button id="calcCloseBtn" style="background:rgba(255,60,60,0.25);border:none;color:#ff6b6b;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:0.9rem;font-weight:900;line-height:28px;text-align:center;flex-shrink:0;" title="Cerrar">✕</button>
+      <button id="calcCloseBtn" onclick="cerrarCalc()" style="background:rgba(255,60,60,0.25);border:none;color:#ff6b6b;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:0.9rem;font-weight:900;line-height:28px;text-align:center;flex-shrink:0;" title="Cerrar">✕</button>
     </div>
   </div>
   <!-- Display -->
@@ -892,13 +892,14 @@ var _calcExpr = '', _calcResult = '0', _calcNewNum = true;
 var _calcScale = 1.0;
 
 function abrirCalc(){
-  // NO resetear si ya hay datos (viene de minimizado)
   var cf = document.getElementById('calcFloat');
   var bb = document.getElementById('calcBubble');
-  // Si está minimizado, restaurar en lugar de abrir nuevo
+  // Si está minimizado como burbuja → restaurar
   if(bb && bb.style.display !== 'none'){
     restaurarCalc(); return;
   }
+  // Si ya está abierto → no hacer nada
+  if(cf.style.display === 'block') return;
   // Primera apertura — resetear
   _calcExpr=''; _calcResult='0'; _calcNewNum=true;
   document.getElementById('calcDisplay').textContent='0';
@@ -907,13 +908,6 @@ function abrirCalc(){
   cf.style.bottom='100px'; cf.style.right='14px';
   cf.style.left='auto'; cf.style.top='auto';
   if(bb) bb.style.display='none';
-
-  document.getElementById('calcMinBtn').onclick = function(e){
-    e.stopPropagation(); minimizarCalc();
-  };
-  document.getElementById('calcCloseBtn').onclick = function(e){
-    e.stopPropagation(); cerrarCalc();
-  };
   iniciarDragCalc();
   iniciarDragBurbuja();
 }
@@ -953,8 +947,6 @@ function restaurarCalc(){
     cf.style.opacity    = '1';
     setTimeout(function(){ cf.style.transition=''; }, 350);
   });
-  document.getElementById('calcMinBtn').onclick = function(e){ e.stopPropagation(); minimizarCalc(); };
-  document.getElementById('calcCloseBtn').onclick = function(e){ e.stopPropagation(); cerrarCalc(); };
 }
 
 function cerrarCalc(){
@@ -1004,9 +996,10 @@ function iniciarDragCalc(){
   var cf = document.getElementById('calcFloat');
   var startX,startY,startL,startT,dragging=false;
 
+  function esBtnCalc(el){ return el.id==='calcMinBtn'||el.id==='calcCloseBtn'||el.closest&&(el.closest('#calcMinBtn')||el.closest('#calcCloseBtn')); }
+
   handle.ontouchstart = function(e){
-    // Si toca el botón cerrar, no arrastra
-    if(e.target.id==='calcCloseBtn') return;
+    if(esBtnCalc(e.target)) return;
     if(e.touches.length!==1) return;
     dragging=true;
     var r=cf.getBoundingClientRect();
@@ -1018,17 +1011,15 @@ function iniciarDragCalc(){
   };
   handle.ontouchmove = function(e){
     if(!dragging||e.touches.length!==1) return;
-    var dx=e.touches[0].clientX-startX;
-    var dy=e.touches[0].clientY-startY;
+    var dx=e.touches[0].clientX-startX, dy=e.touches[0].clientY-startY;
     var newL=Math.max(0,Math.min(window.innerWidth-cf.offsetWidth, startL+dx));
     var newT=Math.max(0,Math.min(window.innerHeight-cf.offsetHeight, startT+dy));
     cf.style.left=newL+'px'; cf.style.top=newT+'px';
     e.preventDefault();
   };
   handle.ontouchend=function(){ dragging=false; };
-
   handle.onmousedown=function(e){
-    if(e.target.id==='calcCloseBtn') return;
+    if(esBtnCalc(e.target)) return;
     dragging=true;
     var r=cf.getBoundingClientRect();
     startX=e.clientX; startY=e.clientY;
