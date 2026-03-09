@@ -3295,7 +3295,39 @@ function toggleMicIA(){
 }
 function iniciarMicIA(){
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SR){ agregarMensajeIA('Tu navegador no soporta reconocimiento de voz 😔', 'ia'); return; }
+  if(!SR){
+    agregarMensajeIA('Tu navegador no soporta reconocimiento de voz 😔. Usa Chrome en Android o Safari en iPhone.', 'ia');
+    hablarIA('Tu navegador no soporta reconocimiento de voz.');
+    return;
+  }
+  // Pedir permiso del micrófono explícitamente primero
+  if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+    navigator.mediaDevices.getUserMedia({audio:true})
+      .then(function(stream){
+        // Permiso concedido — detener el stream de prueba y arrancar reconocimiento
+        stream.getTracks().forEach(function(t){ t.stop(); });
+        _arrancarReconocimiento();
+      })
+      .catch(function(err){
+        var msg = '';
+        if(err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError'){
+          msg = '🎤 Permiso de micrófono denegado. Ve a Configuración de tu navegador → Permisos del sitio → Micrófono → Permitir. Luego recarga la app.';
+        } else if(err.name === 'NotFoundError'){
+          msg = '🎤 No encontré micrófono en tu dispositivo.';
+        } else {
+          msg = '🎤 No se pudo acceder al micrófono: ' + err.message;
+        }
+        agregarMensajeIA(msg, 'ia');
+        hablarIA('Necesito permiso para usar el micrófono.');
+      });
+  } else {
+    // Navegador sin mediaDevices — intentar directo
+    _arrancarReconocimiento();
+  }
+}
+
+function _arrancarReconocimiento(){
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   detenerHabla();
   _iaRec = new SR();
   _iaRec.lang = 'es-MX';
@@ -3313,7 +3345,17 @@ function iniciarMicIA(){
   _iaRec.onend = function(){ detenerMicIA(); };
   _iaRec.onerror = function(e){
     detenerMicIA();
-    if(e.error !== 'no-speech') agregarMensajeIA('No te escuché bien, intenta de nuevo 🎤', 'ia');
+    if(e.error === 'not-allowed'){
+      var instrucciones = '🔒 Micrófono bloqueado. En Chrome: toca los 3 puntos ⋮ → Configuración → Privacidad → Configuración del sitio → Micrófono → busca esta página y permite. Luego recarga.';
+      agregarMensajeIA(instrucciones, 'ia');
+      hablarIA('El micrófono está bloqueado. Necesitas habilitarlo en la configuración del navegador.');
+    } else if(e.error === 'no-speech'){
+      agregarMensajeIA('No escuché nada 🤔 ¿Intentamos de nuevo?', 'ia');
+    } else if(e.error === 'network'){
+      agregarMensajeIA('Error de red al procesar la voz. Verifica tu conexión 📶', 'ia');
+    } else {
+      agregarMensajeIA('Error de voz (' + e.error + '). Intenta de nuevo 🎤', 'ia');
+    }
   };
   _iaRec.onresult = function(e){
     var texto = e.results[0][0].transcript.trim();
@@ -3321,7 +3363,11 @@ function iniciarMicIA(){
     agregarMensajeIA(texto, 'user');
     procesarConIA(texto);
   };
-  try{ _iaRec.start(); } catch(e){ agregarMensajeIA('No se pudo activar el micrófono', 'ia'); }
+  try{
+    _iaRec.start();
+  } catch(e){
+    agregarMensajeIA('No se pudo iniciar el micrófono. Recarga la app e intenta de nuevo.', 'ia');
+  }
 }
 function detenerMicIA(){
   _iaActivo = false;
@@ -3519,4 +3565,4 @@ function ejecutarAccionIA(resp){
   }
 }
 }
-        </script>
+  </script>
