@@ -397,6 +397,31 @@ select.inp{appearance:none;-webkit-appearance:none;}
 </div>
 
 <!-- ══ TX MODAL ══ -->
+<!-- ══ BIENVENIDA MODAL ══ -->
+<div class="modal" id="welcomeModal" style="align-items:flex-end;">
+  <div style="background:var(--card);border-radius:24px 24px 0 0;padding:32px 24px 40px;max-width:480px;width:100%;position:relative;box-shadow:0 -8px 40px rgba(0,0,0,0.15);">
+    <!-- Barra handle -->
+    <div style="width:40px;height:4px;background:var(--border);border-radius:4px;margin:0 auto 24px;"></div>
+    <!-- Emoji grande animado -->
+    <div style="text-align:center;font-size:3rem;margin-bottom:16px;animation:bounceIn 0.6s ease;">👋</div>
+    <!-- Título -->
+    <div style="text-align:center;font-size:1.4rem;font-weight:900;color:var(--text);margin-bottom:6px;" id="welcomeName">¡Bienvenido/a a USALA!</div>
+    <!-- Mensaje -->
+    <div style="text-align:center;font-size:0.88rem;color:var(--dim);line-height:1.7;margin-bottom:24px;padding:0 8px;">
+      Ese dinero que <strong style="color:var(--text);">"desaparece"</strong> cada quincena — aquí lo vamos a encontrar juntos.<br><br>
+      Desde hoy sabes exactamente cuánto tienes, cuánto debes y cuánto puedes gastar. Sin hojas de cálculo, sin estrés, sin juicios.<br><br>
+      No necesitas ser experto en finanzas. Solo necesitas empezar.
+    </div>
+    <!-- Frase final -->
+    <div style="text-align:center;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:14px;padding:14px;margin-bottom:20px;">
+      <div style="color:#fff;font-weight:900;font-size:0.95rem;">El primer paso ya lo diste. 🚀</div>
+    </div>
+    <!-- Botón -->
+    <button onclick="cerrarWelcome()" style="width:100%;padding:15px;background:var(--accent);color:var(--navtext);border:none;border-radius:16px;font-family:'Outfit',sans-serif;font-size:1rem;font-weight:800;cursor:pointer;">
+      ¡Empezar ahora! →
+    </button>
+  </div>
+</div>
 <div class="modal" id="txModal">
   <div class="modal-box" style="position:relative;z-index:2;">
     <div class="modal-header">
@@ -622,11 +647,31 @@ function initDashboard(){
   var un = document.getElementById('topUserName');
   if(un) un.textContent = u.isAdmin ? '⚙️ Admin' : '👤 ' + u.nombre;
   var vb = document.getElementById('verBadge'); if(vb) vb.textContent = 'v' + APP_VERSION;
-  // Mostrar badge de solicitudes si es admin y hay pendientes
   if(u.isAdmin){
     actualizarBadgeSolicitudes();
   }
   goTab('inicio', document.querySelector('.nb'));
+  // Mostrar bienvenida solo la primera vez (no al admin)
+  if(!u.isAdmin){
+    var keyVisto = 'usala_bienvenida_' + u.codigo;
+    if(!localStorage.getItem(keyVisto)){
+      setTimeout(function(){
+        var wn = document.getElementById('welcomeName');
+        if(wn) wn.textContent = '¡Bienvenido/a, ' + u.nombre.split(' ')[0] + '! 👋';
+        var m = document.getElementById('welcomeModal');
+        if(m) m.classList.add('open');
+      }, 600);
+    }
+  }
+}
+
+function cerrarWelcome(){
+  var m = document.getElementById('welcomeModal');
+  if(m) m.classList.remove('open');
+  // Marcar como visto para no volver a mostrar
+  if(S.user && !S.user.isAdmin){
+    localStorage.setItem('usala_bienvenida_' + S.user.codigo, '1');
+  }
 }
 
 function actualizarBadgeSolicitudes(){
