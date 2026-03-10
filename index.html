@@ -1125,7 +1125,7 @@ function goSub(sub){
     tarjetas_credito: renderTarjetasCredito,
     nueva_tc: function(){ return renderFormTC(null); },
     // Créditos
-    creditos_debo: renderCreditosDebo, creditos_cobrar: renderCreditosCobrar,
+    creditos_debo: null, creditos_cobrar: null,
     nueva_deuda: function(){ return renderFormCredito('deuda', null); },
     nuevo_prestamo: function(){ return renderFormCredito('prestamo', null); },
     // Más
@@ -1135,6 +1135,8 @@ function goSub(sub){
     codigos: renderCodigos, config: renderConfig, ayuda: renderAyuda,
     version: renderVersion, noticias: renderNoticias
   };
+  if(sub==='creditos_debo'){ renderCreditosDebo(); return; }
+  if(sub==='creditos_cobrar'){ renderCreditosCobrar(); return; }
   var fn = renders[sub];
   if(fn) document.getElementById('mainContent').innerHTML = fn();
 }
@@ -1982,23 +1984,32 @@ function renderListaCreds(tipo){
     fragment.appendChild(div);
   });
 
-  // Retornar string vacío — el render se hace por DOM
-  // Usamos un contenedor temporal para obtener el HTML
-  var tmp = document.createElement('div');
-  tmp.appendChild(fragment);
-  return tmp.innerHTML;
+  // Agregar nodos directo al mainContent (después del header+botón ya insertados)
+  var mc = document.getElementById('mainContent');
+  mc.appendChild(fragment);
 }
 
 function renderCreditosDebo(){
-  return '<div class="page-header">'+backSubBtn()+'<div class="page-title">📤 Mis Deudas</div></div>'
-    +'<button onclick="goSub(\'nueva_deuda\')" style="width:100%;padding:14px;background:var(--accent);color:var(--navtext);border:none;border-radius:12px;font-family:\'Outfit\',sans-serif;font-weight:700;cursor:pointer;margin-bottom:14px;">+ Nueva deuda</button>'
-    +renderListaCreds('deuda');
+  var mc = document.getElementById('mainContent');
+  mc.innerHTML = '<div class="page-header">'+backSubBtn()+'<div class="page-title">📤 Mis Deudas</div></div>';
+  var bNew = document.createElement('button');
+  bNew.style.cssText = 'width:100%;padding:14px;background:var(--accent);color:var(--navtext);border:none;border-radius:12px;font-family:\'Outfit\',sans-serif;font-weight:700;cursor:pointer;margin-bottom:14px;';
+  bNew.textContent = '+ Nueva deuda';
+  bNew.onclick = function(){ goSub('nueva_deuda'); };
+  mc.appendChild(bNew);
+  renderListaCreds('deuda');
 }
 function renderCreditosCobrar(){
-  return '<div class="page-header">'+backSubBtn()+'<div class="page-title">📥 Créditos por Cobrar</div></div>'
-    +'<button onclick="goSub(\'nuevo_prestamo\')" style="width:100%;padding:14px;background:var(--accent);color:var(--navtext);border:none;border-radius:12px;font-family:\'Outfit\',sans-serif;font-weight:700;cursor:pointer;margin-bottom:14px;">+ Nuevo préstamo</button>'
-    +renderListaCreds('prestamo');
+  var mc = document.getElementById('mainContent');
+  mc.innerHTML = '<div class="page-header">'+backSubBtn()+'<div class="page-title">📥 Créditos por Cobrar</div></div>';
+  var bNew = document.createElement('button');
+  bNew.style.cssText = 'width:100%;padding:14px;background:var(--accent);color:var(--navtext);border:none;border-radius:12px;font-family:\'Outfit\',sans-serif;font-weight:700;cursor:pointer;margin-bottom:14px;';
+  bNew.textContent = '+ Nuevo préstamo';
+  bNew.onclick = function(){ goSub('nuevo_prestamo'); };
+  mc.appendChild(bNew);
+  renderListaCreds('prestamo');
 }
+
 
 function renderFormCredito(tipo, data){
   var esD = tipo==='deuda';
@@ -3816,4 +3827,4 @@ function procesarComandoVoz(t){
 
 </script>
 </body>
-  </html>
+      </html>
