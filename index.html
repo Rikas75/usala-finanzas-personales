@@ -982,8 +982,15 @@ function entrarSesionGuardada(){
   if(!cod){ localStorage.removeItem('usala_session'); mostrarPanelCodigo(); return; }
   var venc = new Date(cod.vencimiento.split('-').join('/'));
   if(venc < hoy){ localStorage.removeItem('usala_session'); mostrarPanelCodigo(); return; }
-  S.user = { nombre: ses.nombre, codigo: ses.codigo, isAdmin: false };
-  initDashboard();
+  // Verificar NIP si tiene configurado
+  var nip = localStorage.getItem('usala_nip_u_' + ses.codigo);
+  if(nip){
+    _sesionPendiente = ses;
+    mostrarPanelConNip(ses.nombre.split(' ')[0]);
+  } else {
+    S.user = { nombre: ses.nombre, codigo: ses.codigo, isAdmin: false };
+    initDashboard();
+  }
 }
 
 function abrirAdminModal(){
@@ -1000,12 +1007,16 @@ function verificarAdmin(){
   if(pass === 'admin1234' || pass === guardada){
     cerrarAdminModal();
     S.user = { nombre: 'Administrador', codigo: 'ADMIN', isAdmin: true };
-    var sesData = JSON.stringify({ nombre: 'Administrador', codigo: 'ADMIN', isAdmin: true });
-    localStorage.setItem('usala_session', sesData);
-    // Verificar que se guardó
-    var verificar = localStorage.getItem('usala_session');
-    console.log('Sesión admin guardada:', verificar);
-    initDashboard();
+    localStorage.setItem('usala_session', JSON.stringify({ nombre: 'Administrador', codigo: 'ADMIN', isAdmin: true }));
+    // Verificar NIP antes de entrar
+    var nip = localStorage.getItem('usala_nip_admin');
+    if(nip){
+      _sesionPendiente = { nombre: 'Administrador', codigo: 'ADMIN', isAdmin: true };
+      showScreen('accessScreen');
+      mostrarPanelConNip('Administrador');
+    } else {
+      initDashboard();
+    }
   } else {
     document.getElementById('adminErr').style.display = 'block';
     document.getElementById('adminPass').value = '';
@@ -1799,6 +1810,23 @@ function renderListaCreds(tipo){
     var badge = c.estado==='pagado' ? '<span class="cred-badge badge-pagado">✅ Pagado</span>'
               : venc ? '<span class="cred-badge badge-vencido">🔴 Vencido</span>'
               : '<span class="cred-badge badge-pend">⏳ Pendiente</span>';
+    // Historial de abonos
+    var histHtml = '';
+    if(c.historialAbonos && c.historialAbonos.length){
+      var filas = c.historialAbonos.slice().reverse().map(function(a){
+        return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:0.76rem;">'
+          +'<span style="color:var(--dim);">'+a.fecha+'</span>'
+          +'<span style="font-weight:700;color:var(--accent);">'+fmt(a.monto)+'</span>'
+          +'</div>';
+      }).join('');
+      histHtml = '<div id="hist_'+tipo+'_'+i+'" style="display:none;margin-top:8px;background:var(--inp);border-radius:10px;padding:8px 12px;">'
+        +'<div style="font-size:0.72rem;font-weight:800;color:var(--dim);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.06em;">Historial de abonos</div>'
+        + filas
+        +'</div>';
+    }
+    var btnHist = (c.historialAbonos && c.historialAbonos.length)
+      ? '<button class="cred-btn" onclick="var h=document.getElementById(\'hist_'+tipo+'_'+i+'\');h.style.display=h.style.display===\'none\'?\'block\':\'none\'">📋 '+c.historialAbonos.length+'</button>'
+      : '';
     return '<div class="cred-item">'
       +'<div class="cred-top"><div><div class="cred-persona">'+c.persona+'</div><div class="cred-desc">'+c.descripcion+(c.interes?' · '+c.interes+'% int.':'')+(c.fechaLimite?' · '+c.fechaLimite:'')+'</div></div>'+badge+'</div>'
       +'<div class="cred-amounts"><span>Abonado: '+fmt(c.abonado||0)+'</span><span>Total: '+fmt(c.monto)+'</span></div>'
@@ -1806,9 +1834,12 @@ function renderListaCreds(tipo){
       +'<div class="cred-btns">'
       +(c.estado!=='pagado'?'<button class="cred-btn success" onclick="abonarCred('+i+',\''+tipo+'\')">+ Abonar</button>':'')
       +(c.estado!=='pagado'?'<button class="cred-btn success" onclick="pagarCred('+i+',\''+tipo+'\')">✅</button>':'')
+      + btnHist
       +'<button class="cred-btn" onclick="editarCred('+i+',\''+tipo+'\')">✏️</button>'
       +'<button class="cred-btn danger" onclick="borrarCred('+i+',\''+tipo+'\')">🗑️</button>'
-      +'</div></div>';
+      +'</div>'
+      + histHtml
+      +'</div>';
   }).join('');
 }
 
@@ -3543,4 +3574,4 @@ function procesarComandoVoz(t){
 }
 </script>
 </body>
-  </html>
+</html>
