@@ -2189,7 +2189,7 @@ function restablecerMic(){
   _iaHistorial = [];
   _iaAbierto = false;
   var p = document.getElementById('iaPanel');
-  if(p){ p.classList.remove('visible'); }
+  if(p){ p.style.display = 'none'; }
   var bub = document.getElementById('iaBubbles');
   if(bub) bub.innerHTML = '';
   showToast('🎤 Restablecido. Abre el asistente 🎙️ para solicitarlo de nuevo.');
@@ -3273,7 +3273,7 @@ function _esArchivoLocal(){
 function abrirIA(){
   _iaAbierto = true;
   var p = document.getElementById('iaPanel');
-  if(p){ p.classList.add('visible'); }
+  if(p){ p.style.display = 'flex'; p.style.flexDirection = 'column'; }
 
   // Ya hay conversación abierta — solo mostrar
   if(_iaHistorial.length > 0) return;
@@ -3432,7 +3432,7 @@ function elegirOtraMoneda(){
 function cerrarIA(){
   _iaAbierto = false;
   var p = document.getElementById('iaPanel');
-  if(p){ p.classList.remove('visible'); }
+  if(p){ p.style.display = 'none'; }
   detenerMicIA();
   detenerHabla();
 }
@@ -3444,7 +3444,28 @@ function toggleVoz(){
 // Micrófono
 function toggleMicIA(){
   if(_iaActivo){ detenerMicIA(); return; }
-  iniciarMicIA();
+  var btn = document.getElementById('iaMicBtn');
+  var permiso = localStorage.getItem('usala_mic_permiso');
+  if(permiso === 'granted'){
+    // Ya tiene permiso — arrancar directo
+    iniciarMicIA();
+  } else {
+    // Pedir permiso y al recibirlo arrancar inmediatamente
+    if(btn){ btn.textContent = '⏳'; }
+    navigator.mediaDevices.getUserMedia({audio:true})
+      .then(function(stream){
+        stream.getTracks().forEach(function(t){ t.stop(); });
+        localStorage.setItem('usala_mic_permiso','granted');
+        agregarMensajeIA('✅ ¡Micrófono activado! Ahora habla 🎤', 'ia');
+        // Arrancar reconocimiento inmediatamente
+        iniciarMicIA();
+      })
+      .catch(function(err){
+        localStorage.setItem('usala_mic_permiso','denied');
+        if(btn){ btn.textContent = '🎤'; }
+        agregarMensajeIA('❌ Permiso denegado. Chrome ⋮ → Configuración del sitio → Micrófono → permite rikas75.github.io → recarga.', 'ia');
+      });
+  }
 }
 function iniciarMicIA(){
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -3465,7 +3486,7 @@ function _arrancarReconocimiento(){
   _iaRec.onstart = function(){
     _iaActivo = true;
     var btn = document.getElementById('iaMicBtn');
-    if(btn) btn.classList.add('escuchando');
+    if(btn){ btn.style.background='linear-gradient(135deg,#ff3b30,#ff6b6b)'; btn.textContent='🔴'; btn.style.boxShadow='0 4px 20px rgba(255,59,48,0.5)'; }
     var st = document.getElementById('iaStatus');
     var wv = document.getElementById('iaWaveform');
     if(st) st.style.display = 'none';
@@ -3505,7 +3526,7 @@ function _arrancarReconocimiento(){
 function detenerMicIA(){
   _iaActivo = false;
   var btn = document.getElementById('iaMicBtn');
-  if(btn) btn.classList.remove('escuchando');
+  if(btn){ btn.style.background='linear-gradient(135deg,var(--accent),var(--accent2))'; btn.textContent='🎤'; btn.style.boxShadow='0 4px 16px rgba(30,107,60,0.35)'; }
   var st = document.getElementById('iaStatus');
   var wv = document.getElementById('iaWaveform');
   if(st){ st.style.display = 'block'; st.textContent = 'Toca el micrófono para hablar'; }
@@ -3689,7 +3710,8 @@ function ejecutarAccionIA(resp){
       if(subs[dest]) setTimeout(function(){ goSub(subs[dest]); }, 80);
     }
     return;
-  
+  }
+
   if(resp.accion === 'cambiarMoneda'){
     localStorage.removeItem(_iaMonedaKey());
     _iaMoneda = null;
@@ -3697,5 +3719,4 @@ function ejecutarAccionIA(resp){
     return;
   }
 }
-}
-        </script>
+      </script>
