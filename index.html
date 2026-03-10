@@ -1132,6 +1132,7 @@ function goSub(sub){
     nuevo_prestamo: function(){ return renderFormCredito('prestamo', null); },
     // Más
     activos: null, progreso: null,
+    ingresos_activos: renderIngresosActivos,
     metas: renderMetas, presupuesto: renderPresupuesto, alertas: renderAlertas,
     historial: renderHistorial, conversor: renderConversor,
     reportes: renderReportes,
@@ -1142,6 +1143,7 @@ function goSub(sub){
   if(sub==='creditos_cobrar'){ renderCreditosCobrar(); return; }
   if(sub==='pagos_mes'){ renderPagosMes(); return; }
   if(sub==='activos'){ renderActivos(); return; }
+  if(sub==='ingresos_activos'){ document.getElementById('mainContent').innerHTML=renderIngresosActivos(); return; }
   if(sub==='progreso'){ renderProgreso(); return; }
   var fn = renders[sub];
   if(fn) document.getElementById('mainContent').innerHTML = fn();
@@ -1777,10 +1779,10 @@ function renderServicios(){ return renderSubTxs('Servicios','⚡','Servicios'); 
 function renderIngresos(){
   return '<div class="page-header" style="padding-top:4px;margin-bottom:16px;"><div style="font-size:1.05rem;font-weight:800;">💰 Ingresos</div></div>'
     +'<div class="mod-list">'
-    +'<div class="mod-item" onclick="goSub(\'activos\')"><div class="mod-icon">📥</div><div><div class="mod-label">Activos</div><div class="mod-sub">Salario, rentas, negocios</div></div><div class="mod-arrow">›</div></div>'
+    +'<div class="mod-item" onclick="goSub(\'ingresos_activos\')"><div class="mod-icon">📥</div><div><div class="mod-label">Activos</div><div class="mod-sub">Salario, rentas, negocios</div></div><div class="mod-arrow">›</div></div>'
     +'</div>';
 }
-function renderActivos(){
+function renderIngresosActivos(){
   var txs = getTxs().filter(function(t){ return t.tipo==='ingreso'; });
   var total = txs.reduce(function(s,t){ return s+Number(t.monto); },0);
   var items = txs.slice().reverse().map(function(t){
@@ -4294,6 +4296,44 @@ var FAQS = [
    a:'Sí. Todo se guarda localmente en tu dispositivo.'},
   {cat:'↩️ General', q:'¿Cómo uso la calculadora?',
    a:'Toca 🔢 en la barra superior. Arrástrala, minimízala (−) sin perder cálculos, o ciérrala (×). O di "calculadora" por voz.'},
+
+  {cat:'🔒 NIP de Seguridad', q:'¿Qué es el NIP?',
+   a:'Un código de 4 dígitos opcional que protege tu sesión. Aunque alguien tenga tu código de acceso, necesita el NIP para entrar.'},
+  {cat:'🔒 NIP de Seguridad', q:'¿Cómo activo el NIP?',
+   a:'Más → Configuración → 🔒 NIP de seguridad → Activar. Ingresa 4 dígitos. Desde ese momento se pedirá al entrar.'},
+  {cat:'🔒 NIP de Seguridad', q:'¿Cómo cambio o quito mi NIP?',
+   a:'Más → Configuración → 🔒 NIP → Cambiar NIP o Quitar NIP. Para quitarlo se pide confirmación.'},
+  {cat:'🔒 NIP de Seguridad', q:'Olvidé mi NIP, ¿qué hago?',
+   a:'El admin puede resetearlo. En Más → Códigos de Acceso busca tu código → toca 🔓. El NIP se elimina y puedes entrar sin él y configurar uno nuevo.'},
+
+  {cat:'📅 Pagos del Mes', q:'¿Para qué sirven los Pagos del Mes?',
+   a:'Para registrar todos tus pagos fijos mensuales: TC, servicios (luz, cable, teléfono), renta, predial, tenencia, seguros, etc. Llevas control de cuánto has pagado y cuánto falta.'},
+  {cat:'📅 Pagos del Mes', q:'¿Cómo agrego un pago fijo?',
+   a:'Créditos → Deuda a Pagar Mensual → + Agregar pago fijo. Escribe nombre, categoría, monto estimado y día de vencimiento.'},
+  {cat:'📅 Pagos del Mes', q:'¿Cómo marco un pago como realizado?',
+   a:'Toca ✅ Pagar en el pago. Te pregunta el monto real pagado (puede diferir del estimado). Queda marcado con línea tachada.'},
+  {cat:'📅 Pagos del Mes', q:'¿Los pagos se resetean solos?',
+   a:'Sí. El estado (pagado/pendiente) se resetea automáticamente cada mes. Los pagos fijos permanecen, solo el estado cambia.'},
+  {cat:'📅 Pagos del Mes', q:'¿Dónde veo el resumen de pagos del mes?',
+   a:'En la pantalla de Inicio aparece una tarjeta 📅 Pagos del Mes con total, barra de progreso, monto pagado y pendiente.'},
+
+  {cat:'🏦 Mis Activos', q:'¿Qué son los Activos?',
+   a:'Todo lo que posees con valor económico: casa, carro, negocio, inversiones, criptomonedas, maquinaria, joyas, etc. Su valor suma a tu Patrimonio Neto.'},
+  {cat:'🏦 Mis Activos', q:'¿Cómo registro un activo?',
+   a:'Cuentas → Mis Activos (o Más → Mis Activos) → + Registrar activo. Ingresa nombre, categoría, valor estimado, fecha y notas opcionales.'},
+  {cat:'🏦 Mis Activos', q:'¿Cada cuánto debo actualizar el valor?',
+   a:'Cuando el valor cambie significativamente. Edita el activo con ✏️ y actualiza el monto. Afectará tu Patrimonio Neto en el siguiente snapshot.'},
+
+  {cat:'📈 Progreso Financiero', q:'¿Qué es Mi Progreso Financiero?',
+   a:'Un dashboard que compara tu situación mes a mes. Muestra patrimonio neto, deudas, ingresos, gastos y una gráfica de evolución para saber si estás avanzando o retrocediendo.'},
+  {cat:'📈 Progreso Financiero', q:'¿Qué es el Patrimonio Neto?',
+   a:'Efectivo + Banco + Activos − Total Deudas. Es el indicador más importante: si sube, estás progresando financieramente.'},
+  {cat:'📈 Progreso Financiero', q:'¿Qué significa el semáforo de salud?',
+   a:'🟢 Progresando = patrimonio sube, deudas bajan, ingresos > gastos. 🟡 Estable = situación sin cambios. 🔴 Atención = deudas suben o patrimonio baja.'},
+  {cat:'📈 Progreso Financiero', q:'¿Cuándo se guarda el snapshot mensual?',
+   a:'Automáticamente al abrir la app, una vez por mes. También puedes forzarlo con 📸 Guardar snapshot ahora dentro del módulo.'},
+  {cat:'📈 Progreso Financiero', q:'¿Cuántos meses de historial guarda?',
+   a:'Guarda todos los meses desde que empezaste. La gráfica muestra los últimos 6 meses y la tabla los últimos 6 también.'},
 ];
 
 function renderAyuda(){
