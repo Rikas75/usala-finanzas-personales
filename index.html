@@ -1654,21 +1654,39 @@ function renderInicio(){
     // Total disponible
     +'<div class="stat-card" onclick="goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[1])" style="background:rgba(45,158,95,0.07);border:1.5px solid rgba(45,158,95,0.2);">'
     +'<div class="stat-label">✅ Total disponible</div><div class="stat-val" style="color:var(--accent2);">'+fmt(totalDisp)+'</div></div>'
-    // Deuda TC
-    +'<div class="stat-card" onclick="goSub(\'tarjetas_credito\');goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[1])" style="background:rgba(229,57,53,0.05);">'
-    +'<div class="stat-label">💳 Deuda TC ›</div><div class="stat-val red">'+fmt(deudaTC)+'</div></div>'
+    // Total que debo = TC + Creditos
+    +'<div class="stat-card full" style="background:rgba(229,57,53,0.05);cursor:pointer;" onclick="goTab(\'creditos\',document.querySelectorAll(\'.nb\')[2])">' 
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+    +'<div class="stat-label">🔴 Total que debo ›</div>'
+    +'<div class="stat-val red">'+fmt(deudaTC+debo)+'</div>'
+    +'</div>'
+    +'<div style="display:flex;gap:16px;font-size:0.72rem;">'
+    +'<span>💳 TC: <b style="color:var(--danger);">'+fmt(deudaTC)+'</b></span>'
+    +'<span>🤝 Créditos: <b style="color:var(--danger);">'+fmt(debo)+'</b></span>'
+    +'</div>'
+    +'</div>'
     +'</div>';
 
   // ── Sección 3: Créditos e invitados ──
   var secExtra = ''
     +'<div class="stat-grid" style="margin-bottom:6px;">'
-    +'<div class="stat-card full" onclick="goTab(\'creditos\',document.querySelectorAll(\'.nb\')[2])">'
-    +'<div style="display:flex;justify-content:space-between;align-items:center;">'
-    +'<div><div class="stat-label">🤝 Créditos ›</div>'
-    +'<div style="font-size:0.72rem;margin-top:4px;">'
-    +'<span style="color:var(--danger);">Debo '+fmt(debo)+'</span>'
-    +'&nbsp;&nbsp;<span style="color:var(--accent2);">Me deben '+fmt(meDebn)+'</span>'
-    +'</div></div></div></div>'
+    +'<div class="stat-card full" onclick="goTab(\'creditos\',document.querySelectorAll(\'.nb\')[2])" style="cursor:pointer;">'
+    +'<div class="stat-label" style="margin-bottom:10px;">🤝 Créditos ›</div>'
+    +'<div style="display:flex;justify-content:space-between;">'
+    +'<div style="text-align:center;flex:1;border-right:1px solid var(--border);padding-right:8px;">'
+    +'<div style="font-size:0.68rem;color:var(--dim);margin-bottom:3px;">💳 Deuda TC</div>'
+    +'<div style="font-weight:800;font-size:0.88rem;color:var(--danger);">'+fmt(deudaTC)+'</div>'
+    +'</div>'
+    +'<div style="text-align:center;flex:1;border-right:1px solid var(--border);padding:0 8px;">'
+    +'<div style="font-size:0.68rem;color:var(--dim);margin-bottom:3px;">🤝 Mis créditos</div>'
+    +'<div style="font-weight:800;font-size:0.88rem;color:var(--danger);">'+fmt(debo)+'</div>'
+    +'</div>'
+    +'<div style="text-align:center;flex:1;padding-left:8px;">'
+    +'<div style="font-size:0.68rem;color:var(--dim);margin-bottom:3px;">📥 Me deben</div>'
+    +'<div style="font-weight:800;font-size:0.88rem;color:var(--accent2);">'+fmt(meDebn)+'</div>'
+    +'</div>'
+    +'</div>'
+    +'</div>'
     +(invCard||'')
     +'</div>';
 
@@ -1824,13 +1842,16 @@ function renderListaCreds(tipo){
     var histHtml = '';
     if(c.historialAbonos && c.historialAbonos.length){
       var filas = c.historialAbonos.slice().reverse().map(function(a){
-        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:0.76rem;">'
+        return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:0.76rem;">'
+          +'<div style="display:flex;justify-content:space-between;align-items:center;">'
           +'<span style="color:var(--dim);">'+a.fecha+'</span>'
           +'<span>'
           +(a.monto>0 ? '<span style="font-weight:700;color:var(--accent);">'+fmt(a.monto)+'</span>' : '')
           +(a.interes>0 ? ' <span style="color:#e07b00;font-size:0.7rem;">+'+fmt(a.interes)+' int.</span>' : '')
           +((!a.monto||a.monto===0) && a.interes>0 ? '<span style="color:#e07b00;font-weight:700;">Solo interes</span>' : '')
-          +'</span></div>';
+          +'</span></div>'
+          +(a.nota ? '<div style="font-size:0.72rem;color:var(--dim);margin-top:2px;font-style:italic;">📝 '+a.nota+'</div>' : '')
+          +'</div>';
       }).join('');
       var totCap = c.historialAbonos.reduce(function(s,a){ return s+(a.monto||0); },0);
       var totInt = c.historialAbonos.reduce(function(s,a){ return s+(a.interes||0); },0);
@@ -1845,7 +1866,7 @@ function renderListaCreds(tipo){
       ? '<button class="cred-btn" style="color:#fff;background:var(--accent);border-color:var(--accent);" onclick="(function(){var h=document.getElementById(&quot;hist_'+tipo+'_'+i+'&quot;);h.style.display=h.style.display===&quot;none&quot;?&quot;block&quot;:&quot;none&quot;})()">📋 <b>'+c.historialAbonos.length+'</b></button>'
       : '';
     return '<div class="cred-item">'
-      +'<div class="cred-top"><div><div class="cred-persona">'+c.persona+'</div><div class="cred-desc">'+c.descripcion+(c.interes?' · '+c.interes+'% int.':'')+(c.fechaLimite?' · '+c.fechaLimite:'')+'</div></div>'+badge+'</div>'
+      +'<div class="cred-top"><div><div class="cred-persona">'+c.persona+'</div><div class="cred-desc">'+c.descripcion+(c.interes?' · '+c.interes+'% int.':'')+(c.fechaOrigen?' · Otorgado: '+c.fechaOrigen:'')+(c.fechaLimite?' · Vence: '+c.fechaLimite:'')+'</div></div>'+badge+'</div>'
       + resumenHtml
       +'<div class="prog-wrap"><div class="prog-bar" style="width:'+pct+'%;'+(pct>=100?'background:#2d9e5f;':'')+'"></div></div>'
       +'<div class="cred-btns">'
@@ -1885,8 +1906,10 @@ function renderFormCredito(tipo, data){
     +'<div><label class="inp-label">Monto ($)</label><input class="inp" id="crMonto" type="number" placeholder="0.00" value="'+(d.monto||'')+'" ></div>'
     +'<div><label class="inp-label">Interés (%)</label><input class="inp" id="crInteres" type="number" placeholder="0" value="'+(d.interes||0)+'"></div>'
     +'</div>'
-    +'<label class="inp-label">Fecha límite</label>'
-    +'<input class="inp" id="crFecha" type="date" value="'+(d.fechaLimite||'')+'">'
+    +'<div class="form-row">'
+    +'<div><label class="inp-label">📅 Fecha del préstamo</label><input class="inp" id="crFechaOrigen" type="date" value="'+(d.fechaOrigen||'')+'">'+'</div>'
+    +'<div><label class="inp-label">⏰ Fecha límite</label><input class="inp" id="crFecha" type="date" value="'+(d.fechaLimite||'')+'">'+'</div>'
+    +'</div>'
     +'<button class="btn-main" onclick="guardarCred(\''+tipo+'\')">💾 '+(d.persona?'Guardar cambios':'Registrar')+'</button>'
     +'</div>';
 }
@@ -1909,11 +1932,13 @@ function guardarCred(tipo){
       creds[ri].monto        = monto;
       creds[ri].interes      = interes;
       creds[ri].fechaLimite  = fecha;
+      var fo = document.getElementById('crFechaOrigen'); if(fo) creds[ri].fechaOrigen = fo.value;
       // NO tocar: abonado, historialAbonos, estado, creado
     }
     showToast('✓ Actualizado');
   } else {
-    creds.push({tipo:tipo,persona:persona,descripcion:desc,monto:monto,interes:interes,fechaLimite:fecha,abonado:0,estado:'pendiente',creado:today()});
+    var fechaOrigen = document.getElementById('crFechaOrigen') ? document.getElementById('crFechaOrigen').value : today();
+    creds.push({tipo:tipo,persona:persona,descripcion:desc,monto:monto,interes:interes,fechaOrigen:fechaOrigen,fechaLimite:fecha,abonado:0,estado:'pendiente',creado:today()});
     showToast('✓ Registrado');
   }
   save('creditos',creds); S.editCrediIdx=null;
@@ -1936,12 +1961,14 @@ function abonarCred(i,tipo){
     + '<div style="display:flex;gap:10px;">'
     +   '<div style="flex:1;"><label class="inp-label">Capital a abonar</label>'
     +   '<input class="inp" id="abonoMonto" type="number" min="0" placeholder="$0.00"></div>'
-    +   '<div style="flex:1;"><label class="inp-label">Interes de este pago</label>'
+    +   '<div style="flex:1;"><label class="inp-label">Interés de este pago</label>'
     +   '<input class="inp" id="abonoInteres" type="number" min="0" placeholder="$0.00 (opcional)"></div>'
     + '</div>'
     + '<label class="inp-label" style="margin-top:4px;">Fecha del abono</label>'
-    + '<input class="inp" id="abonoFecha" type="date" style="margin-bottom:6px;">'
-    + '<div style="font-size:0.72rem;color:var(--dim);margin-bottom:16px;">Si en este pago tambien cubriste interes, anotalo en el segundo campo.</div>';
+    + '<input class="inp" id="abonoFecha" type="date" style="margin-bottom:10px;">'
+    + '<label class="inp-label">Notas del abono</label>'
+    + '<textarea class="inp" id="abonoNota" rows="2" placeholder="Ej: Pagué con transferencia SPEI, acordamos siguiente pago en 15 días..." style="resize:none;margin-bottom:6px;"></textarea>'
+    + '<div style="font-size:0.72rem;color:var(--dim);margin-bottom:16px;">Anota cualquier detalle relevante: forma de pago, acuerdos, referencia, etc.</div>';
   var bGuardar = document.createElement('button');
   bGuardar.className = 'btn-main'; bGuardar.textContent = 'Guardar abono';
   bGuardar.onclick = function(){ confirmarAbono(ri, tipo); };
@@ -1960,11 +1987,12 @@ function confirmarAbono(ri, tipo){
   var fecha   = document.getElementById('abonoFecha').value;
   if(monto<=0 && interes<=0){ showToast('⚠ Ingresa al menos un monto'); return; }
   if(!fecha){ showToast('⚠ Selecciona la fecha'); return; }
+  var nota = (document.getElementById('abonoNota') ? document.getElementById('abonoNota').value.trim() : '') || '';
   var creds = load('creditos',[]);
   creds[ri].abonado = (creds[ri].abonado||0) + monto;
   creds[ri].interesesPagados = (creds[ri].interesesPagados||0) + interes;
   if(!creds[ri].historialAbonos) creds[ri].historialAbonos = [];
-  creds[ri].historialAbonos.push({ monto: monto, interes: interes, fecha: fecha });
+  creds[ri].historialAbonos.push({ monto: monto, interes: interes, fecha: fecha, nota: nota });
   var pagadoTotal = fmt(monto) + (interes>0 ? ' + '+fmt(interes)+' int.' : '');
   if(creds[ri].abonado >= creds[ri].monto){
     creds[ri].estado='pagado';
@@ -3611,4 +3639,4 @@ function procesarComandoVoz(t){
 }
 </script>
 </body>
-  </html>
+                                                                    </html>
