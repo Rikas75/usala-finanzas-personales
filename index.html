@@ -2852,13 +2852,10 @@ function guardarCred(tipo){
   goSub(tipo==='deuda'?'creditos_debo':'creditos_cobrar');
 }
 
-function abonarCred(i,tipo){
+function abonarCred(ri, tipo){
   var creds = load('creditos',[]);
-  var all   = creds.filter(function(c){ return c.tipo===tipo; });
-  var item  = all[i];
-  if(!item){ showToast('⚠ Crédito no encontrado'); return; }
-  var ri = creds.indexOf(item);
-  // Guardar ri en variable accesible para confirmarAbono
+  var item  = creds[ri];
+  if(!item){ showToast('⚠ Crédito no encontrado (ri='+ri+')'); return; }
   window._abonoRi   = ri;
   window._abonoTipo = tipo;
 
