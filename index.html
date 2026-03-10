@@ -1825,7 +1825,7 @@ function renderListaCreds(tipo){
         +'</div>';
     }
     var btnHist = (c.historialAbonos && c.historialAbonos.length)
-      ? '<button class="cred-btn" onclick="var h=document.getElementById(\'hist_'+tipo+'_'+i+'\');h.style.display=h.style.display===\'none\'?\'block\':\'none\'">📋 '+c.historialAbonos.length+'</button>'
+      ? '<button class="cred-btn" style="color:#fff;background:var(--accent);border-color:var(--accent);" onclick="var h=document.getElementById(\'hist_'+tipo+'_'+i+'\');h.style.display=h.style.display===\'none\'?\'block\':\'none\'">📋 <b>'+c.historialAbonos.length+'</b></button>'
       : '';
     return '<div class="cred-item">'
       +'<div class="cred-top"><div><div class="cred-persona">'+c.persona+'</div><div class="cred-desc">'+c.descripcion+(c.interes?' · '+c.interes+'% int.':'')+(c.fechaLimite?' · '+c.fechaLimite:'')+'</div></div>'+badge+'</div>'
@@ -1886,7 +1886,14 @@ function guardarCred(tipo){
     var all=creds.filter(function(c){ return c.tipo===tipo; });
     var item=all[S.editCrediIdx];
     var ri=creds.indexOf(item);
-    if(ri>-1) creds[ri]=Object.assign(creds[ri],{persona:persona,descripcion:desc,monto:monto,interes:interes,fechaLimite:fecha});
+    if(ri>-1){
+      creds[ri].persona      = persona;
+      creds[ri].descripcion  = desc;
+      creds[ri].monto        = monto;
+      creds[ri].interes      = interes;
+      creds[ri].fechaLimite  = fecha;
+      // NO tocar: abonado, historialAbonos, estado, creado
+    }
     showToast('✓ Actualizado');
   } else {
     creds.push({tipo:tipo,persona:persona,descripcion:desc,monto:monto,interes:interes,fechaLimite:fecha,abonado:0,estado:'pendiente',creado:today()});
