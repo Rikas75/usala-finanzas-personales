@@ -1054,22 +1054,6 @@ function initDashboard(){
   }
   goTab('inicio', document.querySelector('.nb'));
   // Delegación de eventos para botones de editar/eliminar abonos
-  var mc = document.getElementById('mainContent');
-  if(mc && !mc._abonoListenerAdded){
-    mc._abonoListenerAdded = true;
-    mc.addEventListener('click', function(e){
-      var btnEdit = e.target.closest ? e.target.closest('._btnEditAbono') : null;
-      var btnDel  = e.target.closest ? e.target.closest('._btnDelAbono')  : null;
-      if(!btnEdit && !btnDel) return;
-      var fila = e.target.closest ? e.target.closest('._abonoFila') : null;
-      if(!fila) return;
-      var ri   = parseInt(fila.getAttribute('data-ri'));
-      var ai   = parseInt(fila.getAttribute('data-ai'));
-      var tipo = fila.getAttribute('data-tipo');
-      if(btnEdit) editarAbono(ri, ai, tipo);
-      if(btnDel)  eliminarAbono(ri, ai, tipo);
-    });
-  }
   // Mostrar bienvenida solo la primera vez (no al admin)
   if(!u.isAdmin){
     var keyVisto = 'usala_bienvenida_' + u.codigo;
@@ -3735,6 +3719,21 @@ function procesarComandoVoz(t){
   }
   showToast('❓ No entendí: "' + t + '"');
 }
+
+// ── Listener global para botones de abonos (edit/delete) ──
+document.addEventListener('click', function(e){
+  var btnEdit = e.target.closest ? e.target.closest('._btnEditAbono') : null;
+  var btnDel  = e.target.closest ? e.target.closest('._btnDelAbono')  : null;
+  if(!btnEdit && !btnDel) return;
+  var fila = e.target.closest ? e.target.closest('._abonoFila') : null;
+  if(!fila) return;
+  e.stopPropagation();
+  var ri   = parseInt(fila.getAttribute('data-ri'));
+  var ai   = parseInt(fila.getAttribute('data-ai'));
+  var tipo = fila.getAttribute('data-tipo');
+  if(btnEdit) editarAbono(ri, ai, tipo);
+  if(btnDel)  eliminarAbono(ri, ai, tipo);
+});
 </script>
 </body>
-  </html>
+        </html>
