@@ -1053,6 +1053,7 @@ function initDashboard(){
     actualizarBadgeSolicitudes();
   }
   goTab('inicio', document.querySelector('.nb'));
+  setTimeout(guardarSnapshotMes, 1500); // snapshot silencioso al arrancar
   // Delegación de eventos para botones de editar/eliminar abonos
   // Mostrar bienvenida solo la primera vez (no al admin)
   if(!u.isAdmin){
@@ -1130,6 +1131,7 @@ function goSub(sub){
     nueva_deuda: function(){ return renderFormCredito('deuda', null); },
     nuevo_prestamo: function(){ return renderFormCredito('prestamo', null); },
     // Más
+    activos: null, progreso: null,
     metas: renderMetas, presupuesto: renderPresupuesto, alertas: renderAlertas,
     historial: renderHistorial, conversor: renderConversor,
     reportes: renderReportes,
@@ -1139,6 +1141,8 @@ function goSub(sub){
   if(sub==='creditos_debo'){ renderCreditosDebo(); return; }
   if(sub==='creditos_cobrar'){ renderCreditosCobrar(); return; }
   if(sub==='pagos_mes'){ renderPagosMes(); return; }
+  if(sub==='activos'){ renderActivos(); return; }
+  if(sub==='progreso'){ renderProgreso(); return; }
   var fn = renders[sub];
   if(fn) document.getElementById('mainContent').innerHTML = fn();
 }
@@ -2032,6 +2036,310 @@ function loadPagosBase(){ return load('pagos_mensuales',[]); }
 function savePagosBase(p){ save('pagos_mensuales',p); }
 function loadPagosEstado(){ try{ return JSON.parse(localStorage.getItem(keyPagosMes())||'{}'); }catch(e){ return {}; } }
 function savePagosEstado(e){ localStorage.setItem(keyPagosMes(), JSON.stringify(e)); }
+
+
+// ══════════════════════════════════════════════════════
+// ACTIVOS
+// ══════════════════════════════════════════════════════
+var ACTIVOS_CATS = ['🏠 Inmueble','🚗 Vehículo','💼 Negocio','📈 Inversión','💰 Ahorro / Efectivo','🌐 Criptomonedas','🏭 Maquinaria / Equipo','💍 Joyas / Arte','📦 Otros'];
+
+function renderActivos(){
+  var mc = document.getElementById('mainContent');
+  mc.innerHTML = '';
+  var activos = load('activos_personales',[]);
+  var totalActivos = activos.reduce(function(s,a){ return s+(a.valor||0); },0);
+
+  var hdr = document.createElement('div');
+  hdr.innerHTML = '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">🏦 Mis Activos</div></div>';
+  mc.appendChild(hdr);
+
+  // Resumen total
+  var res = document.createElement('div');
+  res.className='card'; res.style.marginBottom='10px';
+  res.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;">'
+    +'<div><div style="font-size:0.75rem;color:var(--dim);">Valor total de activos</div>'
+    +'<div style="font-size:1.5rem;font-weight:900;color:var(--accent2);">'+fmt(totalActivos)+'</div></div>'
+    +'<div style="font-size:2rem;">🏦</div></div>';
+  mc.appendChild(res);
+
+  // Botón agregar
+  var bAdd = document.createElement('button');
+  bAdd.style.cssText='width:100%;padding:13px;background:var(--accent);color:var(--navtext);border:none;border-radius:12px;font-family:\'Outfit\',sans-serif;font-weight:700;cursor:pointer;margin-bottom:14px;font-size:0.95rem;';
+  bAdd.textContent='+ Registrar activo';
+  bAdd.onclick=function(){ renderFormActivo(null); };
+  mc.appendChild(bAdd);
+
+  if(!activos.length){
+    var empty=document.createElement('div');
+    empty.style.cssText='text-align:center;padding:30px;color:var(--dim);font-size:0.83rem;';
+    empty.textContent='Sin activos registrados. Agrega casa, carro, inversiones, etc.';
+    mc.appendChild(empty); return;
+  }
+
+  // Agrupar por categoría
+  var grupos={};
+  activos.forEach(function(a){ var c=a.categoria||'📦 Otros'; if(!grupos[c]) grupos[c]=[]; grupos[c].push(a); });
+  ACTIVOS_CATS.forEach(function(cat){
+    if(!grupos[cat]) return;
+    var tit=document.createElement('div');
+    tit.style.cssText='font-size:0.72rem;font-weight:800;color:var(--dim);text-transform:uppercase;letter-spacing:0.06em;margin:10px 0 6px;';
+    tit.textContent=cat; mc.appendChild(tit);
+    grupos[cat].forEach(function(a){
+      var idx=activos.indexOf(a);
+      var card=document.createElement('div');
+      card.style.cssText='background:var(--card);border-radius:14px;padding:12px 14px;margin-bottom:8px;border:1.5px solid var(--border);';
+      var row=document.createElement('div');
+      row.style.cssText='display:flex;justify-content:space-between;align-items:flex-start;';
+      var left=document.createElement('div'); left.style.flex='1';
+      var nom=document.createElement('div'); nom.style.cssText='font-weight:700;font-size:0.9rem;'; nom.textContent=a.nombre; left.appendChild(nom);
+      var meta=document.createElement('div'); meta.style.cssText='font-size:0.72rem;color:var(--dim);margin-top:2px;';
+      meta.textContent=(a.descripcion||'')+(a.fecha?' · Desde '+a.fecha:''); left.appendChild(meta);
+      var right=document.createElement('div'); right.style.cssText='display:flex;flex-direction:column;align-items:flex-end;gap:6px;';
+      var val=document.createElement('div'); val.style.cssText='font-weight:800;font-size:0.95rem;color:var(--accent2);'; val.textContent=fmt(a.valor); right.appendChild(val);
+      var btns=document.createElement('div'); btns.style.cssText='display:flex;gap:5px;';
+      var bEd=document.createElement('button'); bEd.style.cssText='border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:0.75rem;cursor:pointer;background:none;color:var(--accent);'; bEd.textContent='✏️';
+      (function(i_){ bEd.onclick=function(){ renderFormActivo(i_); }; })(idx); btns.appendChild(bEd);
+      var bDel=document.createElement('button'); bDel.style.cssText='border:1px solid rgba(229,57,53,0.3);border-radius:8px;padding:4px 8px;font-size:0.75rem;cursor:pointer;background:none;color:var(--danger);'; bDel.textContent='🗑';
+      (function(i_){ bDel.onclick=function(){
+        if(!confirm('¿Eliminar este activo?')) return;
+        var aa=load('activos_personales',[]); aa.splice(i_,1); save('activos_personales',aa);
+        showToast('🗑 Eliminado'); renderActivos();
+      }; })(idx); btns.appendChild(bDel);
+      right.appendChild(btns); row.appendChild(left); row.appendChild(right); card.appendChild(row); mc.appendChild(card);
+    });
+  });
+}
+
+function renderFormActivo(idx){
+  var activos=load('activos_personales',[]);
+  var a=idx!==null?activos[idx]:{};
+  var mc=document.getElementById('mainContent'); mc.innerHTML='';
+  var d=document.createElement('div'); d.style.padding='20px 16px';
+  var catOpts=ACTIVOS_CATS.map(function(c){ return '<option value="'+c+'"'+(a.categoria===c?' selected':'')+'>'+c+'</option>'; }).join('');
+  d.innerHTML='<div style="font-size:1rem;font-weight:800;margin-bottom:14px;">'+(idx!==null?'✏️ Editar':'➕ Nuevo')+' Activo</div>'
+    +'<label class="inp-label">Nombre del activo</label><input class="inp" id="faName" placeholder="Ej: Casa Colonia Roma, Toyota Corolla..." value="'+(a.nombre||'')+'">'
+    +'<label class="inp-label">Categoría</label><select class="inp" id="faCat">'+catOpts+'</select>'
+    +'<div class="form-row">'
+    +'<div><label class="inp-label">Valor estimado ($)</label><input class="inp" id="faValor" type="number" min="0" placeholder="0.00" value="'+(a.valor||'')+'"></div>'
+    +'<div><label class="inp-label">Fecha de adquisición</label><input class="inp" id="faFecha" type="date" value="'+(a.fecha||'')+'"></div>'
+    +'</div>'
+    +'<label class="inp-label">Descripción / notas</label><input class="inp" id="faDesc" placeholder="Notas opcionales..." value="'+(a.descripcion||'')+'" style="margin-bottom:16px;">';
+  var bOk=document.createElement('button'); bOk.className='btn-main'; bOk.textContent=idx!==null?'💾 Guardar':'➕ Agregar';
+  bOk.onclick=function(){
+    var nombre=document.getElementById('faName').value.trim();
+    var valor=parseFloat(document.getElementById('faValor').value)||0;
+    if(!nombre||!valor){ showToast('⚠ Nombre y valor son obligatorios'); return; }
+    var cat=document.getElementById('faCat').value;
+    var fecha=document.getElementById('faFecha').value;
+    var desc=document.getElementById('faDesc').value.trim();
+    var aa=load('activos_personales',[]);
+    if(idx!==null){ aa[idx]={nombre:nombre,categoria:cat,valor:valor,fecha:fecha,descripcion:desc}; showToast('✓ Actualizado'); }
+    else { aa.push({nombre:nombre,categoria:cat,valor:valor,fecha:fecha,descripcion:desc}); showToast('✓ Activo registrado'); }
+    save('activos_personales',aa); renderActivos();
+  };
+  var bCan=document.createElement('button'); bCan.className='btn-sec'; bCan.style.marginTop='8px'; bCan.textContent='Cancelar';
+  bCan.onclick=function(){ renderActivos(); };
+  d.appendChild(bOk); d.appendChild(bCan); mc.appendChild(d);
+  setTimeout(function(){ var el=document.getElementById('faName'); if(el) el.focus(); },80);
+}
+
+// ══════════════════════════════════════════════════════
+// SNAPSHOT MENSUAL — se guarda automático al abrir la app
+// ══════════════════════════════════════════════════════
+function guardarSnapshotMes(){
+  try{
+    var mes = new Date().toISOString().slice(0,7); // YYYY-MM
+    var u = S.user;
+    var key = (u.isAdmin?'usala_admin':'usala_u_'+u.codigo)+'_snap_'+mes;
+    if(localStorage.getItem(key)) return; // ya existe este mes
+    var cu = getCuentas();
+    var creds = load('creditos',[]);
+    var activos = load('activos_personales',[]);
+    var txs = getTxs();
+    var mesActual = new Date().toISOString().slice(0,7);
+    var txsMes = txs.filter(function(t){ return t.fecha && t.fecha.slice(0,7)===mesActual; });
+    var ingresos = txsMes.filter(function(t){ return t.tipo==='ingreso'; }).reduce(function(s,t){ return s+(t.monto||0); },0);
+    var gastos   = txsMes.filter(function(t){ return t.tipo==='gasto'; }).reduce(function(s,t){ return s+(t.monto||0); },0);
+    var efectivo = cu.efectivo||0;
+    var banco    = (cu.cheques||[]).reduce(function(s,x){ return s+Number(x.saldo||0); },0);
+    var deudaTC  = (cu.tarjetas||[]).reduce(function(s,t){ return s+Number(t.balance||0); },0);
+    var deudaCred= creds.filter(function(c){ return c.tipo==='deuda'&&c.estado!=='pagado'; }).reduce(function(s,c){ return s+(c.monto-(c.abonado||0)); },0);
+    var totalActivos = activos.reduce(function(s,a){ return s+(a.valor||0); },0);
+    var totalDeudas  = deudaTC + deudaCred;
+    var patrimonioNeto = (efectivo+banco+totalActivos) - totalDeudas;
+    var snap = { mes:mes, efectivo:efectivo, banco:banco, deudaTC:deudaTC, deudaCred:deudaCred,
+      totalActivos:totalActivos, totalDeudas:totalDeudas, patrimonioNeto:patrimonioNeto,
+      ingresos:ingresos, gastos:gastos, fecha:new Date().toISOString() };
+    localStorage.setItem(key, JSON.stringify(snap));
+  }catch(e){}
+}
+
+function getSnapshots(){
+  var u = S.user;
+  var prefix = (u.isAdmin?'usala_admin':'usala_u_'+u.codigo)+'_snap_';
+  var snaps = [];
+  for(var k in localStorage){
+    if(k.indexOf(prefix)===0){
+      try{ snaps.push(JSON.parse(localStorage.getItem(k))); }catch(e){}
+    }
+  }
+  snaps.sort(function(a,b){ return a.mes.localeCompare(b.mes); });
+  return snaps;
+}
+
+// ══════════════════════════════════════════════════════
+// DASHBOARD DE PROGRESO FINANCIERO
+// ══════════════════════════════════════════════════════
+function renderProgreso(){
+  // Guardar snapshot del mes actual antes de mostrar
+  guardarSnapshotMes();
+  var snaps = getSnapshots();
+  var mc = document.getElementById('mainContent');
+  mc.innerHTML = '';
+
+  var hdr=document.createElement('div');
+  hdr.innerHTML='<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">📈 Mi Progreso Financiero</div></div>';
+  mc.appendChild(hdr);
+
+  if(snaps.length===0){
+    var empty=document.createElement('div'); empty.className='card';
+    empty.innerHTML='<div style="text-align:center;padding:20px;color:var(--dim);">Aún no hay datos históricos.<br>Vuelve el próximo mes para ver tu progreso.</div>';
+    mc.appendChild(empty); return;
+  }
+
+  var ultimo = snaps[snaps.length-1];
+  var penultimo = snaps.length>1 ? snaps[snaps.length-2] : null;
+
+  // ── Salud financiera ──
+  var score = 0;
+  if(penultimo){
+    if(ultimo.patrimonioNeto > penultimo.patrimonioNeto) score++;
+    if(ultimo.totalDeudas < penultimo.totalDeudas) score++;
+    if(ultimo.ingresos > ultimo.gastos) score++;
+  } else {
+    if(ultimo.patrimonioNeto > 0) score++;
+    if(ultimo.ingresos > ultimo.gastos) score++;
+    score = Math.min(score,2);
+  }
+  var saludInfo = score>=3
+    ? {emoji:'🟢',label:'Progresando',color:'#2d9e5f',bg:'rgba(45,158,95,0.08)'}
+    : score>=2
+    ? {emoji:'🟡',label:'Estable',color:'#e07b00',bg:'rgba(224,123,0,0.08)'}
+    : {emoji:'🔴',label:'Atención requerida',color:'var(--danger)',bg:'rgba(229,57,53,0.08)'};
+
+  var salud=document.createElement('div');
+  salud.style.cssText='border-radius:16px;padding:16px;margin-bottom:12px;background:'+saludInfo.bg+';border:1.5px solid '+saludInfo.color+';';
+  salud.innerHTML='<div style="display:flex;align-items:center;gap:12px;">'
+    +'<div style="font-size:2.2rem;">'+saludInfo.emoji+'</div>'
+    +'<div><div style="font-size:1rem;font-weight:900;color:'+saludInfo.color+';">'+saludInfo.label+'</div>'
+    +'<div style="font-size:0.75rem;color:var(--dim);margin-top:2px;">Salud financiera · '+new Date().toLocaleString('es-MX',{month:'long',year:'numeric'})+'</div></div></div>';
+  mc.appendChild(salud);
+
+  // ── Tarjetas de indicadores clave ──
+  function tarjetaKPI(label, valor, anterior, formato, invertir){
+    var diff = anterior!==null ? valor - anterior : null;
+    var pct  = (anterior!==null && anterior!==0) ? Math.round((diff/Math.abs(anterior))*100) : null;
+    var sube = diff!==null ? diff>0 : null;
+    var positivo = invertir ? !sube : sube; // para deudas, bajar es positivo
+    var flecha = sube===null ? '' : sube ? '↑' : '↓';
+    var color  = positivo===null ? 'var(--dim)' : positivo ? '#2d9e5f' : 'var(--danger)';
+    var d=document.createElement('div');
+    d.style.cssText='background:var(--card);border-radius:14px;padding:12px 14px;border:1.5px solid var(--border);';
+    d.innerHTML='<div style="font-size:0.68rem;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">'+label+'</div>'
+      +'<div style="font-size:1.1rem;font-weight:900;color:var(--text);">'+fmt(valor)+'</div>'
+      +(diff!==null?'<div style="font-size:0.72rem;margin-top:3px;color:'+color+';">'+flecha+' '+fmt(Math.abs(diff))+(pct!==null?' ('+Math.abs(pct)+'%)':'')+'</div>':'<div style="font-size:0.72rem;color:var(--dim);margin-top:3px;">Sin mes anterior</div>');
+    return d;
+  }
+
+  var grid=document.createElement('div');
+  grid.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;';
+  var ant = penultimo;
+  grid.appendChild(tarjetaKPI('🏛 Patrimonio neto', ultimo.patrimonioNeto, ant?ant.patrimonioNeto:null, fmt, false));
+  grid.appendChild(tarjetaKPI('💰 Efectivo + Banco', ultimo.efectivo+ultimo.banco, ant?ant.efectivo+ant.banco:null, fmt, false));
+  grid.appendChild(tarjetaKPI('🔴 Total deudas', ultimo.totalDeudas, ant?ant.totalDeudas:null, fmt, true));
+  grid.appendChild(tarjetaKPI('🏦 Activos', ultimo.totalActivos, ant?ant.totalActivos:null, fmt, false));
+  grid.appendChild(tarjetaKPI('📥 Ingresos mes', ultimo.ingresos, ant?ant.ingresos:null, fmt, false));
+  grid.appendChild(tarjetaKPI('📤 Gastos mes', ultimo.gastos, ant?ant.gastos:null, fmt, true));
+  mc.appendChild(grid);
+
+  // ── Gráfica de patrimonio neto (SVG simple) ──
+  if(snaps.length>1){
+    var secG=document.createElement('div'); secG.className='card'; secG.style.marginBottom='12px';
+    var titulo=document.createElement('div'); titulo.style.cssText='font-size:0.8rem;font-weight:800;margin-bottom:12px;'; titulo.textContent='📈 Evolución del Patrimonio Neto';
+    secG.appendChild(titulo);
+    var ultimos6 = snaps.slice(-6);
+    var vals = ultimos6.map(function(s){ return s.patrimonioNeto; });
+    var minV = Math.min.apply(null,vals);
+    var maxV = Math.max.apply(null,vals);
+    var rango = maxV - minV || 1;
+    var W=300, H=80, pad=8;
+    var pts = vals.map(function(v,i){
+      var x = pad + (i/(ultimos6.length-1||1))*(W-2*pad);
+      var y = H - pad - ((v-minV)/rango)*(H-2*pad);
+      return x+','+y;
+    }).join(' ');
+    var lastVal = vals[vals.length-1];
+    var lineColor = lastVal >= vals[0] ? '#2d9e5f' : '#e53935';
+    var svgHtml = '<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:80px;">'
+      +'<polyline points="'+pts+'" fill="none" stroke="'+lineColor+'" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+    vals.forEach(function(v,i){
+      var x=pad+(i/(ultimos6.length-1||1))*(W-2*pad);
+      var y=H-pad-((v-minV)/rango)*(H-2*pad);
+      svgHtml+='<circle cx="'+x+'" cy="'+y+'" r="3.5" fill="'+lineColor+'"/>';
+    });
+    svgHtml+='</svg>';
+    // Etiquetas de meses
+    var labelsDiv=document.createElement('div'); labelsDiv.style.cssText='display:flex;justify-content:space-between;font-size:0.62rem;color:var(--dim);margin-top:4px;';
+    ultimos6.forEach(function(s){
+      var sp=document.createElement('span');
+      sp.textContent=new Date(s.mes+'-02').toLocaleString('es-MX',{month:'short'});
+      labelsDiv.appendChild(sp);
+    });
+    secG.innerHTML+=svgHtml; secG.appendChild(labelsDiv); mc.appendChild(secG);
+  }
+
+  // ── Tabla histórica ──
+  var secT=document.createElement('div'); secT.className='card'; secT.style.marginBottom='12px';
+  var titT=document.createElement('div'); titT.style.cssText='font-size:0.8rem;font-weight:800;margin-bottom:10px;'; titT.textContent='📋 Historial mes a mes';
+  secT.appendChild(titT);
+  var ultimos = snaps.slice(-6).reverse();
+  ultimos.forEach(function(s, si){
+    var prev = snaps[snaps.indexOf(s)-1]||null;
+    var pnDiff = prev ? s.patrimonioNeto - prev.patrimonioNeto : null;
+    var fila=document.createElement('div');
+    fila.style.cssText='padding:8px 0;border-bottom:1px solid var(--border);font-size:0.76rem;';
+    var mesLabel=new Date(s.mes+'-02').toLocaleString('es-MX',{month:'long',year:'numeric'});
+    mesLabel=mesLabel.charAt(0).toUpperCase()+mesLabel.slice(1);
+    var pnColor = pnDiff===null ? 'var(--dim)' : pnDiff>=0 ? '#2d9e5f' : 'var(--danger)';
+    var pnFlecha = pnDiff===null ? '' : pnDiff>=0 ? ' ↑' : ' ↓';
+    fila.innerHTML='<div style="display:flex;justify-content:space-between;margin-bottom:3px;">'
+      +'<span style="font-weight:700;">'+mesLabel+'</span>'
+      +'<span style="color:'+pnColor+';font-weight:800;">'+fmt(s.patrimonioNeto)+pnFlecha+'</span>'
+      +'</div>'
+      +'<div style="display:flex;gap:12px;color:var(--dim);flex-wrap:wrap;">'
+      +'<span>💰 '+fmt(s.efectivo+s.banco)+'</span>'
+      +'<span style="color:var(--danger);">🔴 '+fmt(s.totalDeudas)+'</span>'
+      +'<span style="color:var(--accent2);">🏦 '+fmt(s.totalActivos)+'</span>'
+      +'<span>📥 '+fmt(s.ingresos)+'</span>'
+      +'<span>📤 '+fmt(s.gastos)+'</span>'
+      +'</div>';
+    secT.appendChild(fila);
+  });
+  mc.appendChild(secT);
+
+  // ── Botón guardar snapshot manual ──
+  var bSnap=document.createElement('button');
+  bSnap.style.cssText='width:100%;padding:12px;background:var(--inp);color:var(--text);border:1.5px solid var(--border);border-radius:12px;font-family:\'Outfit\',sans-serif;font-weight:700;cursor:pointer;margin-bottom:14px;font-size:0.85rem;';
+  bSnap.textContent='📸 Guardar snapshot ahora';
+  bSnap.onclick=function(){
+    var mes=new Date().toISOString().slice(0,7);
+    var u=S.user; var key=(u.isAdmin?'usala_admin':'usala_u_'+u.codigo)+'_snap_'+mes;
+    localStorage.removeItem(key); // forzar re-creación
+    guardarSnapshotMes();
+    showToast('✓ Snapshot actualizado'); renderProgreso();
+  };
+  mc.appendChild(bSnap);
+}
 
 function renderPagosMes(){
   var mc = document.getElementById('mainContent');
@@ -4108,4 +4416,4 @@ function procesarComandoVoz(t){
 
 </script>
 </body>
-</html>
+    </html>
