@@ -1810,29 +1810,46 @@ function renderListaCreds(tipo){
     var badge = c.estado==='pagado' ? '<span class="cred-badge badge-pagado">✅ Pagado</span>'
               : venc ? '<span class="cred-badge badge-vencido">🔴 Vencido</span>'
               : '<span class="cred-badge badge-pend">⏳ Pendiente</span>';
-    // Historial de abonos
+    // Totales capital e intereses
+    var totalIntPag = c.interesesPagados||0;
+    var totalCapital = c.abonado||0;
+    var resumenHtml = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">'
+      +'<span style="font-size:0.73rem;background:var(--inp);border-radius:6px;padding:3px 8px;">Capital: <b>'+fmt(totalCapital)+'</b> / '+fmt(c.monto)+'</span>'
+      +(totalIntPag>0
+        ? '<span style="font-size:0.73rem;background:#fff3e0;border-radius:6px;padding:3px 8px;color:#e07b00;">Intereses pagados: <b>'+fmt(totalIntPag)+'</b></span>'
+        : (c.interes>0 ? '<span style="font-size:0.73rem;background:var(--inp);border-radius:6px;padding:3px 8px;color:var(--dim);">Sin intereses pagados</span>' : ''))
+      +(c.estado==='pagado' && totalIntPag===0 && c.interes>0
+        ? '<span style="font-size:0.73rem;background:#e8f5e9;border-radius:6px;padding:3px 8px;color:#2d9e5f;">Liquidado sin interes</span>' : '')
+      +'</div>';
     var histHtml = '';
     if(c.historialAbonos && c.historialAbonos.length){
       var filas = c.historialAbonos.slice().reverse().map(function(a){
-        return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:0.76rem;">'
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:0.76rem;">'
           +'<span style="color:var(--dim);">'+a.fecha+'</span>'
-          +'<span style="font-weight:700;color:var(--accent);">'+fmt(a.monto)+'</span>'
-          +'</div>';
+          +'<span>'
+          +(a.monto>0 ? '<span style="font-weight:700;color:var(--accent);">'+fmt(a.monto)+'</span>' : '')
+          +(a.interes>0 ? ' <span style="color:#e07b00;font-size:0.7rem;">+'+fmt(a.interes)+' int.</span>' : '')
+          +((!a.monto||a.monto===0) && a.interes>0 ? '<span style="color:#e07b00;font-weight:700;">Solo interes</span>' : '')
+          +'</span></div>';
       }).join('');
+      var totCap = c.historialAbonos.reduce(function(s,a){ return s+(a.monto||0); },0);
+      var totInt = c.historialAbonos.reduce(function(s,a){ return s+(a.interes||0); },0);
       histHtml = '<div id="hist_'+tipo+'_'+i+'" style="display:none;margin-top:8px;background:var(--inp);border-radius:10px;padding:8px 12px;">'
         +'<div style="font-size:0.72rem;font-weight:800;color:var(--dim);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.06em;">Historial de abonos</div>'
         + filas
+        +'<div style="display:flex;justify-content:space-between;padding:6px 0 2px;font-size:0.74rem;font-weight:800;border-top:1.5px solid var(--border);margin-top:4px;">'
+        +'<span>Total</span><span>Capital: '+fmt(totCap)+(totInt>0?' + Int: '+fmt(totInt):'')+'</span></div>'
         +'</div>';
     }
     var btnHist = (c.historialAbonos && c.historialAbonos.length)
-      ? '<button class="cred-btn" style="color:#fff;background:var(--accent);border-color:var(--accent);" onclick="var h=document.getElementById(\'hist_'+tipo+'_'+i+'\');h.style.display=h.style.display===\'none\'?\'block\':\'none\'">📋 <b>'+c.historialAbonos.length+'</b></button>'
+      ? '<button class="cred-btn" style="color:#fff;background:var(--accent);border-color:var(--accent);" onclick="(function(){var h=document.getElementById(&quot;hist_'+tipo+'_'+i+'&quot;);h.style.display=h.style.display===&quot;none&quot;?&quot;block&quot;:&quot;none&quot;})()">📋 <b>'+c.historialAbonos.length+'</b></button>'
       : '';
     return '<div class="cred-item">'
       +'<div class="cred-top"><div><div class="cred-persona">'+c.persona+'</div><div class="cred-desc">'+c.descripcion+(c.interes?' · '+c.interes+'% int.':'')+(c.fechaLimite?' · '+c.fechaLimite:'')+'</div></div>'+badge+'</div>'
-      +'<div class="cred-amounts"><span>Abonado: '+fmt(c.abonado||0)+'</span><span>Total: '+fmt(c.monto)+'</span></div>'
+      + resumenHtml
       +'<div class="prog-wrap"><div class="prog-bar" style="width:'+pct+'%;'+(pct>=100?'background:#2d9e5f;':'')+'"></div></div>'
       +'<div class="cred-btns">'
-      +(c.estado!=='pagado'?'<button class="cred-btn success" onclick="abonarCred('+i+',\''+tipo+'\')">+ Abonar</button>':'')
+      +(c.estado!=='pagado'?'<button class="cred-btn success" onclick="abonarCred('+i+',\''+tipo+'\')">' + '+ Abonar</button>':'')
       +(c.estado!=='pagado'?'<button class="cred-btn success" onclick="pagarCred('+i+',\''+tipo+'\')">✅</button>':'')
       + btnHist
       +'<button class="cred-btn" onclick="editarCred('+i+',\''+tipo+'\')">✏️</button>'
@@ -1907,42 +1924,55 @@ function abonarCred(i,tipo){
   var creds=load('creditos',[]); var all=creds.filter(function(c){ return c.tipo===tipo; });
   var item=all[i]; var ri=creds.indexOf(item);
   var pendiente = item.monto - (item.abonado||0);
+  var totalIntPagado = (item.historialAbonos||[]).reduce(function(s,a){ return s+(a.interes||0); },0);
   var mc = document.getElementById('mainContent');
   mc.innerHTML = '';
   var d = document.createElement('div'); d.style.padding='20px 16px';
-  d.innerHTML = '<div style="font-size:1rem;font-weight:800;color:var(--text);margin-bottom:16px;">+ Registrar Abono</div>'
-    + '<div style="font-size:0.78rem;color:var(--dim);margin-bottom:14px;">Pendiente: <b>'+fmt(pendiente)+'</b></div>'
-    + '<label class="inp-label">Monto a abonar</label>'
-    + '<input class="inp" id="abonoMonto" type="number" min="1" placeholder="$0.00" style="margin-bottom:12px;">'
-    + '<label class="inp-label">Fecha del abono</label>'
-    + '<input class="inp" id="abonoFecha" type="date" style="margin-bottom:18px;">';
-  // Botón guardar
+  d.innerHTML = '<div style="font-size:1rem;font-weight:800;color:var(--text);margin-bottom:4px;">+ Registrar Abono</div>'
+    + '<div style="font-size:0.78rem;color:var(--dim);margin-bottom:14px;">'
+    +   'Capital pendiente: <b>'+fmt(pendiente)+'</b>'
+    +   (totalIntPagado>0 ? ' &nbsp;&middot;&nbsp; Intereses pagados: <b style="color:#e07b00;">'+fmt(totalIntPagado)+'</b>' : '')
+    + '</div>'
+    + '<div style="display:flex;gap:10px;">'
+    +   '<div style="flex:1;"><label class="inp-label">Capital a abonar</label>'
+    +   '<input class="inp" id="abonoMonto" type="number" min="0" placeholder="$0.00"></div>'
+    +   '<div style="flex:1;"><label class="inp-label">Interes de este pago</label>'
+    +   '<input class="inp" id="abonoInteres" type="number" min="0" placeholder="$0.00 (opcional)"></div>'
+    + '</div>'
+    + '<label class="inp-label" style="margin-top:4px;">Fecha del abono</label>'
+    + '<input class="inp" id="abonoFecha" type="date" style="margin-bottom:6px;">'
+    + '<div style="font-size:0.72rem;color:var(--dim);margin-bottom:16px;">Si en este pago tambien cubriste interes, anotalo en el segundo campo.</div>';
   var bGuardar = document.createElement('button');
   bGuardar.className = 'btn-main'; bGuardar.textContent = 'Guardar abono';
   bGuardar.onclick = function(){ confirmarAbono(ri, tipo); };
-  // Botón cancelar
   var bCancelar = document.createElement('button');
   bCancelar.className = 'btn-sec'; bCancelar.style.marginTop='8px'; bCancelar.textContent = 'Cancelar';
   bCancelar.onclick = function(){ goSub(tipo==='deuda'?'creditos_debo':'creditos_cobrar'); };
   d.appendChild(bGuardar); d.appendChild(bCancelar);
   mc.appendChild(d);
-  // Poner fecha de hoy y focus
   var fec = document.getElementById('abonoFecha'); if(fec) fec.value = today();
   setTimeout(function(){ var el=document.getElementById('abonoMonto'); if(el) el.focus(); },100);
 }
 
 function confirmarAbono(ri, tipo){
-  var monto = parseFloat(document.getElementById('abonoMonto').value);
-  var fecha = document.getElementById('abonoFecha').value;
-  if(!monto||monto<=0){ showToast('⚠ Ingresa un monto válido'); return; }
+  var monto   = parseFloat(document.getElementById('abonoMonto').value)||0;
+  var interes = parseFloat(document.getElementById('abonoInteres').value)||0;
+  var fecha   = document.getElementById('abonoFecha').value;
+  if(monto<=0 && interes<=0){ showToast('⚠ Ingresa al menos un monto'); return; }
   if(!fecha){ showToast('⚠ Selecciona la fecha'); return; }
   var creds = load('creditos',[]);
   creds[ri].abonado = (creds[ri].abonado||0) + monto;
-  // Guardar historial de abonos
+  creds[ri].interesesPagados = (creds[ri].interesesPagados||0) + interes;
   if(!creds[ri].historialAbonos) creds[ri].historialAbonos = [];
-  creds[ri].historialAbonos.push({ monto: monto, fecha: fecha });
-  if(creds[ri].abonado >= creds[ri].monto){ creds[ri].estado='pagado'; showToast('🎉 ¡Crédito liquidado!'); }
-  else { showToast('✓ Abono de '+fmt(monto)+' registrado'); }
+  creds[ri].historialAbonos.push({ monto: monto, interes: interes, fecha: fecha });
+  var pagadoTotal = fmt(monto) + (interes>0 ? ' + '+fmt(interes)+' int.' : '');
+  if(creds[ri].abonado >= creds[ri].monto){
+    creds[ri].estado='pagado';
+    var sinInt = creds[ri].interesesPagados===0;
+    showToast('🎉 Liquidado' + (sinInt ? ' · Sin intereses pagados' : ' · Intereses: '+fmt(creds[ri].interesesPagados)));
+  } else {
+    showToast('✓ Abono registrado: ' + pagadoTotal);
+  }
   save('creditos', creds);
   goSub(tipo==='deuda'?'creditos_debo':'creditos_cobrar');
 }
@@ -3581,4 +3611,4 @@ function procesarComandoVoz(t){
 }
 </script>
 </body>
-</html>
+  </html>
