@@ -1844,21 +1844,14 @@ function renderListaCreds(tipo){
     if(c.historialAbonos && c.historialAbonos.length){
       var totCap = c.historialAbonos.reduce(function(s,a){ return s+(a.monto||0); },0);
       var totInt = c.historialAbonos.reduce(function(s,a){ return s+(a.interes||0); },0);
-      // Construir historial como DOM para evitar bugs de comillas en onclick
-      var _ri = ri; var _tipo = tipo; var _hist = c.historialAbonos;
-      // idxMap: índice original de cada abono (mostramos más reciente primero)
-      var idxMap = _hist.map(function(_,x){ return x; }).reverse();
-      var filasHtml = _hist.slice().reverse().map(function(a, revIdx){
-        var ai = idxMap[revIdx];
-        return '<div data-ri="'+_ri+'" data-ai="'+ai+'" data-tipo="'+_tipo+'" class="_abonoFila" style="padding:6px 0;border-bottom:1px solid var(--border);font-size:0.76rem;">'
+      var filasHtml = c.historialAbonos.slice().reverse().map(function(a){
+        return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:0.76rem;">'
           +'<div style="display:flex;justify-content:space-between;align-items:center;">'
           +'<span style="color:var(--dim);">'+a.fecha+'</span>'
           +'<span style="display:flex;align-items:center;gap:6px;">'
           +(a.monto>0?'<span style="font-weight:700;color:var(--accent);">'+fmt(a.monto)+'</span>':'')
           +(a.interes>0?'<span style="color:#e07b00;font-size:0.7rem;">+'+fmt(a.interes)+' int.</span>':'')
           +((!a.monto||a.monto===0)&&a.interes>0?'<span style="color:#e07b00;font-weight:700;">Solo interés</span>':'')
-          +'<button class="_btnEditAbono" style="background:none;border:1px solid var(--border);border-radius:6px;padding:2px 6px;font-size:0.68rem;cursor:pointer;color:var(--accent);">✏️</button>'
-          +'<button class="_btnDelAbono" style="background:none;border:1px solid rgba(229,57,53,0.3);border-radius:6px;padding:2px 6px;font-size:0.68rem;cursor:pointer;color:var(--danger);">🗑</button>'
           +'</span></div>'
           +(a.nota?'<div style="font-size:0.72rem;color:var(--dim);margin-top:2px;font-style:italic;">📝 '+a.nota+'</div>':'')
           +'</div>';
@@ -1987,80 +1980,6 @@ function abonarCred(i,tipo){
   mc.appendChild(d);
   var fec = document.getElementById('abonoFecha'); if(fec) fec.value = today();
   setTimeout(function(){ var el=document.getElementById('abonoMonto'); if(el) el.focus(); },100);
-}
-
-function editarAbono(ri, ai, tipo){
-  var creds = load('creditos',[]);
-  var a = creds[ri].historialAbonos[ai];
-  if(!a) return;
-  var mc = document.getElementById('mainContent');
-  mc.innerHTML = '';
-  var d = document.createElement('div'); d.style.padding='20px 16px';
-  d.innerHTML = '<div style="font-size:1rem;font-weight:800;color:var(--text);margin-bottom:4px;">✏️ Editar Abono</div>'
-    + '<div style="font-size:0.78rem;color:var(--dim);margin-bottom:14px;">Fecha original: <b>'+a.fecha+'</b></div>'
-    + '<div style="display:flex;gap:10px;">'
-    +   '<div style="flex:1;"><label class="inp-label">Capital</label>'
-    +   '<input class="inp" id="eaCapital" type="number" min="0" placeholder="$0.00"></div>'
-    +   '<div style="flex:1;"><label class="inp-label">Interés</label>'
-    +   '<input class="inp" id="eaInteres" type="number" min="0" placeholder="$0.00"></div>'
-    + '</div>'
-    + '<label class="inp-label" style="margin-top:4px;">Fecha</label>'
-    + '<input class="inp" id="eaFecha" type="date" style="margin-bottom:10px;">'
-    + '<label class="inp-label">Notas</label>'
-    + '<textarea class="inp" id="eaNota" rows="2" style="resize:none;margin-bottom:16px;" placeholder="Notas del abono..."></textarea>';
-  var bGuardar = document.createElement('button');
-  bGuardar.className='btn-main'; bGuardar.textContent='💾 Guardar cambios';
-  bGuardar.onclick = function(){ guardarEdicionAbono(ri, ai, tipo); };
-  var bCancelar = document.createElement('button');
-  bCancelar.className='btn-sec'; bCancelar.style.marginTop='8px'; bCancelar.textContent='Cancelar';
-  bCancelar.onclick = function(){ goSub(tipo==='deuda'?'creditos_debo':'creditos_cobrar'); };
-  d.appendChild(bGuardar); d.appendChild(bCancelar);
-  mc.appendChild(d);
-  // Rellenar valores actuales
-  document.getElementById('eaCapital').value = a.monto||0;
-  document.getElementById('eaInteres').value = a.interes||0;
-  document.getElementById('eaFecha').value   = a.fecha||'';
-  document.getElementById('eaNota').value    = a.nota||'';
-}
-
-function guardarEdicionAbono(ri, ai, tipo){
-  var capital = parseFloat(document.getElementById('eaCapital').value)||0;
-  var interes = parseFloat(document.getElementById('eaInteres').value)||0;
-  var fecha   = document.getElementById('eaFecha').value;
-  var nota    = document.getElementById('eaNota').value.trim();
-  if(!fecha){ showToast('⚠ Selecciona la fecha'); return; }
-  var creds = load('creditos',[]);
-  var a = creds[ri].historialAbonos[ai];
-  var diffCap = capital - (a.monto||0);
-  var diffInt = interes - (a.interes||0);
-  // Actualizar totales del crédito
-  creds[ri].abonado = Math.max(0, (creds[ri].abonado||0) + diffCap);
-  creds[ri].interesesPagados = Math.max(0, (creds[ri].interesesPagados||0) + diffInt);
-  // Actualizar el abono individual
-  creds[ri].historialAbonos[ai] = { monto: capital, interes: interes, fecha: fecha, nota: nota };
-  // Recalcular estado
-  if(creds[ri].abonado >= creds[ri].monto) creds[ri].estado='pagado';
-  else if(creds[ri].estado==='pagado') creds[ri].estado='pendiente';
-  save('creditos', creds);
-  showToast('✓ Abono actualizado');
-  goSub(tipo==='deuda'?'creditos_debo':'creditos_cobrar');
-}
-
-function eliminarAbono(ri, ai, tipo){
-  if(!confirm('¿Eliminar este abono?')) return;
-  var creds = load('creditos',[]);
-  var a = creds[ri].historialAbonos[ai];
-  // Restar del total
-  creds[ri].abonado = Math.max(0, (creds[ri].abonado||0) - (a.monto||0));
-  creds[ri].interesesPagados = Math.max(0, (creds[ri].interesesPagados||0) - (a.interes||0));
-  // Quitar del historial
-  creds[ri].historialAbonos.splice(ai, 1);
-  // Recalcular estado
-  if(creds[ri].abonado >= creds[ri].monto) creds[ri].estado='pagado';
-  else if(creds[ri].estado==='pagado') creds[ri].estado='pendiente';
-  save('creditos', creds);
-  showToast('🗑 Abono eliminado');
-  goSub(tipo==='deuda'?'creditos_debo':'creditos_cobrar');
 }
 
 function confirmarAbono(ri, tipo){
@@ -3720,20 +3639,6 @@ function procesarComandoVoz(t){
   showToast('❓ No entendí: "' + t + '"');
 }
 
-// ── Listener global para botones de abonos (edit/delete) ──
-document.addEventListener('click', function(e){
-  var btnEdit = e.target.closest ? e.target.closest('._btnEditAbono') : null;
-  var btnDel  = e.target.closest ? e.target.closest('._btnDelAbono')  : null;
-  if(!btnEdit && !btnDel) return;
-  var fila = e.target.closest ? e.target.closest('._abonoFila') : null;
-  if(!fila) return;
-  e.stopPropagation();
-  var ri   = parseInt(fila.getAttribute('data-ri'));
-  var ai   = parseInt(fila.getAttribute('data-ai'));
-  var tipo = fila.getAttribute('data-tipo');
-  if(btnEdit) editarAbono(ri, ai, tipo);
-  if(btnDel)  eliminarAbono(ri, ai, tipo);
-});
 </script>
 </body>
   </html>
