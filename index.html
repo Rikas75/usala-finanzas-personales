@@ -1133,7 +1133,7 @@ function goSub(sub){
     // Más
     activos: null, progreso: null,
     ingresos_activos: renderIngresosActivos,
-    metas: renderMetas, presupuesto: renderPresupuesto, alertas: renderAlertas,
+    metas: renderMetas, alertas: renderAlertas,
     historial: renderHistorial, conversor: renderConversor,
     reportes: renderReportes,
     codigos: renderCodigos, config: renderConfig, ayuda: renderAyuda,
@@ -1145,6 +1145,7 @@ function goSub(sub){
   if(sub==='activos'){ renderActivos(); return; }
   if(sub==='ingresos_activos'){ document.getElementById('mainContent').innerHTML=renderIngresosActivos(); return; }
   if(sub==='progreso'){ renderProgreso(); return; }
+  if(sub==='presupuesto'){ renderPresupuesto(); return; }
   var fn = renders[sub];
   if(fn) document.getElementById('mainContent').innerHTML = fn();
 }
@@ -1604,6 +1605,13 @@ function borrarTx(id){
 // ══════════════════════════════════════════
 // INICIO
 // ══════════════════════════════════════════
+function irPresupuesto(){
+  var nbs=document.querySelectorAll('.nb');
+  nbs.forEach(function(b){ b.classList.remove('active'); });
+  if(nbs[4]) nbs[4].classList.add('active');
+  S.tab='mas'; S.subtab='presupuesto';
+  renderPresupuesto();
+}
 function irProgreso(){
   var nbs=document.querySelectorAll('.nb');
   nbs.forEach(function(b){ b.classList.remove('active'); });
@@ -1758,7 +1766,7 @@ function renderInicio(){
       :alertasN?'<span style="color:#f57c00;font-weight:700;">🔶 '+alertasN+' en alerta</span>'
       :'<span style="color:#2d9e5f;font-weight:700;">✅ En control</span>';
     return '<div class="stat-grid" style="margin-bottom:6px;">'
-      +'<div class="stat-card full" onclick="goSub(\'presupuesto\');goTab(\'mas\',document.querySelectorAll(\'.nb\')[4])" style="cursor:pointer;">'
+      +'<div class="stat-card full" onclick="irPresupuesto()" style="cursor:pointer;">'
       +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
       +'<div class="stat-label">🗂️ Presupuesto del Mes ›</div>'+estado+'</div>'
       +'<div style="font-size:1.45rem;font-weight:900;color:var(--text);margin-bottom:6px;">'+fmt(totalGas)+'<span style="font-size:0.75rem;font-weight:500;color:var(--dim);"> / '+fmt(totalLim)+'</span></div>'
@@ -4889,4 +4897,4 @@ function procesarComandoVoz(t){
 
 </script>
 </body>
-        </html>
+  </html>
