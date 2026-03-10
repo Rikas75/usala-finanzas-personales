@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -257,9 +256,9 @@ html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--bg);color
 @keyframes float2{0%,100%{transform:translateY(0) rotate(0deg);}50%{transform:translateY(-8px) rotate(8deg);}}
 @keyframes popIn{0%{transform:scale(0) rotate(-15deg);opacity:0;}70%{transform:scale(1.2) rotate(5deg);}100%{transform:scale(1) rotate(0deg);opacity:1;}}
 @keyframes slideUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
-.undo-bar{position:fixed;bottom:80px;left:12px;right:12px;background:var(--nav);color:var(--navtext);padding:14px 16px;border-radius:16px;font-size:0.83rem;font-weight:600;z-index:200;display:flex;justify-content:space-between;align-items:center;box-shadow:0 4px 20px rgba(0,0,0,0.3);}
+.undo-bar{position:fixed;bottom:86px;left:10px;right:10px;background:var(--nav);color:var(--navtext);padding:14px 16px;border-radius:16px;font-size:0.84rem;font-weight:600;z-index:9999;display:flex;flex-direction:column;gap:8px;box-shadow:0 6px 28px rgba(0,0,0,0.35);animation:undoSlideIn 0.25s cubic-bezier(.4,0,.2,1);}
 .undo-btn{background:var(--accent);border:none;color:var(--navtext);padding:7px 16px;border-radius:10px;font-family:'Outfit',sans-serif;font-weight:700;cursor:pointer;font-size:0.8rem;}
-.undo-prog{position:absolute;bottom:0;left:0;height:3px;background:var(--accent);border-radius:0 0 16px 16px;transition:width 7s linear;}
+.undo-prog{position:absolute;bottom:0;left:0;height:4px;background:var(--accent);border-radius:0 0 16px 16px;transition:width 7s linear;width:100%;}
 
 /* ── CONFIG / DANGER ── */
 .danger-zone{border:1.5px solid rgba(229,57,53,0.25);border-radius:14px;padding:16px;margin-top:12px;}
@@ -1187,12 +1186,26 @@ var _undoFn = null, _undoTimer = null;
 function mostrarUndo(msg, fn){
   if(_undoTimer) clearTimeout(_undoTimer);
   var old = document.getElementById('undoBar'); if(old) old.remove();
-  var d = document.createElement('div'); d.id='undoBar'; d.className='undo-bar';
-  d.innerHTML = '<span>'+msg+'</span><button class="undo-btn" onclick="ejecutarUndo()">Deshacer</button><div class="undo-prog" id="undoProg"></div>';
-  document.body.appendChild(d);
-  setTimeout(function(){ var p=document.getElementById('undoProg'); if(p) p.style.width='0%'; }, 50);
   _undoFn = fn;
-  _undoTimer = setTimeout(function(){ var u=document.getElementById('undoBar'); if(u) u.remove(); _undoFn=null; }, 7000);
+  // Usar setTimeout para asegurarnos que el DOM del render ya terminó
+  setTimeout(function(){
+    var d = document.createElement('div'); d.id='undoBar'; d.className='undo-bar';
+    d.innerHTML = '<div style="display:flex;align-items:center;gap:8px;flex:1;">'
+      +'<span style="flex:1;">'+msg+'</span>'
+      +'<button class="undo-btn" onclick="ejecutarUndo()">↩ Deshacer</button>'
+      +'</div>'
+      +'<div class="undo-prog" id="undoProg"></div>';
+    document.body.appendChild(d);
+    // Animar barra después de que el elemento esté en el DOM
+    requestAnimationFrame(function(){
+      requestAnimationFrame(function(){
+        var p=document.getElementById('undoProg'); if(p) p.style.width='0%';
+      });
+    });
+    _undoTimer = setTimeout(function(){
+      var u=document.getElementById('undoBar'); if(u){ u.style.opacity='0'; u.style.transform='translateY(10px)'; u.style.transition='opacity 0.3s,transform 0.3s'; setTimeout(function(){ if(u.parentNode) u.remove(); },300); } _undoFn=null;
+    }, 7000);
+  }, 0);
 }
 function ejecutarUndo(){
   if(_undoTimer) clearTimeout(_undoTimer);
@@ -2268,10 +2281,7 @@ function renderActivos(){
       var bEd=document.createElement('button'); bEd.style.cssText='border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:0.75rem;cursor:pointer;background:none;color:var(--accent);'; bEd.textContent='✏️';
       (function(i_){ bEd.onclick=function(){ renderFormActivo(i_); }; })(idx); btns.appendChild(bEd);
       var bDel=document.createElement('button'); bDel.style.cssText='border:1px solid rgba(229,57,53,0.3);border-radius:8px;padding:4px 8px;font-size:0.75rem;cursor:pointer;background:none;color:var(--danger);'; bDel.textContent='🗑';
-      (function(i_){ bDel.onclick=function(){
-                var aa=load('activos_personales',[]); aa.splice(i_,1); save('activos_personales',aa);
-        showToast('🗑 Eliminado'); renderActivos();
-      }; })(idx); btns.appendChild(bDel);
+      (function(i_){ bDel.onclick=function(){ borrarActivo(i_); }; })(idx); btns.appendChild(bDel);
       right.appendChild(btns); row.appendChild(left); row.appendChild(right); card.appendChild(row); mc.appendChild(card);
     });
   });
@@ -2665,10 +2675,7 @@ function renderPagosMes(){
       var bDel = document.createElement('button');
       bDel.style.cssText='border:1px solid rgba(229,57,53,0.3);border-radius:8px;padding:4px 8px;font-size:0.75rem;cursor:pointer;background:none;color:var(--danger);';
       bDel.textContent='🗑';
-      (function(idx_){ bDel.onclick=function(){
-                var pp=loadPagosBase(); pp.splice(idx_,1); savePagosBase(pp);
-        showToast('🗑 Eliminado'); renderPagosMes();
-      }; })(idx);
+      (function(idx_){ bDel.onclick=function(){ borrarPago(idx_); }; })(idx);
       btns.appendChild(bDel);
 
       right.appendChild(btns);
@@ -3830,10 +3837,34 @@ function agregarCatCustom(){
   custom.push(val); save('cats_gasto_custom', custom);
   showToast('✓ Categoría agregada'); inp.value=''; goSub('config');
 }
+function borrarActivo(i){
+  var aa=load('activos_personales',[]);
+  if(!aa[i]) return;
+  var eli=JSON.parse(JSON.stringify(aa[i]));
+  aa.splice(i,1); save('activos_personales',aa);
+  renderActivos();
+  mostrarUndo('🏦 '+eli.nombre+' eliminado', function(){
+    var aa2=load('activos_personales',[]); aa2.splice(i,0,eli); save('activos_personales',aa2); renderActivos();
+  });
+}
+function borrarPago(i){
+  var pp=loadPagosBase();
+  if(!pp[i]) return;
+  var eli=JSON.parse(JSON.stringify(pp[i]));
+  pp.splice(i,1); savePagosBase(pp);
+  renderPagosMes();
+  mostrarUndo('📅 '+eli.nombre+' eliminado', function(){
+    var pp2=loadPagosBase(); pp2.splice(i,0,eli); savePagosBase(pp2); renderPagosMes();
+  });
+}
 function borrarCatCustom(i){
   var custom = load('cats_gasto_custom',[]);
+  var _eliCat = custom[i];
   custom.splice(i,1); save('cats_gasto_custom',custom);
-  showToast('✓ Eliminada'); goSub('config');
+  goSub('config');
+  mostrarUndo('🏷️ Categoría eliminada', function(){
+    var c2=load('cats_gasto_custom',[]); c2.splice(i,0,_eliCat); save('cats_gasto_custom',c2); goSub('config');
+  });
 }
 
 function renderVersion(){
