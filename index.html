@@ -305,55 +305,7 @@ select.inp{appearance:none;-webkit-appearance:none;}
 .ck-del{background:rgba(255,80,80,0.15);color:#ff6b6b;font-size:1rem;}
 .ck-del:active{background:rgba(255,80,80,0.35);}
 
-/* ── ASISTENTE IA VOZ ── */
-#iaPanel{
-  position:fixed;z-index:1200;bottom:80px;left:50%;transform:translateX(-50%) translateY(30px);
-  width:calc(100% - 32px);max-width:400px;
-  background:var(--card);border-radius:24px;
-  box-shadow:0 12px 48px rgba(0,0,0,0.25);
-  padding:0;overflow:hidden;
-  opacity:0;transition:all 0.35s cubic-bezier(0.34,1.4,0.64,1);
-  pointer-events:none;
-}
-#iaPanel.visible{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:all;}
-#iaHeader{
-  background:linear-gradient(135deg,#1e6b3c,#2d9e5f);
-  padding:14px 18px 12px;
-  display:flex;align-items:center;gap:10px;
-}
-#iaBubbles{
-  padding:14px 16px;max-height:220px;overflow-y:auto;
-  display:flex;flex-direction:column;gap:8px;
-}
-.ia-msg{padding:10px 14px;border-radius:16px;font-size:0.84rem;line-height:1.5;max-width:88%;}
-.ia-msg.ia{background:linear-gradient(135deg,rgba(30,107,60,0.12),rgba(45,158,95,0.08));color:var(--text);border-radius:4px 16px 16px 16px;align-self:flex-start;}
-.ia-msg.user{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-radius:16px 4px 16px 16px;align-self:flex-end;}
-#iaFooter{
-  padding:10px 14px 14px;display:flex;gap:8px;align-items:center;
-  border-top:1px solid var(--border);
-}
-#iaMicBtn{
-  width:48px;height:48px;border-radius:50%;border:none;cursor:pointer;
-  background:linear-gradient(135deg,var(--accent),var(--accent2));
-  color:#fff;font-size:1.3rem;flex-shrink:0;
-  transition:all 0.2s;display:flex;align-items:center;justify-content:center;
-  box-shadow:0 4px 16px rgba(30,107,60,0.35);
-}
-#iaMicBtn.escuchando{
-  background:linear-gradient(135deg,#ff3b30,#ff6b6b);
-  animation:pulseMic 1s ease-in-out infinite;
-  box-shadow:0 4px 20px rgba(255,59,48,0.5);
-}
-@keyframes pulseMic{0%,100%{transform:scale(1);}50%{transform:scale(1.1);}}
-#iaStatus{font-size:0.72rem;color:var(--dim);flex:1;text-align:center;}
-#iaWaveform{display:flex;align-items:center;gap:3px;justify-content:center;height:24px;}
-#iaWaveform span{width:3px;background:var(--accent);border-radius:3px;animation:wave 0.8s ease-in-out infinite;}
-#iaWaveform span:nth-child(1){height:6px;animation-delay:0s;}
-#iaWaveform span:nth-child(2){height:14px;animation-delay:0.1s;}
-#iaWaveform span:nth-child(3){height:20px;animation-delay:0.2s;}
-#iaWaveform span:nth-child(4){height:14px;animation-delay:0.3s;}
-#iaWaveform span:nth-child(5){height:6px;animation-delay:0.4s;}
-@keyframes wave{0%,100%{transform:scaleY(1);}50%{transform:scaleY(1.8);}}
+50%{transform:scaleY(1.8);}}
 </style>
 </head>
 <body>
@@ -2255,9 +2207,7 @@ function restablecerMonedaIA(){
   _iaHistorial = [];
   _iaInicializado = false;
   _iaAbierto = false;
-  var p = document.getElementById('iaPanel');
   if(p){ p.style.display = 'none'; }
-  var bub = document.getElementById('iaBubbles');
   if(bub) bub.innerHTML = '';
   showToast('💱 Moneda restablecida. Abre el asistente 🎙️ para elegir de nuevo.');
   var el = document.getElementById('monedaEstadoLabel');
@@ -3309,135 +3259,62 @@ function toggleFaq(id){
 }
 
 // ══════════════════════════════════════════
-// ASISTENTE IA — COMANDOS DE VOZ DIRECTOS
+// COMANDOS DE VOZ
 // ══════════════════════════════════════════
-var _iaRec    = null;
-var _iaActivo = false;
-var _iaAbierto= false;
+var _vozRec = null, _vozActivo = false;
 
-// Abrir / cerrar panel
-function abrirIA(){
-  _iaAbierto = true;
-  var p = document.getElementById('iaPanel');
-  if(p){ p.style.display='flex'; p.style.flexDirection='column'; }
-  var bub = document.getElementById('iaBubbles');
-  if(bub && bub.childElementCount === 0){
-    var c = getCuentas();
-    var sim = getSimboloMoneda();
-    var efec = c.efectivo || 0;
-    var banco = (c.cheques||[]).reduce(function(s,x){ return s+Number(x.saldo||0); },0);
-    agregarMsgIA('Hola ' + S.user.nombre.split(' ')[0]
-      + ' 👋 Tienes ' + sim + efec.toLocaleString('es-MX',{minimumFractionDigits:2})
-      + ' en efectivo y ' + sim + banco.toLocaleString('es-MX',{minimumFractionDigits:2})
-      + ' en banco. Di un comando o toca 🎤', 'ia');
-  }
-}
-function cerrarIA(){
-  _iaAbierto = false;
-  var p = document.getElementById('iaPanel');
-  if(p) p.style.display='none';
-  detenerMicIA();
-}
 function toggleVoz(){
-  if(_iaAbierto){ cerrarIA(); return; }
-  abrirIA();
+  if(_vozActivo){ detenerVoz(); return; }
+  iniciarVoz();
 }
-
-// ── Micrófono ──────────────────────────────
-function toggleMicIA(){
-  if(_iaActivo){ detenerMicIA(); return; }
-  iniciarMicIA();
-}
-function iniciarMicIA(){
+function iniciarVoz(){
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SR){
-    agregarMsgIA('Tu navegador no soporta voz 😔 Usa Chrome o Safari.', 'ia');
-    return;
-  }
-  _iaRec = new SR();
-  _iaRec.lang = 'es-MX';
-  _iaRec.continuous = false;
-  _iaRec.interimResults = false;
-  _iaRec.onstart = function(){
-    _iaActivo = true;
-    micUI('escuchando');
+  if(!SR){ showToast('⚠ Tu navegador no soporta voz'); return; }
+  _vozRec = new SR();
+  _vozRec.lang = 'es-MX';
+  _vozRec.continuous = false;
+  _vozRec.interimResults = false;
+  _vozRec.onstart = function(){
+    _vozActivo = true;
+    var btn = document.getElementById('btnVoz');
+    if(btn){ btn.style.background='#ff3b30'; btn.style.color='#fff'; btn.textContent='🔴'; }
+    showToast('🎤 Escuchando...');
   };
-  _iaRec.onend = function(){ detenerMicIA(); };
-  _iaRec.onerror = function(e){
-    detenerMicIA();
-    if(e.error === 'not-allowed'){
-      agregarMsgIA('🔒 Micrófono bloqueado. Chrome ⋮ → Configuración del sitio → Micrófono → Permitir → recarga.', 'ia');
-    } else if(e.error === 'no-speech'){
-      agregarMsgIA('No te escuché 🎤 Habla más cerca. Toca 🎤 de nuevo.', 'ia');
-    } else {
-      agregarMsgIA('Error: ' + e.error + '. Toca 🎤 para reintentar.', 'ia');
-    }
+  _vozRec.onend = function(){ detenerVoz(); };
+  _vozRec.onerror = function(e){
+    detenerVoz();
+    if(e.error === 'not-allowed') showToast('🔒 Micrófono bloqueado. Actívalo en Configuración del sitio.');
+    else if(e.error !== 'no-speech') showToast('⚠ Error de voz: ' + e.error);
   };
-  _iaRec.onresult = function(e){
-    var texto = e.results[0][0].transcript.toLowerCase().trim();
-    detenerMicIA();
-    agregarMsgIA(texto, 'user');
-    procesarComando(texto);
+  _vozRec.onresult = function(e){
+    var t = e.results[0][0].transcript.toLowerCase().trim();
+    showToast('🎤 "' + t + '"');
+    procesarComandoVoz(t);
   };
-  try{ _iaRec.start(); }
-  catch(ex){ agregarMsgIA('No se pudo iniciar el micrófono. Recarga e intenta.', 'ia'); }
+  try{ _vozRec.start(); } catch(e){ showToast('⚠ No se pudo iniciar el mic'); }
 }
-function detenerMicIA(){
-  _iaActivo = false;
-  micUI('idle');
-  if(_iaRec){ try{ _iaRec.stop(); }catch(e){} _iaRec = null; }
+function detenerVoz(){
+  _vozActivo = false;
+  var btn = document.getElementById('btnVoz');
+  if(btn){ btn.style.background=''; btn.style.color=''; btn.textContent='🎙️'; }
+  if(_vozRec){ try{ _vozRec.stop(); }catch(e){} _vozRec = null; }
 }
-function micUI(estado){
-  var btn = document.getElementById('iaMicBtn');
-  var st  = document.getElementById('iaStatus');
-  var wv  = document.getElementById('iaWaveform');
-  if(estado === 'escuchando'){
-    if(btn) btn.classList.add('escuchando');
-    if(st)  st.style.display = 'none';
-    if(wv)  wv.style.display = 'flex';
-  } else {
-    if(btn) btn.classList.remove('escuchando');
-    if(st){ st.style.display='block'; st.textContent='Toca 🎤 y habla'; }
-    if(wv)  wv.style.display = 'none';
-  }
-}
-
-// ── Chat ──────────────────────────────────
-function agregarMsgIA(texto, tipo){
-  var bub = document.getElementById('iaBubbles');
-  if(!bub) return;
-  var div = document.createElement('div');
-  div.className = 'ia-msg ' + tipo;
-  div.textContent = texto;
-  bub.appendChild(div);
-  bub.scrollTop = bub.scrollHeight;
-}
-
-// ── Procesador de comandos ─────────────────
-function procesarComando(t){
+function procesarComandoVoz(t){
   var nb = document.querySelectorAll('.nb');
-
-  // Navegación principal
-  if(/\binicio\b|\bhome\b/.test(t)){ goTab('inicio',nb[0]); agregarMsgIA('🏠 Yendo a Inicio', 'ia'); return; }
-  if(/\bcuentas?\b/.test(t) && !/tarjeta|tc\b/.test(t)){ goTab('cuentas',nb[1]); agregarMsgIA('🏦 Yendo a Cuentas', 'ia'); return; }
-  if(/\bcr[eé]ditos?\b|\bpr[eé]stamo\b/.test(t)){ goTab('creditos',nb[2]); agregarMsgIA('🤝 Yendo a Créditos', 'ia'); return; }
-  if(/\breportes?\b/.test(t)){ goTab('reportes',nb[3]); agregarMsgIA('📊 Yendo a Reportes', 'ia'); return; }
-  if(/\bm[aá]s\b|\bajuste\b|\bconfig\b/.test(t)){ goTab('mas',nb[4]); agregarMsgIA('⋯ Yendo a Más', 'ia'); return; }
-
-  // Cuentas directas
-  if(/\befectivo\b/.test(t)){ goTab('cuentas',nb[1]); setTimeout(function(){ goSub('efectivo'); },60); agregarMsgIA('💵 Abriendo Efectivo', 'ia'); return; }
-  if(/\bbanco\b|\bcheque\b/.test(t)){ goTab('cuentas',nb[1]); setTimeout(function(){ goSub('cheques'); },60); agregarMsgIA('🏦 Abriendo Banco', 'ia'); return; }
-  if(/\btarjeta\b|\btc\b/.test(t)){ goTab('cuentas',nb[1]); setTimeout(function(){ goSub('tarjetas_credito'); },60); agregarMsgIA('💳 Abriendo Tarjetas', 'ia'); return; }
-
-  // Herramientas
-  if(/\bcalculadora\b|\bcalc\b/.test(t)){ abrirCalc(); agregarMsgIA('🔢 Calculadora abierta', 'ia'); return; }
-  if(/\bhistorial\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('historial'); },60); agregarMsgIA('📋 Abriendo Historial', 'ia'); return; }
-  if(/\bayuda\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('ayuda'); },60); agregarMsgIA('❓ Abriendo Ayuda', 'ia'); return; }
-  if(/\bmetas?\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('metas'); },60); agregarMsgIA('🎯 Abriendo Metas', 'ia'); return; }
-  if(/\bpresupuesto\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('presupuesto'); },60); agregarMsgIA('💰 Abriendo Presupuesto', 'ia'); return; }
-  if(/\bconversor\b|\btipo de cambio\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('conversor'); },60); agregarMsgIA('💱 Abriendo Conversor', 'ia'); return; }
-
-  // Registrar gasto/ingreso rápido en efectivo
+  if(/\binicio\b|\bhome\b/.test(t)){ goTab('inicio',nb[0]); showToast('🏠 Inicio'); return; }
+  if(/\bcuentas?\b/.test(t) && !/tarjeta|tc\b/.test(t)){ goTab('cuentas',nb[1]); showToast('🏦 Cuentas'); return; }
+  if(/\bcr[eé]ditos?\b|\bpr[eé]stamo\b/.test(t)){ goTab('creditos',nb[2]); showToast('🤝 Créditos'); return; }
+  if(/\breportes?\b/.test(t)){ goTab('reportes',nb[3]); showToast('📊 Reportes'); return; }
+  if(/\bm[aá]s\b|\bajuste\b|\bconfig\b/.test(t)){ goTab('mas',nb[4]); showToast('⋯ Más'); return; }
+  if(/\befectivo\b/.test(t)){ goTab('cuentas',nb[1]); setTimeout(function(){ goSub('efectivo'); },60); showToast('💵 Efectivo'); return; }
+  if(/\bbanco\b|\bcheque\b/.test(t)){ goTab('cuentas',nb[1]); setTimeout(function(){ goSub('cheques'); },60); showToast('🏦 Banco'); return; }
+  if(/\btarjeta\b|\btc\b/.test(t)){ goTab('cuentas',nb[1]); setTimeout(function(){ goSub('tarjetas_credito'); },60); showToast('💳 Tarjetas'); return; }
+  if(/\bcalculadora\b|\bcalc\b/.test(t)){ abrirCalc(); showToast('🔢 Calculadora'); return; }
+  if(/\bhistorial\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('historial'); },60); showToast('📋 Historial'); return; }
+  if(/\bayuda\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('ayuda'); },60); showToast('❓ Ayuda'); return; }
+  if(/\bmetas?\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('metas'); },60); showToast('🎯 Metas'); return; }
+  if(/\bpresupuesto\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('presupuesto'); },60); showToast('💰 Presupuesto'); return; }
+  if(/\bconversor\b|\btipo de cambio\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('conversor'); },60); showToast('💱 Conversor'); return; }
   var mG = t.match(/gast[eé]\s+(\d+[\.,]?\d*)/);
   var mI = t.match(/ingres[eé]\s+(\d+[\.,]?\d*)/);
   if(mG){
@@ -3445,8 +3322,7 @@ function procesarComando(t){
     if(m > 0){
       var c = getCuentas(); c.efectivo = (c.efectivo||0) - m; saveCuentas(c);
       var txs = getTxs(); txs.push({id:Date.now(),tipo:'gasto',desc:'Voz',monto:m,cat:'Otros gastos',fecha:today(),cuenta:'efectivo'}); saveTxs(txs);
-      agregarMsgIA('✅ Gasto ' + getSimboloMoneda() + m.toFixed(2) + ' registrado en Efectivo', 'ia');
-      renderTab(S.tab); return;
+      showToast('💸 Gasto ' + getSimboloMoneda() + m.toFixed(2) + ' en Efectivo'); renderTab(S.tab); return;
     }
   }
   if(mI){
@@ -3454,43 +3330,11 @@ function procesarComando(t){
     if(m2 > 0){
       var c2 = getCuentas(); c2.efectivo = (c2.efectivo||0) + m2; saveCuentas(c2);
       var txs2 = getTxs(); txs2.push({id:Date.now(),tipo:'ingreso',desc:'Voz',monto:m2,cat:'Otros ingresos',fecha:today(),cuenta:'efectivo'}); saveTxs(txs2);
-      agregarMsgIA('✅ Ingreso ' + getSimboloMoneda() + m2.toFixed(2) + ' registrado en Efectivo', 'ia');
-      renderTab(S.tab); return;
+      showToast('💰 Ingreso ' + getSimboloMoneda() + m2.toFixed(2) + ' en Efectivo'); renderTab(S.tab); return;
     }
   }
-
-  // Consultas de saldo
-  if(/\bsaldo\b|\bcu[aá]nto\b|\bdinero\b/.test(t)){
-    var cx = getCuentas();
-    var sim = getSimboloMoneda();
-    var ef = cx.efectivo || 0;
-    var bk = (cx.cheques||[]).reduce(function(s,x){ return s+Number(x.saldo||0); },0);
-    agregarMsgIA('Efectivo: ' + sim + ef.toLocaleString('es-MX',{minimumFractionDigits:2})
-      + ' | Banco: ' + sim + bk.toLocaleString('es-MX',{minimumFractionDigits:2}), 'ia');
-    return;
-  }
-
-  // No reconocido
-  agregarMsgIA('❓ No entendí "' + t + '". Di: inicio, cuentas, efectivo, banco, tarjetas, reportes, gasté 200, ingresé 500…', 'ia');
+  showToast('❓ No entendí: "' + t + '"');
 }
 </script>
-
-<!-- ══ PANEL ASISTENTE IA ══ -->
-<div id="iaPanel" style="display:none;position:fixed;z-index:1200;bottom:80px;left:50%;transform:translateX(-50%);width:calc(100% - 32px);max-width:400px;background:var(--card);border-radius:24px;box-shadow:0 12px 48px rgba(0,0,0,0.25);overflow:hidden;">
-  <div style="background:linear-gradient(135deg,#1e6b3c,#2d9e5f);padding:14px 18px 12px;display:flex;align-items:center;gap:10px;">
-    <div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">🤖</div>
-    <div style="flex:1;">
-      <div style="font-size:0.9rem;font-weight:800;color:#fff;">Asistente USALA</div>
-      <div style="font-size:0.65rem;color:rgba(255,255,255,0.7);">Di un comando de voz 🎤</div>
-    </div>
-    <button onclick="cerrarIA()" style="background:rgba(255,255,255,0.15);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:1rem;">✕</button>
-  </div>
-  <div id="iaBubbles" style="padding:14px 16px;max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;"></div>
-  <div style="padding:10px 14px 14px;display:flex;gap:8px;align-items:center;border-top:1px solid var(--border);">
-    <div id="iaStatus" style="font-size:0.72rem;color:var(--dim);flex:1;text-align:center;">Toca 🎤 y habla</div>
-    <div id="iaWaveform" style="display:none;align-items:center;gap:3px;justify-content:center;height:24px;flex:1;"><span style="width:3px;height:6px;background:var(--accent);border-radius:3px;display:inline-block;animation:wave 0.8s ease-in-out infinite;"></span><span style="width:3px;height:14px;background:var(--accent);border-radius:3px;display:inline-block;animation:wave 0.8s ease-in-out 0.1s infinite;"></span><span style="width:3px;height:20px;background:var(--accent);border-radius:3px;display:inline-block;animation:wave 0.8s ease-in-out 0.2s infinite;"></span><span style="width:3px;height:14px;background:var(--accent);border-radius:3px;display:inline-block;animation:wave 0.8s ease-in-out 0.3s infinite;"></span><span style="width:3px;height:6px;background:var(--accent);border-radius:3px;display:inline-block;animation:wave 0.8s ease-in-out 0.4s infinite;"></span></div>
-    <button id="iaMicBtn" onclick="toggleMicIA()" style="width:48px;height:48px;border-radius:50%;border:none;cursor:pointer;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:1.3rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(30,107,60,0.35);">🎤</button>
-  </div>
-</div>
 </body>
   </html>
