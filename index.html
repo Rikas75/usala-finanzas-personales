@@ -911,24 +911,40 @@ function abrirConfigNip(){
   if(!uid) return;
   var keyNip = 'usala_nip_' + uid;
   var tieneNip = !!localStorage.getItem(keyNip);
-  var html = '<div style="padding:20px 16px;">'
-    + '<div style="font-size:1rem;font-weight:800;margin-bottom:6px;color:var(--text);">🔒 NIP de seguridad</div>'
+  var mc = document.getElementById('mainContent');
+  if(!mc) return;
+  var d = document.createElement('div');
+  d.style.padding = '20px 16px';
+  d.innerHTML = '<div style="font-size:1rem;font-weight:800;margin-bottom:6px;color:var(--text);">🔒 NIP de seguridad</div>'
     + '<div style="font-size:0.8rem;color:var(--dim);margin-bottom:20px;">Protege tu acceso con un NIP de 4 dígitos. Se pedirá cada vez que entres con sesión guardada.</div>';
   if(tieneNip){
-    html += '<div style="display:flex;gap:10px;margin-bottom:16px;">'
-      + '<button onclick="cambiarNip()" style="flex:1;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;">✏️ Cambiar NIP</button>'
-      + '<button onclick="quitarNip()" style="flex:1;padding:13px;background:none;border:1.5px solid #e53;border-radius:14px;font-family:'Outfit',sans-serif;font-size:0.9rem;font-weight:700;color:#e53;cursor:pointer;">🗑 Quitar NIP</button>'
-      + '</div>';
+    var r = document.createElement('div');
+    r.style.cssText = 'display:flex;gap:10px;margin-bottom:16px;';
+    var b1 = document.createElement('button');
+    b1.className = 'btn-main'; b1.style.flex='1'; b1.textContent='✏️ Cambiar NIP';
+    b1.onclick = cambiarNip;
+    var b2 = document.createElement('button');
+    b2.className = 'btn-sec'; b2.style.cssText='flex:1;color:#e53;border-color:#e53;'; b2.textContent='🗑 Quitar NIP';
+    b2.onclick = quitarNip;
+    r.appendChild(b1); r.appendChild(b2); d.appendChild(r);
   } else {
-    html += '<label class="inp-label">Nuevo NIP (4 dígitos)</label>'
+    d.innerHTML += '<label class="inp-label">Nuevo NIP (4 dígitos)</label>'
       + '<input class="inp" id="nipNuevo" type="password" inputmode="numeric" maxlength="4" placeholder="••••" style="letter-spacing:0.3em;font-size:1.2rem;margin-bottom:10px;">'
       + '<label class="inp-label">Confirmar NIP</label>'
-      + '<input class="inp" id="nipConfirm" type="password" inputmode="numeric" maxlength="4" placeholder="••••" style="letter-spacing:0.3em;font-size:1.2rem;margin-bottom:18px;" onkeydown="if(event.key==='Enter')guardarNip()">'
-      + '<button class="btn-main" onclick="guardarNip()">Activar NIP 🔒</button>';
+      + '<input class="inp" id="nipConfirm" type="password" inputmode="numeric" maxlength="4" placeholder="••••" style="letter-spacing:0.3em;font-size:1.2rem;margin-bottom:18px;">'
+      + '<button class="btn-main" id="btnGuardarNip">Activar NIP 🔒</button>';
   }
-  html += '<button onclick="goSub('config')" style="width:100%;padding:12px;background:none;border:1.5px solid var(--border);border-radius:14px;font-family:'Outfit',sans-serif;font-size:0.9rem;color:var(--dim);cursor:pointer;margin-top:8px;">← Volver</button>'
-    + '</div>';
-  document.getElementById('mainContent').innerHTML = html;
+  var bVolver = document.createElement('button');
+  bVolver.className = 'btn-sec'; bVolver.style.marginTop='8px'; bVolver.textContent='← Volver';
+  bVolver.onclick = function(){ goSub('config'); };
+  d.appendChild(bVolver);
+  mc.innerHTML = '';
+  mc.appendChild(d);
+  // Eventos post-render
+  var nc = document.getElementById('nipConfirm');
+  if(nc) nc.addEventListener('keydown', function(e){ if(e.key==='Enter') guardarNip(); });
+  var bg = document.getElementById('btnGuardarNip');
+  if(bg) bg.onclick = guardarNip;
 }
 
 function guardarNip(){
@@ -1853,17 +1869,27 @@ function abonarCred(i,tipo){
   var creds=load('creditos',[]); var all=creds.filter(function(c){ return c.tipo===tipo; });
   var item=all[i]; var ri=creds.indexOf(item);
   var pendiente = item.monto - (item.abonado||0);
-  var html='<div style="padding:20px 16px;">'
-    +'<div style="font-size:1rem;font-weight:800;color:var(--text);margin-bottom:16px;">+ Registrar Abono</div>'
-    +'<div style="font-size:0.78rem;color:var(--dim);margin-bottom:14px;">Pendiente: <b>'+fmt(pendiente)+'</b></div>'
-    +'<label class="inp-label">Monto a abonar</label>'
-    +'<input class="inp" id="abonoMonto" type="number" min="1" placeholder="$0.00" style="margin-bottom:12px;">'
-    +'<label class="inp-label">Fecha del abono</label>'
-    +'<input class="inp" id="abonoFecha" type="date" value="'+today()+'" style="margin-bottom:18px;">'
-    +'<button class="btn-main" onclick="confirmarAbono('+ri+',''+tipo+'')">Guardar abono</button>'
-    +'<button onclick="goSub(''+( tipo==='deuda'?'creditos_debo':'creditos_cobrar' )+'');" style="width:100%;padding:12px;background:none;border:1.5px solid var(--border);border-radius:14px;font-family:'Outfit',sans-serif;font-size:0.9rem;color:var(--dim);cursor:pointer;margin-top:8px;">Cancelar</button>'
-    +'</div>';
-  document.getElementById('mainContent').innerHTML = html;
+  var mc = document.getElementById('mainContent');
+  mc.innerHTML = '';
+  var d = document.createElement('div'); d.style.padding='20px 16px';
+  d.innerHTML = '<div style="font-size:1rem;font-weight:800;color:var(--text);margin-bottom:16px;">+ Registrar Abono</div>'
+    + '<div style="font-size:0.78rem;color:var(--dim);margin-bottom:14px;">Pendiente: <b>'+fmt(pendiente)+'</b></div>'
+    + '<label class="inp-label">Monto a abonar</label>'
+    + '<input class="inp" id="abonoMonto" type="number" min="1" placeholder="$0.00" style="margin-bottom:12px;">'
+    + '<label class="inp-label">Fecha del abono</label>'
+    + '<input class="inp" id="abonoFecha" type="date" style="margin-bottom:18px;">';
+  // Botón guardar
+  var bGuardar = document.createElement('button');
+  bGuardar.className = 'btn-main'; bGuardar.textContent = 'Guardar abono';
+  bGuardar.onclick = function(){ confirmarAbono(ri, tipo); };
+  // Botón cancelar
+  var bCancelar = document.createElement('button');
+  bCancelar.className = 'btn-sec'; bCancelar.style.marginTop='8px'; bCancelar.textContent = 'Cancelar';
+  bCancelar.onclick = function(){ goSub(tipo==='deuda'?'creditos_debo':'creditos_cobrar'); };
+  d.appendChild(bGuardar); d.appendChild(bCancelar);
+  mc.appendChild(d);
+  // Poner fecha de hoy y focus
+  var fec = document.getElementById('abonoFecha'); if(fec) fec.value = today();
   setTimeout(function(){ var el=document.getElementById('abonoMonto'); if(el) el.focus(); },100);
 }
 
