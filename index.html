@@ -2853,39 +2853,78 @@ function guardarCred(tipo){
 }
 
 function abonarCred(i,tipo){
-  var creds=load('creditos',[]); var all=creds.filter(function(c){ return c.tipo===tipo; });
-  var item=all[i]; var ri=creds.indexOf(item);
+  var creds = load('creditos',[]);
+  var all   = creds.filter(function(c){ return c.tipo===tipo; });
+  var item  = all[i];
+  if(!item){ showToast('⚠ Crédito no encontrado'); return; }
+  var ri = creds.indexOf(item);
+  // Guardar ri en variable accesible para confirmarAbono
+  window._abonoRi   = ri;
+  window._abonoTipo = tipo;
+
+  var esCobrar  = tipo==='prestamo';
   var pendiente = item.monto - (item.abonado||0);
   var totalIntPagado = (item.historialAbonos||[]).reduce(function(s,a){ return s+(a.interes||0); },0);
+
   var mc = document.getElementById('mainContent');
   mc.innerHTML = '';
   var d = document.createElement('div'); d.style.padding='20px 16px';
-  d.innerHTML = '<div style="font-size:1rem;font-weight:800;color:var(--text);margin-bottom:4px;">+ Registrar Abono</div>'
-    + '<div style="font-size:0.78rem;color:var(--dim);margin-bottom:14px;">'
-    +   'Capital pendiente: <b>'+fmt(pendiente)+'</b>'
-    +   (totalIntPagado>0 ? ' &nbsp;&middot;&nbsp; Intereses pagados: <b style="color:#e07b00;">'+fmt(totalIntPagado)+'</b>' : '')
-    + '</div>'
-    + '<div style="display:flex;gap:10px;">'
-    +   '<div style="flex:1;"><label class="inp-label">Capital a abonar</label>'
-    +   '<input class="inp" id="abonoMonto" type="number" min="0" placeholder="$0.00"></div>'
-    +   '<div style="flex:1;"><label class="inp-label">Interés de este pago</label>'
-    +   '<input class="inp" id="abonoInteres" type="number" min="0" placeholder="$0.00 (opcional)"></div>'
-    + '</div>'
-    + '<label class="inp-label" style="margin-top:4px;">Fecha del abono</label>'
-    + '<input class="inp" id="abonoFecha" type="date" style="margin-bottom:10px;">'
-    + '<label class="inp-label">Notas del abono</label>'
-    + '<textarea class="inp" id="abonoNota" rows="2" placeholder="Ej: Pagué con transferencia SPEI, acordamos siguiente pago en 15 días..." style="resize:none;margin-bottom:6px;"></textarea>'
-    + '<div style="font-size:0.72rem;color:var(--dim);margin-bottom:16px;">Anota cualquier detalle relevante: forma de pago, acuerdos, referencia, etc.</div>';
+
+  // Header con info del crédito
+  var headerColor = esCobrar ? 'var(--accent2)' : 'var(--danger)';
+  var icon        = esCobrar ? '📥' : '📤';
+  var titulo      = esCobrar ? 'Registrar pago recibido' : 'Registrar abono';
+  var labelCap    = esCobrar ? 'Monto recibido' : 'Capital abonado';
+  var labelInt    = esCobrar ? 'Interés cobrado' : 'Interés de este pago';
+  var placeholder = esCobrar
+    ? 'Ej: Transferencia SPEI, en efectivo...'
+    : 'Ej: Pagué en efectivo, acordamos siguiente pago en 15 días...';
+
+  d.innerHTML =
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">'
+    +'<div style="font-size:1.5rem;">'+icon+'</div>'
+    +'<div>'
+      +'<div style="font-size:1rem;font-weight:900;color:var(--text);">'+titulo+'</div>'
+      +'<div style="font-size:0.8rem;color:var(--dim);">'+item.persona+'</div>'
+    +'</div></div>'
+    // Resumen rápido del crédito
+    +'<div style="background:var(--inp);border-radius:12px;padding:10px 14px;margin-bottom:16px;display:flex;gap:16px;flex-wrap:wrap;">'
+      +'<div style="font-size:0.75rem;"><span style="color:var(--dim);">'+(esCobrar?'Por cobrar':'Por pagar')+': </span>'
+        +'<b style="color:'+headerColor+';">'+fmt(pendiente)+'</b></div>'
+      +(totalIntPagado>0
+        ? '<div style="font-size:0.75rem;"><span style="color:var(--dim);">Intereses '+(esCobrar?'cobrados':'pagados')+': </span>'
+          +'<b style="color:#e07b00;">'+fmt(totalIntPagado)+'</b></div>'
+        : '')
+      +'<div style="font-size:0.75rem;"><span style="color:var(--dim);">Abonado: </span>'
+        +'<b>'+fmt(item.abonado||0)+' / '+fmt(item.monto)+'</b></div>'
+    +'</div>'
+    // Campos
+    +'<div style="display:flex;gap:10px;">'
+      +'<div style="flex:1;"><label class="inp-label">'+labelCap+'</label>'
+        +'<input class="inp" id="abonoMonto" type="number" min="0" inputmode="decimal" placeholder="0.00"></div>'
+      +'<div style="flex:1;"><label class="inp-label">'+labelInt+' (opcional)</label>'
+        +'<input class="inp" id="abonoInteres" type="number" min="0" inputmode="decimal" placeholder="0.00"></div>'
+    +'</div>'
+    +'<label class="inp-label" style="margin-top:4px;">Fecha</label>'
+    +'<input class="inp" id="abonoFecha" type="date" style="margin-bottom:10px;">'
+    +'<label class="inp-label">Notas</label>'
+    +'<textarea class="inp" id="abonoNota" rows="2" placeholder="'+placeholder+'" style="resize:none;margin-bottom:6px;"></textarea>'
+    +'<div style="font-size:0.71rem;color:var(--dim);margin-bottom:16px;">Forma de pago, acuerdos, referencia, etc.</div>';
+
   var bGuardar = document.createElement('button');
-  bGuardar.className = 'btn-main'; bGuardar.textContent = 'Guardar abono';
-  bGuardar.onclick = function(){ confirmarAbono(ri, tipo); };
+  bGuardar.className = 'btn-main';
+  bGuardar.textContent = esCobrar ? '💰 Registrar pago recibido' : '💾 Guardar abono';
+  bGuardar.onclick = function(){ confirmarAbono(window._abonoRi, window._abonoTipo); };
+
   var bCancelar = document.createElement('button');
   bCancelar.className = 'btn-sec'; bCancelar.style.marginTop='8px'; bCancelar.textContent = 'Cancelar';
   bCancelar.onclick = function(){ goSub(tipo==='deuda'?'creditos_debo':'creditos_cobrar'); };
+
   d.appendChild(bGuardar); d.appendChild(bCancelar);
   mc.appendChild(d);
+
   var fec = document.getElementById('abonoFecha'); if(fec) fec.value = today();
-  setTimeout(function(){ var el=document.getElementById('abonoMonto'); if(el) el.focus(); },100);
+  setTimeout(function(){ var el=document.getElementById('abonoMonto'); if(el) el.focus(); }, 120);
 }
 
 function editarAbono(ri, ai, tipo){
@@ -2965,6 +3004,9 @@ function eliminarAbono(ri, ai, tipo){
 }
 
 function confirmarAbono(ri, tipo){
+  // Seguridad: usar window._abonoRi si ri es undefined
+  if(ri === undefined || ri === null) ri = window._abonoRi;
+  if(ri === undefined || ri === null){ showToast('⚠ Error: recarga e intenta de nuevo'); return; }
   var monto   = parseFloat(document.getElementById('abonoMonto').value)||0;
   var interes = parseFloat(document.getElementById('abonoInteres').value)||0;
   var fecha   = document.getElementById('abonoFecha').value;
@@ -2972,20 +3014,23 @@ function confirmarAbono(ri, tipo){
   if(!fecha){ showToast('⚠ Selecciona la fecha'); return; }
   var nota = (document.getElementById('abonoNota') ? document.getElementById('abonoNota').value.trim() : '') || '';
   var creds = load('creditos',[]);
+  if(!creds[ri]){ showToast('⚠ Crédito no encontrado'); return; }
+  var esCobrar = (tipo||creds[ri].tipo) === 'prestamo';
   creds[ri].abonado = (creds[ri].abonado||0) + monto;
   creds[ri].interesesPagados = (creds[ri].interesesPagados||0) + interes;
   if(!creds[ri].historialAbonos) creds[ri].historialAbonos = [];
-  creds[ri].historialAbonos.push({ monto: monto, interes: interes, fecha: fecha, nota: nota });
-  var pagadoTotal = fmt(monto) + (interes>0 ? ' + '+fmt(interes)+' int.' : '');
+  creds[ri].historialAbonos.push({ monto:monto, interes:interes, fecha:fecha, nota:nota });
+  var resumen = fmt(monto) + (interes>0 ? ' + '+fmt(interes)+' int.' : '');
   if(creds[ri].abonado >= creds[ri].monto){
-    creds[ri].estado='pagado';
-    var sinInt = creds[ri].interesesPagados===0;
-    showToast('🎉 Liquidado' + (sinInt ? ' · Sin intereses pagados' : ' · Intereses: '+fmt(creds[ri].interesesPagados)));
+    creds[ri].estado = 'pagado';
+    showToast(esCobrar ? '🎉 ¡Cobro completo! '+resumen : '🎉 ¡Liquidado! '+resumen);
   } else {
-    showToast('✓ Abono registrado: ' + pagadoTotal);
+    var pendiente = creds[ri].monto - creds[ri].abonado;
+    showToast((esCobrar?'💰 Pago recibido: ':'✓ Abono: ') + resumen + ' · Resta: '+fmt(pendiente));
   }
   save('creditos', creds);
-  goSub(tipo==='deuda'?'creditos_debo':'creditos_cobrar');
+  window._abonoRi = null; window._abonoTipo = null;
+  goSub(esCobrar ? 'creditos_cobrar' : 'creditos_debo');
 }
 
 function pagarCred(i,tipo){
