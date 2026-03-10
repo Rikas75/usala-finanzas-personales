@@ -2243,14 +2243,7 @@ function guardarMonedaApp(codigo){
 
 function restablecerMic(){
   localStorage.removeItem('usala_mic_permiso');
-  _iaHistorial = [];
-  _iaInicializado = false;
-  _iaAbierto = false;
-  var p = document.getElementById('iaPanel');
-  if(p){ p.style.display = 'none'; }
-  var bub = document.getElementById('iaBubbles');
-  if(bub) bub.innerHTML = '';
-  showToast('🎤 Restablecido. Abre el asistente 🎙️ para solicitarlo de nuevo.');
+  showToast('🎤 Permiso de micrófono restablecido. El navegador volverá a preguntar al tocar 🎤');
   var el = document.getElementById('micEstadoLabel');
   if(el) el.textContent = 'No solicitado aún';
 }
@@ -3339,60 +3332,11 @@ function abrirIA(){
   _iaAbierto = true;
   var p = document.getElementById('iaPanel');
   if(p){ p.style.display = 'flex'; p.style.flexDirection = 'column'; }
-
-  // Ya se inicializó esta sesión — solo mostrar el panel
+  // Ya saludó esta sesión — solo mostrar panel
   if(_iaInicializado) return;
   _iaInicializado = true;
-
-  // Archivo local — mic bloqueado
-  if(_esArchivoLocal()){
-    var nombre0 = S.user ? S.user.nombre.split(' ')[0] : '';
-    agregarMensajeIA('⚠️ Hola ' + nombre0 + '! Para que pueda escucharte abre la app desde internet.', 'ia');
-    hablarIA('Abre la app desde internet para usar el micrófono.');
-    setTimeout(function(){
-      var bub = document.getElementById('iaBubbles');
-      if(!bub) return;
-      var a = document.createElement('a');
-      a.href = 'https://rikas75.github.io/usala-finanzas-personales';
-      a.target = '_blank';
-      a.textContent = '🌐 Abrir app en internet →';
-      a.style.cssText = 'display:block;margin-top:6px;padding:12px 16px;'
-        + 'background:linear-gradient(135deg,#2355c9,#3a72f0);color:#fff;'
-        + 'border-radius:16px;font-family:Outfit,sans-serif;font-size:0.85rem;'
-        + 'font-weight:700;text-decoration:none;text-align:center;';
-      bub.appendChild(a);
-      bub.scrollTop = bub.scrollHeight;
-    }, 400);
-    var btnM = document.getElementById('iaMicBtn');
-    if(btnM){ btnM.textContent='🔒'; btnM.style.background='linear-gradient(135deg,#aaa,#888)'; btnM.style.boxShadow='none'; }
-    return;
-  }
-
-  var permiso = localStorage.getItem('usala_mic_permiso');
-
-  if(!permiso){
-    // Primera vez — pedir permiso mic, luego saludo directo
-    agregarMensajeIA('👋 ¡Hola ' + S.user.nombre.split(' ')[0] + '! Para escucharte necesito acceso al micrófono. Toca "Permitir" cuando aparezca 👆', 'ia');
-    hablarIA('Hola, necesito acceso al micrófono. Toca Permitir.');
-    setTimeout(function(){
-      navigator.mediaDevices.getUserMedia({audio:true})
-        .then(function(stream){
-          stream.getTracks().forEach(function(t){ t.stop(); });
-          localStorage.setItem('usala_mic_permiso','granted');
-          agregarMensajeIA('✅ ¡Listo! Ya puedo escucharte. Toca 🎤 y habla.', 'ia');
-          hablarIA('Listo, toca el micrófono y habla.');
-          setTimeout(_saludoIA, 1500);
-        })
-        .catch(function(){
-          localStorage.setItem('usala_mic_permiso','denied');
-          agregarMensajeIA('❌ Permiso denegado. Chrome ⋮ → Configuración del sitio → Micrófono → permite esta página → recarga.', 'ia');
-          hablarIA('Permiso denegado. Actívalo en configuración.');
-        });
-    }, 800);
-  } else {
-    // Permiso ya dado — saludo directo
-    _saludoIA();
-  }
+  // Saludo directo siempre — el mic se pide solo al tocar 🎤
+  _saludoIA();
 }
 
 function _saludoIA(){
@@ -3807,4 +3751,4 @@ function ejecutarAccionIA(resp){
     return;
   }
 }
-      </script>
+  </script>
