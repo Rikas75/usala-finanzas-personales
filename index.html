@@ -2185,8 +2185,8 @@ function _getMonedaEstado(){
 
 function restablecerMic(){
   localStorage.removeItem('usala_mic_permiso');
-  // Limpiar historial del asistente para que arranque desde cero
   _iaHistorial = [];
+  _iaInicializado = false;
   _iaAbierto = false;
   var p = document.getElementById('iaPanel');
   if(p){ p.style.display = 'none'; }
@@ -2202,6 +2202,12 @@ function restablecerMonedaIA(){
   localStorage.removeItem(key);
   _iaMoneda = null;
   _iaHistorial = [];
+  _iaInicializado = false;
+  _iaAbierto = false;
+  var p = document.getElementById('iaPanel');
+  if(p){ p.style.display = 'none'; }
+  var bub = document.getElementById('iaBubbles');
+  if(bub) bub.innerHTML = '';
   showToast('💱 Moneda restablecida. Abre el asistente 🎙️ para elegir de nuevo.');
   var el = document.getElementById('monedaEstadoLabel');
   if(el) el.textContent = 'No configurada';
@@ -3254,13 +3260,14 @@ function toggleFaq(id){
 // ══════════════════════════════════════════
 // ASISTENTE IA CONVERSACIONAL
 // ══════════════════════════════════════════
-var _iaRec       = null;
-var _iaActivo    = false;
-var _iaHablando  = false;
-var _iaHistorial = [];
-var _iaAbierto   = false;
-var _iaMoneda    = null;
-var _iaEsperandoMonedaCustom = false; // se carga de localStorage al abrir
+var _iaRec            = null;
+var _iaActivo         = false;
+var _iaHablando       = false;
+var _iaHistorial      = [];
+var _iaAbierto        = false;
+var _iaMoneda         = null;
+var _iaEsperandoMonedaCustom = false;
+var _iaInicializado   = false; // bandera: ya mostró bienvenida esta sesión
 
 // Clave de moneda por usuario
 function _iaMonedaKey(){ return 'usala_ia_moneda_' + (S.user ? (S.user.isAdmin ? 'admin' : S.user.codigo) : 'anon'); }
@@ -3275,8 +3282,9 @@ function abrirIA(){
   var p = document.getElementById('iaPanel');
   if(p){ p.style.display = 'flex'; p.style.flexDirection = 'column'; }
 
-  // Ya hay conversación abierta — solo mostrar
-  if(_iaHistorial.length > 0) return;
+  // Ya se inicializó esta sesión — solo mostrar el panel
+  if(_iaInicializado) return;
+  _iaInicializado = true;
 
   // Archivo local — mic bloqueado
   if(_esArchivoLocal()){
@@ -3719,4 +3727,4 @@ function ejecutarAccionIA(resp){
     return;
   }
 }
-      </script>
+  </script>
