@@ -2647,7 +2647,9 @@ function renderPagosMes(){
 
   var pagos  = loadPagosBase();
   var estado = loadPagosEstado();
-  var mesNombre = new Date().toLocaleString('es-MX',{month:'long',year:'numeric'});
+  var hoy    = new Date(); hoy.setHours(0,0,0,0);
+  var mesActKey = new Date().toISOString().slice(0,7);
+  var mesNombre = hoy.toLocaleString('es-MX',{month:'long',year:'numeric'});
 
   // ── Header ──
   var hdr = document.createElement('div');
@@ -2655,25 +2657,53 @@ function renderPagosMes(){
   mc.appendChild(hdr);
 
   // ── Resumen ──
-  var totalMonto = pagos.reduce(function(s,p){ return s+(p.monto||0); },0);
-  var pagados    = pagos.filter(function(p){ return estado[p.id] && estado[p.id].pagado; });
-  var totalPagado= pagados.reduce(function(s,p){ return s+(estado[p.id].montoPagado||p.monto||0); },0);
-  var pct        = totalMonto>0 ? Math.min(100,Math.round((totalPagado/totalMonto)*100)) : 0;
+  var totalMonto  = pagos.reduce(function(s,p){ return s+(p.monto||0); },0);
+  var pagados     = pagos.filter(function(p){ return estado[p.id]&&estado[p.id].pagado; });
+  var totalPagado = pagados.reduce(function(s,p){ return s+(estado[p.id].montoPagado||p.monto||0); },0);
+  var pct         = totalMonto>0 ? Math.min(100,Math.round((totalPagado/totalMonto)*100)) : 0;
+  var pendientes  = pagos.filter(function(p){ return !estado[p.id]||!estado[p.id].pagado; });
+
+  // Calcular días al vencimiento de cada pendiente para el badge
+  var masUrgente = null;
+  pendientes.forEach(function(p){
+    var f = _calcFechaVenc(p, hoy);
+    var d = Math.round((f-hoy)/86400000);
+    if(masUrgente===null || d < masUrgente) masUrgente = d;
+  });
+
+  var alertaTxt = '';
+  if(masUrgente!==null){
+    if(masUrgente<0)       alertaTxt='⚠️ Tienes '+pendientes.length+' pago'+(pendientes.length!==1?'s':'')+' vencido'+(pendientes.length!==1?'s':'');
+    else if(masUrgente===0) alertaTxt='📍 Tienes pagos que vencen HOY';
+    else if(masUrgente===1) alertaTxt='⏰ Tu próximo pago vence MAÑANA';
+    else if(masUrgente<=3)  alertaTxt='⏰ Próximo vencimiento en '+masUrgente+' días';
+  }
 
   var res = document.createElement('div');
-  res.className = 'card';
-  res.style.marginBottom = '10px';
-  res.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
-    +'<div style="font-size:0.8rem;font-weight:800;text-transform:capitalize;">'+mesNombre+'</div>'
-    +'<div style="font-size:0.75rem;color:var(--dim);">'+pagados.length+' / '+pagos.length+' pagados</div>'
+  res.className='card'; res.style.marginBottom='10px';
+  res.innerHTML =
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
+      +'<div style="font-size:0.8rem;font-weight:800;text-transform:capitalize;">'+mesNombre+'</div>'
+      +'<div style="font-size:0.75rem;color:var(--dim);">'+pagados.length+' / '+pagos.length+' pagados</div>'
     +'</div>'
     +'<div class="prog-wrap" style="margin-bottom:8px;"><div class="prog-bar" style="width:'+pct+'%;'+(pct>=100?'background:#2d9e5f;':'')+'"></div></div>'
     +'<div style="display:flex;justify-content:space-between;font-size:0.78rem;">'
-    +'<span style="color:var(--dim);">Total estimado: <b>'+fmt(totalMonto)+'</b></span>'
-    +'<span style="color:var(--accent2);">Pagado: <b>'+fmt(totalPagado)+'</b></span>'
+      +'<span style="color:var(--dim);">Total: <b>'+fmt(totalMonto)+'</b></span>'
+      +'<span style="color:var(--accent2);">Pagado: <b>'+fmt(totalPagado)+'</b></span>'
     +'</div>'
-    +(totalMonto-totalPagado>0?'<div style="font-size:0.75rem;margin-top:4px;color:var(--danger);">Pendiente: <b>'+fmt(totalMonto-totalPagado)+'</b></div>':'');
+    +(totalMonto-totalPagado>0?'<div style="font-size:0.75rem;margin-top:4px;color:var(--danger);">Pendiente: <b>'+fmt(totalMonto-totalPagado)+'</b></div>':'')
+    +(alertaTxt?'<div style="margin-top:10px;padding:8px 12px;border-radius:10px;background:rgba(229,57,53,0.08);border:1px solid rgba(229,57,53,0.2);font-size:0.75rem;font-weight:700;color:#e53935;">'+alertaTxt+'</div>':'');
   mc.appendChild(res);
+
+  // ── Tabs: Pendientes | Pagados | Historial ──
+  var tabState = {active: 'pendientes'};
+  var tabWrap = document.createElement('div');
+  tabWrap.style.cssText='display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:2px;';
+  tabWrap.innerHTML =
+    '<button class="pp-tab active" id="pmTab_pend" onclick="pmSetTab(\'pendientes\')">⏳ Pendientes ('+pendientes.length+')</button>'
+    +'<button class="pp-tab" id="pmTab_pag"  onclick="pmSetTab(\'pagados\')">✅ Pagados ('+pagados.length+')</button>'
+    +'<button class="pp-tab" id="pmTab_hist" onclick="pmSetTab(\'historial\')">📚 Historial</button>';
+  mc.appendChild(tabWrap);
 
   // ── Botón nuevo pago ──
   var bAdd = document.createElement('button');
@@ -2682,109 +2712,286 @@ function renderPagosMes(){
   bAdd.onclick=function(){ renderFormPago(null); };
   mc.appendChild(bAdd);
 
-  if(!pagos.length){
-    var empty = document.createElement('div');
-    empty.style.cssText='text-align:center;padding:30px;color:var(--dim);font-size:0.83rem;';
-    empty.textContent='Sin pagos registrados. Agrega tus pagos fijos del mes.';
-    mc.appendChild(empty);
-    return;
+  // ── Contenedor dinámico ──
+  var listaCont = document.createElement('div');
+  listaCont.id = 'pmListaCont';
+  mc.appendChild(listaCont);
+
+  // Función para ordenar por fecha de vencimiento
+  function _calcFechaVenc(p, ref){
+    if(p.proximoPago){
+      var pts=p.proximoPago.split('-');
+      return new Date(+pts[0],+pts[1]-1,+pts[2]);
+    }
+    return new Date(ref.getFullYear(), ref.getMonth(), Math.min(p.dia||1,28));
   }
 
-  // ── Agrupar por categoría ──
-  var grupos = {};
-  pagos.forEach(function(p){
-    var cat = p.categoria||'🔧 Otros';
-    if(!grupos[cat]) grupos[cat]=[];
-    grupos[cat].push(p);
-  });
+  function _diasLabel(diff){
+    if(diff<0)  return {txt:'Vencido hace '+Math.abs(diff)+' día'+(Math.abs(diff)!==1?'s':''), col:'#e53935', bg:'rgba(229,57,53,0.08)'};
+    if(diff===0)return {txt:'Vence HOY',     col:'#e53935', bg:'rgba(229,57,53,0.1)'};
+    if(diff===1)return {txt:'Vence mañana',  col:'#f57c00', bg:'rgba(245,124,0,0.08)'};
+    if(diff<=3) return {txt:'En '+diff+' días', col:'#f57c00', bg:'rgba(245,124,0,0.06)'};
+    if(diff<=7) return {txt:'En '+diff+' días', col:'#f9a825', bg:'rgba(249,168,37,0.07)'};
+    return      {txt:'Día '+( p ? (p.dia||diff) : diff),  col:'var(--dim)', bg:'transparent'};
+  }
 
-  getPagosCats().forEach(function(cat){
-    if(!grupos[cat]) return;
-    var lista = grupos[cat];
+  function renderPendientes(){
+    var cont = document.getElementById('pmListaCont');
+    if(!cont) return;
+    cont.innerHTML='';
 
-    var secTit = document.createElement('div');
-    secTit.style.cssText='font-size:0.72rem;font-weight:800;color:var(--dim);text-transform:uppercase;letter-spacing:0.06em;margin:10px 0 6px;';
-    secTit.textContent = cat;
-    mc.appendChild(secTit);
+    if(!pagos.length){
+      cont.innerHTML='<div style="text-align:center;padding:30px;color:var(--dim);font-size:0.83rem;">Sin pagos registrados. Agrega tus pagos fijos del mes.</div>';
+      return;
+    }
 
-    lista.forEach(function(p){
-      var st = estado[p.id]||{};
-      var pagado = !!st.pagado;
-      var montoPagado = st.montoPagado||0;
-      var idx = pagos.indexOf(p);
-
-      var card = document.createElement('div');
-      card.style.cssText='background:var(--card);border-radius:14px;padding:12px 14px;margin-bottom:8px;border:1.5px solid '+(pagado?'rgba(45,158,95,0.35)':'var(--border)')+';opacity:'+(pagado?'0.75':'1')+';';
-
-      var row = document.createElement('div');
-      row.style.cssText='display:flex;justify-content:space-between;align-items:flex-start;';
-
-      var left = document.createElement('div');
-      left.style.flex='1';
-
-      var nombre = document.createElement('div');
-      nombre.style.cssText='font-weight:700;font-size:0.9rem;'+(pagado?'text-decoration:line-through;color:var(--dim);':'');
-      nombre.textContent = p.nombre;
-      left.appendChild(nombre);
-
-      var meta = document.createElement('div');
-      meta.style.cssText='font-size:0.72rem;color:var(--dim);margin-top:2px;';
-      var _fLbl={'mensual':'Mensual','bimestral':'Bimestral','trimestral':'Trimestral','cuatrimestral':'Cuatrimestral','semestral':'Semestral','anual':'Anual'};
-      var metaTxt='Vence día '+p.dia;
-      if(p.frecuencia&&p.frecuencia!=='mensual') metaTxt+=' · '+(_fLbl[p.frecuencia]||p.frecuencia);
-      if(p.proximoPago) metaTxt+=' · Próx: '+p.proximoPago;
-      if(pagado&&montoPagado) metaTxt+=' · Pagado: '+fmt(montoPagado);
-      if(p.notas) metaTxt+=' · '+p.notas;
-      meta.textContent = metaTxt;
-      left.appendChild(meta);
-
-      var right = document.createElement('div');
-      right.style.cssText='display:flex;flex-direction:column;align-items:flex-end;gap:6px;';
-
-      var montoDiv = document.createElement('div');
-      montoDiv.style.cssText='font-weight:800;font-size:0.95rem;'+(pagado?'color:var(--accent2);':'color:var(--danger);');
-      montoDiv.textContent = fmt(p.monto);
-      right.appendChild(montoDiv);
-
-      var btns = document.createElement('div');
-      btns.style.cssText='display:flex;gap:5px;';
-
-      // Botón pagar / desmarcar
-      var bPag = document.createElement('button');
-      bPag.style.cssText='border:none;border-radius:8px;padding:4px 9px;font-size:0.75rem;cursor:pointer;font-weight:700;background:'+(pagado?'var(--inp)':'#2d9e5f')+';color:'+(pagado?'var(--dim)':'#fff')+';';
-      bPag.textContent = pagado ? '↩ Desmarcar' : '✅ Pagar';
-      (function(pid, pmonto, pagado_){
-        bPag.onclick = function(){
-          if(pagado_){ // desmarcar
-            var e2=loadPagosEstado(); delete e2[pid]; savePagosEstado(e2); renderPagosMes();
-          } else { // pedir monto real
-            renderPagarPago(pid, pmonto);
-          }
-        };
-      })(p.id, p.monto, pagado);
-      btns.appendChild(bPag);
-
-      // Botón editar
-      var bEd = document.createElement('button');
-      bEd.style.cssText='border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:0.75rem;cursor:pointer;background:none;color:var(--accent);';
-      bEd.textContent='✏️';
-      (function(idx_){ bEd.onclick=function(){ renderFormPago(idx_); }; })(idx);
-      btns.appendChild(bEd);
-
-      // Botón borrar
-      var bDel = document.createElement('button');
-      bDel.style.cssText='border:1px solid rgba(229,57,53,0.3);border-radius:8px;padding:4px 8px;font-size:0.75rem;cursor:pointer;background:none;color:var(--danger);';
-      bDel.textContent='🗑';
-      (function(idx_){ bDel.onclick=function(){ borrarPago(idx_); }; })(idx);
-      btns.appendChild(bDel);
-
-      right.appendChild(btns);
-      row.appendChild(left); row.appendChild(right);
-      card.appendChild(row);
-      mc.appendChild(card);
+    // Separar pendientes y ordenar por fecha
+    var pends = pagos.filter(function(p){ return !estado[p.id]||!estado[p.id].pagado; });
+    pends.sort(function(a,b){
+      return _calcFechaVenc(a,hoy) - _calcFechaVenc(b,hoy);
     });
-  });
+
+    if(!pends.length){
+      cont.innerHTML='<div style="text-align:center;padding:30px;color:var(--accent2);font-size:0.83rem;">🎉 ¡Todos los pagos de este mes están al corriente!</div>';
+      return;
+    }
+
+    pends.forEach(function(p){
+      var f    = _calcFechaVenc(p, hoy);
+      var diff = Math.round((f-hoy)/86400000);
+      var lbl  = _diasLabel(diff); lbl.p = p;
+      var idx  = pagos.indexOf(p);
+      cont.appendChild(_mkPagoCard(p, idx, f, diff, lbl, false));
+    });
+  }
+
+  function renderPagadosMes(){
+    var cont = document.getElementById('pmListaCont');
+    if(!cont) return;
+    cont.innerHTML='';
+
+    var pags = pagos.filter(function(p){ return estado[p.id]&&estado[p.id].pagado; });
+    pags.sort(function(a,b){
+      var fa=estado[a.id].fecha||''; var fb=estado[b.id].fecha||'';
+      return fb.localeCompare(fa); // más reciente primero
+    });
+
+    if(!pags.length){
+      cont.innerHTML='<div style="text-align:center;padding:30px;color:var(--dim);font-size:0.83rem;">Aún no hay pagos marcados como pagados este mes.</div>';
+      return;
+    }
+
+    pags.forEach(function(p){
+      var st  = estado[p.id];
+      var idx = pagos.indexOf(p);
+      var f   = st.fecha ? (function(){ var pts=st.fecha.split('-'); return new Date(+pts[0],+pts[1]-1,+pts[2]); })() : hoy;
+      var lbl = {txt:'Pagado el '+f.toLocaleDateString('es-MX',{day:'numeric',month:'short'}), col:'var(--accent2)', bg:'rgba(45,158,95,0.06)'};
+      cont.appendChild(_mkPagoCard(p, idx, f, null, lbl, true));
+    });
+  }
+
+  function renderHistorial(){
+    var cont = document.getElementById('pmListaCont');
+    if(!cont) return;
+    cont.innerHTML='';
+
+    // Recolectar todos los meses con estado guardado
+    var u    = S.user;
+    var base = u ? (u.isAdmin?'usala_admin':'usala_u_'+u.codigo) : 'usala_admin';
+    var prefix = base+'_pagos_estado_';
+    var mesesGuardados = [];
+    for(var k in localStorage){
+      if(k.indexOf(prefix)===0){
+        var mesK = k.replace(prefix,'');
+        mesesGuardados.push(mesK);
+      }
+    }
+    mesesGuardados.sort().reverse(); // más reciente primero
+
+    if(!mesesGuardados.length){
+      cont.innerHTML='<div style="text-align:center;padding:30px;color:var(--dim);font-size:0.83rem;">El historial se irá construyendo mes a mes conforme marques pagos.</div>';
+      return;
+    }
+
+    var _mesesNombres=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+    mesesGuardados.forEach(function(mesK){
+      var estadoMes;
+      try{ estadoMes=JSON.parse(localStorage.getItem(prefix+mesK)||'{}'); }catch(e){ estadoMes={}; }
+      var pagosEseMes = Object.keys(estadoMes);
+      if(!pagosEseMes.length) return;
+
+      // Nombre legible del mes
+      var parts  = mesK.split('-');
+      var yr     = parts[0]; var mn = parseInt(parts[1],10)-1;
+      var mesLabel = _mesesNombres[mn]+' '+yr;
+      var esMesAct = mesK===mesActKey;
+
+      // Resumen del mes
+      var totalPagMes  = 0;
+      var totalEstMes  = 0;
+      var countPag     = 0;
+
+      pagosEseMes.forEach(function(pid){
+        var st  = estadoMes[pid];
+        var pag = pagos.find(function(p){ return p.id==pid; });
+        if(!pag) return;
+        totalEstMes += pag.monto||0;
+        if(st&&st.pagado){ totalPagMes+=(st.montoPagado||pag.monto||0); countPag++; }
+      });
+
+      // Sección del mes
+      var secDiv = document.createElement('div');
+      secDiv.style.cssText='margin-bottom:16px;';
+
+      var secHdr = document.createElement('div');
+      secHdr.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--inp);border-radius:12px;margin-bottom:8px;cursor:pointer;';
+      secHdr.innerHTML =
+        '<div>'
+          +'<div style="font-weight:800;font-size:0.88rem;text-transform:capitalize;">'
+            +(esMesAct?'📍 ':'')+ mesLabel
+          +'</div>'
+          +'<div style="font-size:0.7rem;color:var(--dim);margin-top:1px;">'+countPag+' pagado'+(countPag!==1?'s':'')+' · '+fmt(totalPagMes)+'</div>'
+        +'</div>'
+        +'<div style="text-align:right;">'
+          +'<div style="font-weight:900;font-size:0.92rem;color:var(--accent2);">'+fmt(totalPagMes)+'</div>'
+          +'<div style="font-size:0.68rem;color:var(--dim);">de '+fmt(totalEstMes)+'</div>'
+        +'</div>';
+
+      // Toggle expandir
+      var detalleDiv = document.createElement('div');
+      detalleDiv.style.display = esMesAct ? 'block' : 'none';
+      secHdr.onclick = function(){
+        detalleDiv.style.display = detalleDiv.style.display==='none'?'block':'none';
+      };
+
+      // Detalle de pagos del mes
+      pagosEseMes.forEach(function(pid){
+        var st  = estadoMes[pid];
+        var pag = pagos.find(function(p){ return p.id==pid; });
+        if(!pag) return;
+        var row = document.createElement('div');
+        row.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid var(--border);';
+        var pagadoOk = st&&st.pagado;
+        row.innerHTML =
+          '<div style="flex:1;">'
+            +'<div style="font-size:0.82rem;font-weight:600;'+(pagadoOk?'':'color:var(--dim);')+'">'+(pagadoOk?'✅ ':'⏳ ')+pag.nombre+'</div>'
+            +(pagadoOk&&st.fecha?'<div style="font-size:0.68rem;color:var(--dim);">Pagado el '+st.fecha+'</div>':'')
+          +'</div>'
+          +'<div style="font-weight:800;font-size:0.85rem;color:'+(pagadoOk?'var(--accent2)':'var(--danger)')+';">'
+            +fmt(pagadoOk?(st.montoPagado||pag.monto||0):(pag.monto||0))
+          +'</div>';
+        detalleDiv.appendChild(row);
+      });
+
+      secDiv.appendChild(secHdr);
+      secDiv.appendChild(detalleDiv);
+      cont.appendChild(secDiv);
+    });
+  }
+
+  // ── Tarjeta de pago ──
+  function _mkPagoCard(p, idx, f, diff, lbl, esPagado){
+    var st  = estado[p.id]||{};
+
+    var card = document.createElement('div');
+    card.style.cssText='background:var(--card);border-radius:14px;padding:0;margin-bottom:8px;'
+      +'border:1.5px solid '+(esPagado?'rgba(45,158,95,0.3)':diff!==null&&diff<=1?'rgba(229,57,53,0.4)':diff!==null&&diff<=3?'rgba(245,124,0,0.35)':'var(--border)')
+      +';overflow:hidden;';
+
+    // Barra lateral de urgencia
+    var inner = document.createElement('div');
+    inner.style.cssText='display:flex;';
+    var barra = document.createElement('div');
+    barra.style.cssText='width:4px;background:'+(esPagado?'#2d9e5f':lbl.col)+';flex-shrink:0;';
+    var cuerpo = document.createElement('div');
+    cuerpo.style.cssText='flex:1;padding:12px 12px 12px 10px;opacity:'+(esPagado?'0.8':'1')+';';
+
+    var topRow = document.createElement('div');
+    topRow.style.cssText='display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;';
+
+    var left = document.createElement('div'); left.style.flex='1';
+    var nombre = document.createElement('div');
+    nombre.style.cssText='font-weight:800;font-size:0.9rem;'+(esPagado?'color:var(--dim);text-decoration:line-through;':'');
+    nombre.textContent=p.nombre;
+    left.appendChild(nombre);
+
+    // Badge fecha/urgencia
+    var badge = document.createElement('div');
+    badge.style.cssText='display:inline-block;font-size:0.65rem;font-weight:800;padding:2px 8px;border-radius:20px;margin-top:4px;background:'+lbl.bg+';color:'+lbl.col+';';
+    badge.textContent = lbl.txt;
+    left.appendChild(badge);
+
+    // Fecha exacta + categoría
+    var fMeta = document.createElement('div');
+    fMeta.style.cssText='font-size:0.68rem;color:var(--dim);margin-top:3px;';
+    var fStr = f.toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'});
+    fMeta.textContent = (p.categoria||'')+' · '+fStr+(p.frecuencia&&p.frecuencia!=='mensual'?' · '+p.frecuencia:'');
+    left.appendChild(fMeta);
+
+    topRow.appendChild(left);
+
+    // Monto
+    var montoCol = esPagado?'var(--accent2)':diff!==null&&diff<=1?'#e53935':'var(--danger)';
+    var montoDiv = document.createElement('div');
+    montoDiv.style.cssText='font-weight:900;font-size:1rem;font-family:\'JetBrains Mono\',monospace;color:'+montoCol+';margin-left:8px;';
+    montoDiv.textContent=fmt(esPagado?(st.montoPagado||p.monto||0):p.monto);
+    topRow.appendChild(montoDiv);
+
+    cuerpo.appendChild(topRow);
+
+    // Botones
+    var btns=document.createElement('div');
+    btns.style.cssText='display:flex;gap:6px;margin-top:8px;';
+
+    var bPag=document.createElement('button');
+    bPag.style.cssText='flex:1;border:none;border-radius:8px;padding:6px 0;font-size:0.75rem;cursor:pointer;font-weight:700;font-family:\'Outfit\',sans-serif;background:'+(esPagado?'var(--inp)':'#2d9e5f')+';color:'+(esPagado?'var(--dim)':'#fff')+';';
+    bPag.textContent=esPagado?'↩ Desmarcar':'✅ Marcar pagado';
+    (function(pid,pmonto,pagado_){
+      bPag.onclick=function(){
+        if(pagado_){ var e2=loadPagosEstado(); delete e2[pid]; savePagosEstado(e2); renderPagosMes(); }
+        else{ renderPagarPago(pid,pmonto); }
+      };
+    })(p.id,p.monto,esPagado);
+    btns.appendChild(bPag);
+
+    var bEd=document.createElement('button');
+    bEd.style.cssText='border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:0.75rem;cursor:pointer;background:none;color:var(--accent);';
+    bEd.textContent='✏️';
+    (function(i){ bEd.onclick=function(){ renderFormPago(i); }; })(idx);
+    btns.appendChild(bEd);
+
+    var bDel=document.createElement('button');
+    bDel.style.cssText='border:1px solid rgba(229,57,53,0.3);border-radius:8px;padding:6px 10px;font-size:0.75rem;cursor:pointer;background:none;color:var(--danger);';
+    bDel.textContent='🗑';
+    (function(i){ bDel.onclick=function(){ borrarPago(i); }; })(idx);
+    btns.appendChild(bDel);
+
+    cuerpo.appendChild(btns);
+    inner.appendChild(barra);
+    inner.appendChild(cuerpo);
+    card.appendChild(inner);
+    return card;
+  }
+
+  // ── Función cambio de tab ──
+  window.pmSetTab = function(tab){
+    ['pend','pag','hist'].forEach(function(t){
+      var el=document.getElementById('pmTab_'+t);
+      if(el) el.classList.remove('active');
+    });
+    var map={pendientes:'pend',pagados:'pag',historial:'hist'};
+    var el=document.getElementById('pmTab_'+map[tab]);
+    if(el) el.classList.add('active');
+    if(tab==='pendientes')  renderPendientes();
+    else if(tab==='pagados') renderPagadosMes();
+    else                     renderHistorial();
+  };
+
+  // Render inicial: pendientes
+  renderPendientes();
 }
+
 
 function renderPagarPago(pid, montoEst){
   var mc = document.getElementById('mainContent');
