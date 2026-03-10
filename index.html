@@ -1126,6 +1126,7 @@ function goSub(sub){
     nueva_tc: function(){ return renderFormTC(null); },
     // Créditos
     creditos_debo: null, creditos_cobrar: null,
+    pagos_mes: null,
     nueva_deuda: function(){ return renderFormCredito('deuda', null); },
     nuevo_prestamo: function(){ return renderFormCredito('prestamo', null); },
     // Más
@@ -1137,6 +1138,7 @@ function goSub(sub){
   };
   if(sub==='creditos_debo'){ renderCreditosDebo(); return; }
   if(sub==='creditos_cobrar'){ renderCreditosCobrar(); return; }
+  if(sub==='pagos_mes'){ renderPagosMes(); return; }
   var fn = renders[sub];
   if(fn) document.getElementById('mainContent').innerHTML = fn();
 }
@@ -1670,6 +1672,29 @@ function renderInicio(){
     +'</div>'
     +'</div>';
 
+  // ── Sección 3b: Pagos del mes ──
+  var _pagosMes = load('pagos_mensuales',[]);
+  var _estadoPagos = (function(){ try{ var mes=new Date().toISOString().slice(0,7); var u=S.user; var base=u.isAdmin?'usala_admin':'usala_u_'+u.codigo; return JSON.parse(localStorage.getItem(base+'_pagos_estado_'+mes)||'{}'); }catch(e){ return {}; } })();
+  var _totalPagosMes = _pagosMes.reduce(function(s,p){ return s+(p.monto||0); },0);
+  var _pagadosN = _pagosMes.filter(function(p){ return _estadoPagos[p.id]&&_estadoPagos[p.id].pagado; }).length;
+  var _totalPagado = _pagosMes.filter(function(p){ return _estadoPagos[p.id]&&_estadoPagos[p.id].pagado; }).reduce(function(s,p){ return s+(_estadoPagos[p.id].montoPagado||p.monto||0); },0);
+  var _pctPagos = _totalPagosMes>0?Math.min(100,Math.round((_totalPagado/_totalPagosMes)*100)):0;
+  var secPagos = _pagosMes.length ? (
+    '<div class="stat-grid" style="margin-bottom:6px;">'
+    +'<div class="stat-card full" onclick="goSub(\'pagos_mes\')" style="cursor:pointer;">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+    +'<div class="stat-label">📅 Pagos del Mes ›</div>'
+    +'<div style="font-size:0.7rem;color:var(--dim);">'+_pagadosN+' / '+_pagosMes.length+' pagados</div>'
+    +'</div>'
+    +'<div style="font-size:1.45rem;font-weight:900;color:var(--text);margin-bottom:6px;">'+fmt(_totalPagosMes)+'</div>'
+    +'<div class="prog-wrap" style="margin-bottom:8px;"><div class="prog-bar" style="width:'+_pctPagos+'%;'+(_pctPagos>=100?'background:#2d9e5f;':'background:var(--accent);')+'"></div></div>'
+    +'<div style="display:flex;justify-content:space-between;font-size:0.76rem;">'
+    +'<span style="color:var(--accent2);">✅ Pagado: <b>'+fmt(_totalPagado)+'</b></span>'
+    +(_pctPagos>=100
+      ? '<span style="color:var(--accent2);font-weight:800;">🎉 ¡Todo al corriente!</span>'
+      : '<span style="color:var(--danger);">⏳ Pendiente: <b>'+fmt(_totalPagosMes-_totalPagado)+'</b></span>')
+    +'</div></div></div>'
+  ) : '';
   // ── Sección 3: Créditos e invitados ──
   var secExtra = ''
     +'<div class="stat-grid" style="margin-bottom:6px;">'
@@ -1700,6 +1725,7 @@ function renderInicio(){
     +'</div>'
     + secFlujo
     + secCuentas
+    + secPagos
     + secExtra
     +'<div class="card"><div class="card-title">Últimas transacciones</div>'+rec+'</div>';
 }
@@ -1817,6 +1843,7 @@ function renderCreditos(){
     +'<div class="mod-list">'
     +'<div class="mod-item" onclick="goSub(\'creditos_debo\')"><div class="mod-icon">📤</div><div><div class="mod-label">Mis Deudas</div><div class="mod-sub">Dinero que yo pedí prestado</div></div><div class="mod-arrow">›</div></div>'
     +'<div class="mod-item" onclick="goSub(\'creditos_cobrar\')"><div class="mod-icon">📥</div><div><div class="mod-label">Créditos por Cobrar</div><div class="mod-sub">Dinero que yo presté a otros</div></div><div class="mod-arrow">›</div></div>'
+    +'<div class="mod-item" onclick="goSub(\'pagos_mes\')"><div class="mod-icon">📅</div><div><div class="mod-label">Deuda a Pagar Mensual</div><div class="mod-sub">TC, servicios, renta, impuestos</div></div><div class="mod-arrow">›</div></div>'
     +'</div>';
 }
 
@@ -1987,6 +2014,242 @@ function renderListaCreds(tipo){
   // Agregar nodos directo al mainContent (después del header+botón ya insertados)
   var mc = document.getElementById('mainContent');
   mc.appendChild(fragment);
+}
+
+
+// ══════════════════════════════════════════════════════
+// PAGOS MENSUALES
+// ══════════════════════════════════════════════════════
+var PAGOS_CATS = ['💳 Tarjetas','💡 Servicios','🏠 Renta / Hipoteca','🏛 Impuestos','🚗 Auto','📱 Telefonía','🌐 Internet / Cable','🏥 Salud / Seguros','🎓 Educación','📦 Suscripciones','🔧 Otros'];
+
+function keyPagosMes(){
+  var mes = new Date().toISOString().slice(0,7); // YYYY-MM
+  var u = S.user;
+  var base = u.isAdmin ? 'usala_admin' : 'usala_u_'+u.codigo;
+  return base+'_pagos_estado_'+mes;
+}
+function loadPagosBase(){ return load('pagos_mensuales',[]); }
+function savePagosBase(p){ save('pagos_mensuales',p); }
+function loadPagosEstado(){ try{ return JSON.parse(localStorage.getItem(keyPagosMes())||'{}'); }catch(e){ return {}; } }
+function savePagosEstado(e){ localStorage.setItem(keyPagosMes(), JSON.stringify(e)); }
+
+function renderPagosMes(){
+  var mc = document.getElementById('mainContent');
+  mc.innerHTML = '';
+
+  var pagos  = loadPagosBase();
+  var estado = loadPagosEstado();
+  var mesNombre = new Date().toLocaleString('es-MX',{month:'long',year:'numeric'});
+
+  // ── Header ──
+  var hdr = document.createElement('div');
+  hdr.innerHTML = '<div class="page-header">'+backSubBtn()+'<div class="page-title">📅 Pagos del Mes</div></div>';
+  mc.appendChild(hdr);
+
+  // ── Resumen ──
+  var totalMonto = pagos.reduce(function(s,p){ return s+(p.monto||0); },0);
+  var pagados    = pagos.filter(function(p){ return estado[p.id] && estado[p.id].pagado; });
+  var totalPagado= pagados.reduce(function(s,p){ return s+(estado[p.id].montoPagado||p.monto||0); },0);
+  var pct        = totalMonto>0 ? Math.min(100,Math.round((totalPagado/totalMonto)*100)) : 0;
+
+  var res = document.createElement('div');
+  res.className = 'card';
+  res.style.marginBottom = '10px';
+  res.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
+    +'<div style="font-size:0.8rem;font-weight:800;text-transform:capitalize;">'+mesNombre+'</div>'
+    +'<div style="font-size:0.75rem;color:var(--dim);">'+pagados.length+' / '+pagos.length+' pagados</div>'
+    +'</div>'
+    +'<div class="prog-wrap" style="margin-bottom:8px;"><div class="prog-bar" style="width:'+pct+'%;'+(pct>=100?'background:#2d9e5f;':'')+'"></div></div>'
+    +'<div style="display:flex;justify-content:space-between;font-size:0.78rem;">'
+    +'<span style="color:var(--dim);">Total estimado: <b>'+fmt(totalMonto)+'</b></span>'
+    +'<span style="color:var(--accent2);">Pagado: <b>'+fmt(totalPagado)+'</b></span>'
+    +'</div>'
+    +(totalMonto-totalPagado>0?'<div style="font-size:0.75rem;margin-top:4px;color:var(--danger);">Pendiente: <b>'+fmt(totalMonto-totalPagado)+'</b></div>':'');
+  mc.appendChild(res);
+
+  // ── Botón nuevo pago ──
+  var bAdd = document.createElement('button');
+  bAdd.style.cssText='width:100%;padding:13px;background:var(--accent);color:var(--navtext);border:none;border-radius:12px;font-family:\'Outfit\',sans-serif;font-weight:700;cursor:pointer;margin-bottom:14px;font-size:0.95rem;';
+  bAdd.textContent='+ Agregar pago fijo';
+  bAdd.onclick=function(){ renderFormPago(null); };
+  mc.appendChild(bAdd);
+
+  if(!pagos.length){
+    var empty = document.createElement('div');
+    empty.style.cssText='text-align:center;padding:30px;color:var(--dim);font-size:0.83rem;';
+    empty.textContent='Sin pagos registrados. Agrega tus pagos fijos del mes.';
+    mc.appendChild(empty);
+    return;
+  }
+
+  // ── Agrupar por categoría ──
+  var grupos = {};
+  pagos.forEach(function(p){
+    var cat = p.categoria||'🔧 Otros';
+    if(!grupos[cat]) grupos[cat]=[];
+    grupos[cat].push(p);
+  });
+
+  PAGOS_CATS.forEach(function(cat){
+    if(!grupos[cat]) return;
+    var lista = grupos[cat];
+
+    var secTit = document.createElement('div');
+    secTit.style.cssText='font-size:0.72rem;font-weight:800;color:var(--dim);text-transform:uppercase;letter-spacing:0.06em;margin:10px 0 6px;';
+    secTit.textContent = cat;
+    mc.appendChild(secTit);
+
+    lista.forEach(function(p){
+      var st = estado[p.id]||{};
+      var pagado = !!st.pagado;
+      var montoPagado = st.montoPagado||0;
+      var idx = pagos.indexOf(p);
+
+      var card = document.createElement('div');
+      card.style.cssText='background:var(--card);border-radius:14px;padding:12px 14px;margin-bottom:8px;border:1.5px solid '+(pagado?'rgba(45,158,95,0.35)':'var(--border)')+';opacity:'+(pagado?'0.75':'1')+';';
+
+      var row = document.createElement('div');
+      row.style.cssText='display:flex;justify-content:space-between;align-items:flex-start;';
+
+      var left = document.createElement('div');
+      left.style.flex='1';
+
+      var nombre = document.createElement('div');
+      nombre.style.cssText='font-weight:700;font-size:0.9rem;'+(pagado?'text-decoration:line-through;color:var(--dim);':'');
+      nombre.textContent = p.nombre;
+      left.appendChild(nombre);
+
+      var meta = document.createElement('div');
+      meta.style.cssText='font-size:0.72rem;color:var(--dim);margin-top:2px;';
+      var metaTxt = 'Vence día '+p.dia;
+      if(pagado && montoPagado) metaTxt += ' · Pagado: '+fmt(montoPagado);
+      if(p.notas) metaTxt += ' · '+p.notas;
+      meta.textContent = metaTxt;
+      left.appendChild(meta);
+
+      var right = document.createElement('div');
+      right.style.cssText='display:flex;flex-direction:column;align-items:flex-end;gap:6px;';
+
+      var montoDiv = document.createElement('div');
+      montoDiv.style.cssText='font-weight:800;font-size:0.95rem;'+(pagado?'color:var(--accent2);':'color:var(--danger);');
+      montoDiv.textContent = fmt(p.monto);
+      right.appendChild(montoDiv);
+
+      var btns = document.createElement('div');
+      btns.style.cssText='display:flex;gap:5px;';
+
+      // Botón pagar / desmarcar
+      var bPag = document.createElement('button');
+      bPag.style.cssText='border:none;border-radius:8px;padding:4px 9px;font-size:0.75rem;cursor:pointer;font-weight:700;background:'+(pagado?'var(--inp)':'#2d9e5f')+';color:'+(pagado?'var(--dim)':'#fff')+';';
+      bPag.textContent = pagado ? '↩ Desmarcar' : '✅ Pagar';
+      (function(pid, pmonto, pagado_){
+        bPag.onclick = function(){
+          if(pagado_){ // desmarcar
+            var e2=loadPagosEstado(); delete e2[pid]; savePagosEstado(e2); renderPagosMes();
+          } else { // pedir monto real
+            renderPagarPago(pid, pmonto);
+          }
+        };
+      })(p.id, p.monto, pagado);
+      btns.appendChild(bPag);
+
+      // Botón editar
+      var bEd = document.createElement('button');
+      bEd.style.cssText='border:1px solid var(--border);border-radius:8px;padding:4px 8px;font-size:0.75rem;cursor:pointer;background:none;color:var(--accent);';
+      bEd.textContent='✏️';
+      (function(idx_){ bEd.onclick=function(){ renderFormPago(idx_); }; })(idx);
+      btns.appendChild(bEd);
+
+      // Botón borrar
+      var bDel = document.createElement('button');
+      bDel.style.cssText='border:1px solid rgba(229,57,53,0.3);border-radius:8px;padding:4px 8px;font-size:0.75rem;cursor:pointer;background:none;color:var(--danger);';
+      bDel.textContent='🗑';
+      (function(idx_){ bDel.onclick=function(){
+        if(!confirm('¿Eliminar este pago?')) return;
+        var pp=loadPagosBase(); pp.splice(idx_,1); savePagosBase(pp);
+        showToast('🗑 Eliminado'); renderPagosMes();
+      }; })(idx);
+      btns.appendChild(bDel);
+
+      right.appendChild(btns);
+      row.appendChild(left); row.appendChild(right);
+      card.appendChild(row);
+      mc.appendChild(card);
+    });
+  });
+}
+
+function renderPagarPago(pid, montoEst){
+  var mc = document.getElementById('mainContent');
+  mc.innerHTML='';
+  var d=document.createElement('div'); d.style.padding='20px 16px';
+  d.innerHTML='<div style="font-size:1rem;font-weight:800;margin-bottom:14px;">✅ Registrar Pago</div>'
+    +'<label class="inp-label">Monto pagado</label>'
+    +'<input class="inp" id="pmPagado" type="number" min="0" placeholder="'+montoEst+'" style="margin-bottom:16px;">';
+  var bOk=document.createElement('button');
+  bOk.className='btn-main'; bOk.textContent='Confirmar pago';
+  bOk.onclick=function(){
+    var m=parseFloat(document.getElementById('pmPagado').value)||montoEst;
+    var e=loadPagosEstado(); e[pid]={pagado:true,montoPagado:m,fecha:today()};
+    savePagosEstado(e); showToast('✅ Pago registrado'); renderPagosMes();
+  };
+  var bCan=document.createElement('button');
+  bCan.className='btn-sec'; bCan.style.marginTop='8px'; bCan.textContent='Cancelar';
+  bCan.onclick=function(){ renderPagosMes(); };
+  d.appendChild(bOk); d.appendChild(bCan);
+  mc.appendChild(d);
+  setTimeout(function(){ var el=document.getElementById('pmPagado'); if(el){el.value=montoEst;el.focus();el.select();} },80);
+}
+
+function renderFormPago(idx){
+  var pagos=loadPagosBase();
+  var p=idx!==null?pagos[idx]:{};
+  var mc=document.getElementById('mainContent');
+  mc.innerHTML='';
+  var d=document.createElement('div'); d.style.padding='20px 16px';
+
+  // Opciones de categoría
+  var catOpts=PAGOS_CATS.map(function(c){
+    return '<option value="'+c+'"'+(p.categoria===c?' selected':'')+'>'+c+'</option>';
+  }).join('');
+
+  d.innerHTML='<div style="font-size:1rem;font-weight:800;margin-bottom:14px;">'+(idx!==null?'✏️ Editar':'➕ Nuevo')+' Pago Fijo</div>'
+    +'<label class="inp-label">Nombre del pago</label>'
+    +'<input class="inp" id="fpNombre" placeholder="Ej: CFE, TELMEX, Renta..." value="'+(p.nombre||'')+'">'
+    +'<label class="inp-label">Categoría</label>'
+    +'<select class="inp" id="fpCat">'+catOpts+'</select>'
+    +'<div class="form-row">'
+    +'<div><label class="inp-label">Monto estimado</label><input class="inp" id="fpMonto" type="number" min="0" placeholder="$0.00" value="'+(p.monto||'')+'"></div>'
+    +'<div><label class="inp-label">Día de vencimiento</label><input class="inp" id="fpDia" type="number" min="1" max="31" placeholder="15" value="'+(p.dia||'')+'"></div>'
+    +'</div>'
+    +'<label class="inp-label">Notas (opcional)</label>'
+    +'<input class="inp" id="fpNotas" placeholder="Cuenta, referencia, etc." value="'+(p.notas||'')+'" style="margin-bottom:16px;">';
+
+  var bOk=document.createElement('button');
+  bOk.className='btn-main'; bOk.textContent=idx!==null?'💾 Guardar cambios':'➕ Agregar';
+  bOk.onclick=function(){
+    var nombre=document.getElementById('fpNombre').value.trim();
+    var cat=document.getElementById('fpCat').value;
+    var monto=parseFloat(document.getElementById('fpMonto').value)||0;
+    var dia=parseInt(document.getElementById('fpDia').value)||1;
+    var notas=document.getElementById('fpNotas').value.trim();
+    if(!nombre||!monto){ showToast('⚠ Nombre y monto son obligatorios'); return; }
+    var pp=loadPagosBase();
+    if(idx!==null){
+      pp[idx].nombre=nombre; pp[idx].categoria=cat; pp[idx].monto=monto; pp[idx].dia=dia; pp[idx].notas=notas;
+      showToast('✓ Actualizado');
+    } else {
+      pp.push({id:'pm_'+Date.now(),nombre:nombre,categoria:cat,monto:monto,dia:dia,notas:notas});
+      showToast('✓ Pago agregado');
+    }
+    savePagosBase(pp); renderPagosMes();
+  };
+  var bCan=document.createElement('button');
+  bCan.className='btn-sec'; bCan.style.marginTop='8px'; bCan.textContent='Cancelar';
+  bCan.onclick=function(){ renderPagosMes(); };
+  d.appendChild(bOk); d.appendChild(bCan);
+  mc.appendChild(d);
+  setTimeout(function(){ var el=document.getElementById('fpNombre'); if(el) el.focus(); },80);
 }
 
 function renderCreditosDebo(){
@@ -3827,4 +4090,4 @@ function procesarComandoVoz(t){
 
 </script>
 </body>
-      </html>
+  </html>
