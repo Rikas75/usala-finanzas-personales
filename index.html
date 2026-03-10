@@ -3599,6 +3599,8 @@ function renderCuentas(){
   var totalCheques = (c.cheques||[]).reduce(function(s,x){ return s+Number(x.saldo||0); },0);
   var totalTC = (c.tarjetas||[]).reduce(function(s,t){ return s+Number(t.balance||0); },0);
   var totalActivos = saldoEfec + totalCheques;
+  var totalActivosPersonales = load('activos_personales',[]).reduce(function(s,a){ return s+(a.valor||0); },0);
+  var numActivos = load('activos_personales',[]).length;
 
   var resCheques = (c.cheques||[]).map(function(ch){
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">'
@@ -3619,6 +3621,7 @@ function renderCuentas(){
     +'<div class="mod-item" onclick="goSub(\'efectivo\')"><div class="mod-icon">💵</div><div><div class="mod-label">Efectivo</div><div class="mod-sub">Saldo: '+fmt(saldoEfec)+'</div></div><div class="mod-arrow">›</div></div>'
     +'<div class="mod-item" onclick="goSub(\'cheques\')"><div class="mod-icon">🏧</div><div><div class="mod-label">Cheques / Banco</div><div class="mod-sub">Transferencias, depósitos, ahorro</div></div><div class="mod-arrow">›</div></div>'
     +'<div class="mod-item" onclick="goSub(\'tarjetas_credito\')"><div class="mod-icon">💳</div><div><div class="mod-label">Tarjetas de Crédito</div><div class="mod-sub">'+(c.tarjetas||[]).length+' tarjeta'+(((c.tarjetas||[]).length)!==1?'s':'')+' · Deuda: '+fmt(totalTC)+'</div></div><div class="mod-arrow">›</div></div>'
+    +'<div class="mod-item" onclick="goSub(\'activos\')"><div class="mod-icon">🏦</div><div><div class="mod-label">Mis Activos</div><div class="mod-sub">'+numActivos+' activo'+(numActivos!==1?'s':'')+' · Valor: '+fmt(totalActivosPersonales)+'</div></div><div class="mod-arrow">›</div></div>'
     +'</div>';
 }
 
