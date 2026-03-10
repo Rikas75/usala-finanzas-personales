@@ -1020,7 +1020,11 @@ function renderTab(tab){
 // HELPERS
 // ══════════════════════════════════════════
 function today(){ return new Date().toISOString().split('T')[0]; }
-function fmt(n){ return '$' + Number(n||0).toLocaleString('es-MX',{minimumFractionDigits:2}); }
+function getSimboloMoneda(){
+  var key = 'usala_moneda_app_' + (S.user ? (S.user.isAdmin ? 'admin' : S.user.codigo) : 'anon');
+  try{ var m = JSON.parse(localStorage.getItem(key)||'null'); return m ? m.simbolo : '$'; }catch(e){ return '$'; }
+}
+function fmt(n){ return getSimboloMoneda() + Number(n||0).toLocaleString('es-MX',{minimumFractionDigits:2}); }
 function showToast(msg){ var t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(function(){ t.remove(); },2500); }
 function backBtn(tab, idx){
   return '<button class="back-btn" onclick="goTab(\''+tab+'\',document.querySelectorAll(\'.nb\')['+idx+'])">‹</button>';
@@ -2110,8 +2114,8 @@ function renderConfig(){
   return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">⚙️ Configuración</div></div>'
     +'<div class="card">'
     +'<div class="set-item" onclick="pickTema()"><div><div class="set-label">🎨 Cambiar tema</div></div><div class="set-arrow">›</div></div>'
+    +'<div class="set-item" onclick="abrirSelectorMoneda()"><div><div class="set-label">💱 Moneda de la app</div><div class="set-sub">'+_getMonedaApp()+'</div></div><div class="set-arrow">›</div></div>'
     +'<div class="set-item" onclick="restablecerMic()"><div><div class="set-label">🎤 Restablecer micrófono</div><div class="set-sub" id="micEstadoLabel">'+_getMicEstado()+'</div></div><div class="set-arrow">›</div></div>'
-    +'<div class="set-item" onclick="restablecerMonedaIA()"><div><div class="set-label">💱 Cambiar moneda del asistente</div><div class="set-sub" id="monedaEstadoLabel">'+_getMonedaEstado()+'</div></div><div class="set-arrow">›</div></div>'
     +'<div class="set-item" onclick="goSub(\'version\')"><div><div class="set-label">📋 Versión</div><div class="set-sub">v'+APP_VERSION+'</div></div><div class="set-arrow">›</div></div>'
     +'<div class="set-item" onclick="cerrarSesion()"><div><div class="set-label" style="color:var(--danger);">🚪 Cerrar sesión</div></div><div class="set-arrow">›</div></div>'
     +'</div>'
@@ -2176,11 +2180,65 @@ function _getMicEstado(){
   return p;
 }
 
-function _getMonedaEstado(){
-  var key = 'usala_ia_moneda_' + (S.user ? (S.user.isAdmin ? 'admin' : S.user.codigo) : 'anon');
-  var m = localStorage.getItem(key);
-  if(!m) return 'No configurada';
-  try{ return JSON.parse(m).bandera + ' ' + JSON.parse(m).nombre; } catch(e){ return 'Ver asistente'; }
+function _getMonedaApp(){
+  var key = 'usala_moneda_app_' + (S.user ? (S.user.isAdmin ? 'admin' : S.user.codigo) : 'anon');
+  try{ var m = JSON.parse(localStorage.getItem(key)||'null');
+    return m ? (m.bandera+' '+m.nombre+' ('+m.simbolo+')') : '🇲🇽 Pesos mexicanos ($)'; }
+  catch(e){ return '🇲🇽 Pesos mexicanos ($)'; }
+}
+
+function abrirSelectorMoneda(){
+  var monedas = [
+    {codigo:'MXN', nombre:'Pesos mexicanos', simbolo:'$', bandera:'🇲🇽'},
+    {codigo:'USD', nombre:'Dólares',          simbolo:'$', bandera:'🇺🇸'},
+    {codigo:'EUR', nombre:'Euros',            simbolo:'€', bandera:'🇪🇺'},
+    {codigo:'CAD', nombre:'Dólar canadiense', simbolo:'$', bandera:'🇨🇦'},
+    {codigo:'GBP', nombre:'Libras',           simbolo:'£', bandera:'🇬🇧'},
+    {codigo:'COP', nombre:'Pesos colombianos',simbolo:'$', bandera:'🇨🇴'},
+    {codigo:'ARS', nombre:'Pesos argentinos', simbolo:'$', bandera:'🇦🇷'},
+    {codigo:'GTQ', nombre:'Quetzales',        simbolo:'Q', bandera:'🇬🇹'},
+    {codigo:'PEN', nombre:'Soles',            simbolo:'S/',bandera:'🇵🇪'},
+  ];
+  var key = 'usala_moneda_app_' + (S.user ? (S.user.isAdmin ? 'admin' : S.user.codigo) : 'anon');
+  var actual;
+  try{ actual = JSON.parse(localStorage.getItem(key)||'null'); }catch(e){ actual = null; }
+  var html = '<div class="page-header">'
+    +'<button onclick="goSub(&quot;config&quot;)" style="background:none;border:none;color:var(--accent);font-size:1rem;cursor:pointer;padding:4px 8px;">← Atrás</button>'
+    +'<div class="page-title">💱 Moneda de la app</div></div>'
+    +'<div class="card">'
+    +'<div style="font-size:0.8rem;color:var(--dim);margin-bottom:14px;line-height:1.5;">El símbolo se mostrará en toda la app: saldos, historial y reportes.</div>'
+    + monedas.map(function(m){
+        var activa = actual && actual.codigo === m.codigo;
+        return '<div onclick="guardarMonedaApp(&quot;'+m.codigo+'&quot;)" style="display:flex;align-items:center;gap:12px;padding:14px 12px;border-radius:14px;margin-bottom:6px;cursor:pointer;background:'+(activa?'rgba(30,107,60,0.10)':'var(--inp)')+';border:2px solid '+(activa?'var(--accent)':'transparent')+';">'
+          +'<span style="font-size:1.4rem;">'+m.bandera+'</span>'
+          +'<div style="flex:1;"><div style="font-weight:700;font-size:0.9rem;color:var(--text);">'+m.nombre+'</div>'
+          +'<div style="font-size:0.72rem;color:var(--dim);">'+m.codigo+' · símbolo: '+m.simbolo+'</div></div>'
+          +(activa?'<span style="color:var(--accent);font-size:1.1rem;">✓</span>':'')
+          +'</div>';
+      }).join('')
+    +'</div>';
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+function guardarMonedaApp(codigo){
+  var monedas = {
+    MXN:{codigo:'MXN',nombre:'Pesos mexicanos', simbolo:'$', bandera:'🇲🇽'},
+    USD:{codigo:'USD',nombre:'Dólares',          simbolo:'$', bandera:'🇺🇸'},
+    EUR:{codigo:'EUR',nombre:'Euros',            simbolo:'€', bandera:'🇪🇺'},
+    CAD:{codigo:'CAD',nombre:'Dólar canadiense', simbolo:'$', bandera:'🇨🇦'},
+    GBP:{codigo:'GBP',nombre:'Libras',           simbolo:'£', bandera:'🇬🇧'},
+    COP:{codigo:'COP',nombre:'Pesos colombianos',simbolo:'$', bandera:'🇨🇴'},
+    ARS:{codigo:'ARS',nombre:'Pesos argentinos', simbolo:'$', bandera:'🇦🇷'},
+    GTQ:{codigo:'GTQ',nombre:'Quetzales',        simbolo:'Q', bandera:'🇬🇹'},
+    PEN:{codigo:'PEN',nombre:'Soles',            simbolo:'S/',bandera:'🇵🇪'},
+  };
+  var m = monedas[codigo];
+  if(!m) return;
+  var key = 'usala_moneda_app_' + (S.user ? (S.user.isAdmin ? 'admin' : S.user.codigo) : 'anon');
+  localStorage.setItem(key, JSON.stringify(m));
+  showToast(m.bandera+' Moneda cambiada a '+m.nombre);
+  renderTab(S.tab); // refrescar pantalla actual
+  abrirSelectorMoneda(); // refrescar selector con nuevo check
 }
 
 function restablecerMic(){
@@ -3311,10 +3369,9 @@ function abrirIA(){
   }
 
   var permiso = localStorage.getItem('usala_mic_permiso');
-  var monedaGuardada = localStorage.getItem(_iaMonedaKey());
 
   if(!permiso){
-    // ── PASO 1: pedir permiso mic ──
+    // Primera vez — pedir permiso mic, luego saludo directo
     agregarMensajeIA('👋 ¡Hola ' + S.user.nombre.split(' ')[0] + '! Para escucharte necesito acceso al micrófono. Toca "Permitir" cuando aparezca 👆', 'ia');
     hablarIA('Hola, necesito acceso al micrófono. Toca Permitir.');
     setTimeout(function(){
@@ -3322,16 +3379,9 @@ function abrirIA(){
         .then(function(stream){
           stream.getTracks().forEach(function(t){ t.stop(); });
           localStorage.setItem('usala_mic_permiso','granted');
-          agregarMensajeIA('✅ ¡Perfecto! Ya puedo escucharte 🎉', 'ia');
-          hablarIA('Perfecto, ya puedo escucharte.');
-          // ── PASO 2: después del permiso, pedir moneda si falta ──
-          setTimeout(function(){
-            if(!localStorage.getItem(_iaMonedaKey())){
-              agregarMensajeIA('¿En qué moneda trabajas?', 'ia');
-              hablarIA('¿En qué moneda trabajas?');
-              mostrarBotonesMoneda();
-            }
-          }, 1500);
+          agregarMensajeIA('✅ ¡Listo! Ya puedo escucharte. Toca 🎤 y habla.', 'ia');
+          hablarIA('Listo, toca el micrófono y habla.');
+          setTimeout(_saludoIA, 1500);
         })
         .catch(function(){
           localStorage.setItem('usala_mic_permiso','denied');
@@ -3339,42 +3389,23 @@ function abrirIA(){
           hablarIA('Permiso denegado. Actívalo en configuración.');
         });
     }, 800);
-
-  } else if(!monedaGuardada){
-    // ── Permiso OK pero sin moneda ──
-    var nom = S.user.nombre.split(' ')[0];
-    agregarMensajeIA('Hola ' + nom + ' 👋 ¿En qué moneda trabajas?', 'ia');
-    hablarIA('Hola, ¿en qué moneda trabajas?');
-    mostrarBotonesMoneda();
-
   } else {
-    // ── Todo listo — saludo normal ──
+    // Permiso ya dado — saludo directo
     _saludoIA();
   }
 }
 
 function _saludoIA(){
-  var monedaGuardada = localStorage.getItem(_iaMonedaKey());
-  if(monedaGuardada){
-    _iaMoneda = JSON.parse(monedaGuardada);
-    var c = getCuentas();
-    var efec = c.efectivo || 0;
-    var banco = (c.cheques||[]).reduce(function(s,x){ return s+Number(x.saldo||0); },0);
-    var saludo = 'Hola ' + S.user.nombre.split(' ')[0] + ' 👋 Trabajamos en '
-      + _iaMoneda.nombre + '. Tienes ' + _iaMoneda.simbolo
-      + efec.toLocaleString('es-MX',{minimumFractionDigits:2}) + ' en efectivo y '
-      + _iaMoneda.simbolo + banco.toLocaleString('es-MX',{minimumFractionDigits:2})
-      + ' en banco. ¿Qué necesitas?';
-    agregarMensajeIA(saludo, 'ia');
-    hablarIA(saludo);
-  } else {
-    var nombre2 = S.user.nombre.split(' ')[0];
-    var pregunta = 'Hola ' + nombre2 + ' 👋 Soy tu asistente de finanzas. '
-      + 'Antes de empezar, ¿en qué moneda trabajas?';
-    agregarMensajeIA(pregunta, 'ia');
-    hablarIA(pregunta);
-    mostrarBotonesMoneda();
-  }
+  var c = getCuentas();
+  var sim = getSimboloMoneda();
+  var efec = c.efectivo || 0;
+  var banco = (c.cheques||[]).reduce(function(s,x){ return s+Number(x.saldo||0); },0);
+  var saludo = 'Hola ' + S.user.nombre.split(' ')[0] + ' 👋 Tienes '
+    + sim + efec.toLocaleString('es-MX',{minimumFractionDigits:2}) + ' en efectivo y '
+    + sim + banco.toLocaleString('es-MX',{minimumFractionDigits:2})
+    + ' en banco. ¿Qué necesitas?';
+  agregarMensajeIA(saludo, 'ia');
+  hablarIA(saludo);
 }
 
 function mostrarBotonesMoneda(){
@@ -3511,7 +3542,7 @@ function _arrancarReconocimiento(){
     if(e.error === 'not-allowed'){
       agregarMensajeIA('🔒 Micrófono bloqueado. Chrome ⋮ → Configuración del sitio → Micrófono → permite esta página → recarga.', 'ia');
     } else if(e.error === 'no-speech'){
-      agregarMensajeIA('No escuché nada 🤔 Toca 🎤 e intenta de nuevo.', 'ia');
+      agregarMensajeIA('No te escuché 🎤 Asegúrate de hablar claro y cerca del micrófono. Toca 🎤 para intentar de nuevo.', 'ia');
     } else if(e.error === 'network'){
       agregarMensajeIA('Sin conexión para procesar la voz 📶 Verifica tu internet.', 'ia');
     } else {
@@ -3727,4 +3758,4 @@ function ejecutarAccionIA(resp){
     return;
   }
 }
-  </script>
+                                                          </script>
