@@ -4327,7 +4327,10 @@ function renderEfectivo(){
       +'<div class="tx-date">'+t.fecha+' · '+t.cat+'</div></div>'
       +'<div class="tx-right"><div class="tx-amt '+(t.tipo==='ingreso'?'ing':'gas')+'">'
       +(t.tipo==='ingreso'?'+':'-')+fmt(t.monto)+'</div>'
-      +'<button class="ic-btn" onclick="borrarTx('+t.id+')">🗑️</button></div></div>';
+      +'<div style="display:flex;gap:4px;">'
+      +'<button class="ic-btn" onclick="editarTx('+t.id+')">✏️</button>'
+      +'<button class="ic-btn" onclick="borrarTx('+t.id+')">🗑️</button>'
+      +'</div></div></div>';
   }).join('')||'<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin movimientos</div>';
 
   var catEnt = getIngresoCats();
@@ -5157,4 +5160,4 @@ function procesarComandoVoz(t){
 
 </script>
 </body>
-  </html>
+      </html>
