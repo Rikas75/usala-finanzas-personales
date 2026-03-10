@@ -3480,96 +3480,145 @@ function toggleVoz(){
   abrirIA();
 }
 
-// Micrófono
-function toggleMicIA(){
-  if(_iaActivo){ detenerMicIA(); return; }
+// ── MICRÓFONO ─────────────────────────────────────────
+// Estrategia Chrome Android:
+// getUserMedia abre el stream → SpeechRecognition arranca con stream VIVO
+// El stream se cierra SOLO en onresult / onerror / onend
+
+var _micStream = null;
+
+function _micUI(estado){
+  // estado: 'idle' | 'esperando' | 'escuchando'
   var btn = document.getElementById('iaMicBtn');
-  var permiso = localStorage.getItem('usala_mic_permiso');
-  if(permiso === 'granted'){
-    // Ya tiene permiso — arrancar directo
-    iniciarMicIA();
-  } else {
-    // Pedir permiso y al recibirlo arrancar inmediatamente
-    if(btn){ btn.textContent = '⏳'; }
-    navigator.mediaDevices.getUserMedia({audio:true})
-      .then(function(stream){
-        stream.getTracks().forEach(function(t){ t.stop(); });
-        localStorage.setItem('usala_mic_permiso','granted');
-        agregarMensajeIA('✅ ¡Micrófono activado! Ahora habla 🎤', 'ia');
-        // Arrancar reconocimiento inmediatamente
-        iniciarMicIA();
-      })
-      .catch(function(err){
-        localStorage.setItem('usala_mic_permiso','denied');
-        if(btn){ btn.textContent = '🎤'; }
-        agregarMensajeIA('❌ Permiso denegado. Chrome ⋮ → Configuración del sitio → Micrófono → permite rikas75.github.io → recarga.', 'ia');
-      });
+  var st  = document.getElementById('iaStatus');
+  var wv  = document.getElementById('iaWaveform');
+  if(estado === 'idle'){
+    if(btn){ btn.style.background='linear-gradient(135deg,var(--accent),var(--accent2))'; btn.textContent='🎤'; btn.style.boxShadow='0 4px 16px rgba(30,107,60,0.35)'; btn.disabled=false; }
+    if(st){ st.style.display='block'; st.textContent='Toca el micrófono para hablar'; }
+    if(wv) wv.style.display='none';
+  } else if(estado === 'esperando'){
+    if(btn){ btn.style.background='linear-gradient(135deg,#f39c12,#e67e22)'; btn.textContent='⏳'; btn.style.boxShadow='none'; btn.disabled=true; }
+    if(st){ st.style.display='block'; st.textContent='Activando micrófono...'; }
+    if(wv) wv.style.display='none';
+  } else if(estado === 'escuchando'){
+    if(btn){ btn.style.background='linear-gradient(135deg,#ff3b30,#ff6b6b)'; btn.textContent='🔴'; btn.style.boxShadow='0 4px 20px rgba(255,59,48,0.5)'; btn.disabled=false; }
+    if(st) st.style.display='none';
+    if(wv){ wv.style.display='flex'; }
   }
 }
-function iniciarMicIA(){
+
+function _cerrarStream(){
+  if(_micStream){
+    _micStream.getTracks().forEach(function(t){ t.stop(); });
+    _micStream = null;
+  }
+}
+
+function toggleMicIA(){
+  if(_iaActivo){ 
+    // Detener grabación
+    _cerrarStream();
+    if(_iaRec){ try{ _iaRec.stop(); }catch(e){} _iaRec = null; }
+    _iaActivo = false;
+    _micUI('idle');
+    return; 
+  }
+  // Iniciar — abrir stream primero, luego SR
+  _micUI('esperando');
+  navigator.mediaDevices.getUserMedia({audio:true, video:false})
+    .then(function(stream){
+      _micStream = stream;
+      localStorage.setItem('usala_mic_permiso','granted');
+      _iniciarSR();
+    })
+    .catch(function(err){
+      _micUI('idle');
+      localStorage.setItem('usala_mic_permiso','denied');
+      var msg = err.name === 'NotAllowedError'
+        ? '🔒 Micrófono bloqueado. Chrome ⋮ → Configuración del sitio → Micrófono → permite rikas75.github.io → recarga la app.'
+        : '❌ No se pudo abrir el micrófono: ' + err.message;
+      agregarMensajeIA(msg, 'ia');
+    });
+}
+
+function _iniciarSR(){
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SR){
-    agregarMensajeIA('Tu navegador no soporta voz 😔 Usa Chrome en Android o Safari en iPhone.', 'ia');
+    _cerrarStream();
+    _micUI('idle');
+    agregarMensajeIA('Tu navegador no soporta reconocimiento de voz 😔 Usa Chrome en Android.', 'ia');
     return;
   }
   detenerHabla();
-  _arrancarReconocimiento();
-}
-
-function _arrancarReconocimiento(){
-  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   _iaRec = new SR();
   _iaRec.lang = 'es-MX';
   _iaRec.continuous = false;
   _iaRec.interimResults = false;
+  _iaRec.maxAlternatives = 1;
+
   _iaRec.onstart = function(){
     _iaActivo = true;
-    var btn = document.getElementById('iaMicBtn');
-    if(btn){ btn.style.background='linear-gradient(135deg,#ff3b30,#ff6b6b)'; btn.textContent='🔴'; btn.style.boxShadow='0 4px 20px rgba(255,59,48,0.5)'; }
-    var st = document.getElementById('iaStatus');
-    var wv = document.getElementById('iaWaveform');
-    if(st) st.style.display = 'none';
-    if(wv) wv.style.display = 'flex';
+    _micUI('escuchando');
   };
-  _iaRec.onend = function(){
-    // Cerrar stream al terminar de escuchar
-    if(_micStream){ _micStream.getTracks().forEach(function(t){ t.stop(); }); _micStream = null; }
-    detenerMicIA();
+
+  _iaRec.onresult = function(e){
+    var texto = e.results[0][0].transcript.trim();
+    _cerrarStream();
+    _iaActivo = false;
+    _micUI('idle');
+    _iaRec = null;
+    if(texto){
+      agregarMensajeIA(texto, 'user');
+      procesarConIA(texto);
+    }
   };
+
   _iaRec.onerror = function(e){
-    if(_micStream){ _micStream.getTracks().forEach(function(t){ t.stop(); }); _micStream = null; }
-    detenerMicIA();
+    _cerrarStream();
+    _iaActivo = false;
+    _micUI('idle');
+    _iaRec = null;
     if(e.error === 'not-allowed'){
       agregarMensajeIA('🔒 Micrófono bloqueado. Chrome ⋮ → Configuración del sitio → Micrófono → permite esta página → recarga.', 'ia');
     } else if(e.error === 'no-speech'){
-      agregarMensajeIA('No te escuché 🎤 Asegúrate de hablar claro y cerca del micrófono. Toca 🎤 para intentar de nuevo.', 'ia');
+      agregarMensajeIA('No te escuché 🎤 Habla claro y cerca del micrófono. Toca 🎤 para intentar de nuevo.', 'ia');
     } else if(e.error === 'network'){
-      agregarMensajeIA('Sin conexión para procesar la voz 📶 Verifica tu internet.', 'ia');
+      agregarMensajeIA('📶 Sin conexión. Verifica tu internet e intenta de nuevo.', 'ia');
+    } else if(e.error === 'audio-capture'){
+      agregarMensajeIA('🎤 El micrófono está en uso por otra app. Ciérrala y vuelve a intentar.', 'ia');
     } else {
-      agregarMensajeIA('Error: ' + e.error + '. Intenta de nuevo 🎤', 'ia');
+      agregarMensajeIA('⚠️ Error de voz: ' + e.error + '. Toca 🎤 para intentar de nuevo.', 'ia');
     }
   };
-  _iaRec.onresult = function(e){
-    var texto = e.results[0][0].transcript.trim();
-    if(_micStream){ _micStream.getTracks().forEach(function(t){ t.stop(); }); _micStream = null; }
-    detenerMicIA();
-    agregarMensajeIA(texto, 'user');
-    procesarConIA(texto);
+
+  _iaRec.onend = function(){
+    // onend se llama después de onresult/onerror — limpiar si aún activo
+    if(_iaActivo){
+      _cerrarStream();
+      _iaActivo = false;
+      _micUI('idle');
+      _iaRec = null;
+    }
   };
-  try{
-    _iaRec.start();
-  } catch(ex){
-    agregarMensajeIA('No se pudo iniciar el micrófono. Recarga la app e intenta de nuevo.', 'ia');
-  }
+
+  // Pequeño delay para que el stream esté estabilizado
+  setTimeout(function(){
+    try{ 
+      _iaRec.start(); 
+    } catch(ex){ 
+      _cerrarStream();
+      _iaActivo = false;
+      _micUI('idle');
+      _iaRec = null;
+      agregarMensajeIA('⚠️ No se pudo iniciar: ' + ex.message + '. Recarga e intenta de nuevo.', 'ia');
+    }
+  }, 150);
 }
+
 function detenerMicIA(){
+  _cerrarStream();
   _iaActivo = false;
-  var btn = document.getElementById('iaMicBtn');
-  if(btn){ btn.style.background='linear-gradient(135deg,var(--accent),var(--accent2))'; btn.textContent='🎤'; btn.style.boxShadow='0 4px 16px rgba(30,107,60,0.35)'; }
-  var st = document.getElementById('iaStatus');
-  var wv = document.getElementById('iaWaveform');
-  if(st){ st.style.display = 'block'; st.textContent = 'Toca el micrófono para hablar'; }
-  if(wv) wv.style.display = 'none';
+  _micUI('idle');
   if(_iaRec){ try{ _iaRec.stop(); }catch(e){} _iaRec = null; }
 }
 
@@ -3758,4 +3807,4 @@ function ejecutarAccionIA(resp){
     return;
   }
 }
-                                                          </script>
+      </script>
