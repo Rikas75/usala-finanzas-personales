@@ -1819,67 +1819,129 @@ function renderCreditos(){
 }
 
 function renderListaCreds(tipo){
-  var creds = load('creditos',[]).filter(function(c){ return c.tipo===tipo; });
-  if(!creds.length) return '<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin registros</div>';
-  return creds.map(function(c,i){
+  var allCreds = load('creditos',[]);
+  var creds = allCreds.filter(function(c){ return c.tipo===tipo; });
+  var mc = document.getElementById('mainContent');
+  if(!creds.length){
+    return '<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin registros</div>';
+  }
+
+  // Construir cada tarjeta con DOM para evitar problemas de comillas
+  var fragment = document.createDocumentFragment();
+  creds.forEach(function(c, i){
+    var ri = allCreds.indexOf(c); // índice real en el array completo
     var pct = c.monto>0 ? Math.min(100,Math.round(((c.abonado||0)/c.monto)*100)) : 0;
     var hoy = new Date();
     var fv = c.fechaLimite ? (function(){ var p=c.fechaLimite.split('-'); return new Date(+p[0],+p[1]-1,+p[2]); })() : null;
     var venc = fv && fv < hoy && c.estado!=='pagado';
-    var badge = c.estado==='pagado' ? '<span class="cred-badge badge-pagado">✅ Pagado</span>'
-              : venc ? '<span class="cred-badge badge-vencido">🔴 Vencido</span>'
-              : '<span class="cred-badge badge-pend">⏳ Pendiente</span>';
-    // Totales capital e intereses
+
+    var div = document.createElement('div');
+    div.className = 'cred-item';
+
+    // Badge
+    var badgeTxt = c.estado==='pagado' ? '✅ Pagado' : venc ? '🔴 Vencido' : '⏳ Pendiente';
+    var badgeCls = c.estado==='pagado' ? 'badge-pagado' : venc ? 'badge-vencido' : 'badge-pend';
+
+    // Descripción
+    var descExtra = (c.interes ? ' · '+c.interes+'% int.' : '')
+      + (c.fechaOrigen ? ' · Otorgado: '+c.fechaOrigen : '')
+      + (c.fechaLimite ? ' · Vence: '+c.fechaLimite : '');
+
+    // Resumen capital/intereses
     var totalIntPag = c.interesesPagados||0;
-    var totalCapital = c.abonado||0;
-    var resumenHtml = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">'
-      +'<span style="font-size:0.73rem;background:var(--inp);border-radius:6px;padding:3px 8px;">Capital: <b>'+fmt(totalCapital)+'</b> / '+fmt(c.monto)+'</span>'
-      +(totalIntPag>0
-        ? '<span style="font-size:0.73rem;background:#fff3e0;border-radius:6px;padding:3px 8px;color:#e07b00;">Intereses pagados: <b>'+fmt(totalIntPag)+'</b></span>'
-        : (c.interes>0 ? '<span style="font-size:0.73rem;background:var(--inp);border-radius:6px;padding:3px 8px;color:var(--dim);">Sin intereses pagados</span>' : ''))
-      +(c.estado==='pagado' && totalIntPag===0 && c.interes>0
-        ? '<span style="font-size:0.73rem;background:#e8f5e9;border-radius:6px;padding:3px 8px;color:#2d9e5f;">Liquidado sin interes</span>' : '')
-      +'</div>';
+    var totalCap = c.abonado||0;
+    var resumenExtra = '';
+    if(totalIntPag>0){
+      resumenExtra = '<span style="font-size:0.73rem;background:#fff3e0;border-radius:6px;padding:3px 8px;color:#e07b00;">Intereses pagados: <b>'+fmt(totalIntPag)+'</b></span>';
+    } else if(c.interes>0){
+      resumenExtra = '<span style="font-size:0.73rem;background:var(--inp);border-radius:6px;padding:3px 8px;color:var(--dim);">Sin intereses pagados</span>';
+    }
+    if(c.estado==='pagado' && totalIntPag===0 && c.interes>0){
+      resumenExtra += '<span style="font-size:0.73rem;background:#e8f5e9;border-radius:6px;padding:3px 8px;color:#2d9e5f;">Liquidado sin interés</span>';
+    }
+
+    // Historial de abonos
+    var histId = 'hist_'+tipo+'_'+i;
     var histHtml = '';
     if(c.historialAbonos && c.historialAbonos.length){
-      var totCap = c.historialAbonos.reduce(function(s,a){ return s+(a.monto||0); },0);
-      var totInt = c.historialAbonos.reduce(function(s,a){ return s+(a.interes||0); },0);
-      var filasHtml = c.historialAbonos.slice().reverse().map(function(a){
+      var totCapH = c.historialAbonos.reduce(function(s,a){ return s+(a.monto||0); },0);
+      var totIntH = c.historialAbonos.reduce(function(s,a){ return s+(a.interes||0); },0);
+      var filasH = c.historialAbonos.slice().reverse().map(function(a){
         return '<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:0.76rem;">'
           +'<div style="display:flex;justify-content:space-between;align-items:center;">'
           +'<span style="color:var(--dim);">'+a.fecha+'</span>'
           +'<span style="display:flex;align-items:center;gap:6px;">'
           +(a.monto>0?'<span style="font-weight:700;color:var(--accent);">'+fmt(a.monto)+'</span>':'')
           +(a.interes>0?'<span style="color:#e07b00;font-size:0.7rem;">+'+fmt(a.interes)+' int.</span>':'')
-          +((!a.monto||a.monto===0)&&a.interes>0?'<span style="color:#e07b00;font-weight:700;">Solo interés</span>':'')
           +'</span></div>'
           +(a.nota?'<div style="font-size:0.72rem;color:var(--dim);margin-top:2px;font-style:italic;">📝 '+a.nota+'</div>':'')
           +'</div>';
       }).join('');
-      histHtml = '<div id="hist_'+tipo+'_'+i+'" style="display:none;margin-top:8px;background:var(--inp);border-radius:10px;padding:8px 12px;">'
+      histHtml = '<div id="'+histId+'" style="display:none;margin-top:8px;background:var(--inp);border-radius:10px;padding:8px 12px;">'
         +'<div style="font-size:0.72rem;font-weight:800;color:var(--dim);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.06em;">Historial de abonos</div>'
-        + filasHtml
+        + filasH
         +'<div style="display:flex;justify-content:space-between;padding:6px 0 2px;font-size:0.74rem;font-weight:800;border-top:1.5px solid var(--border);margin-top:4px;">'
-        +'<span>Total</span><span>Capital: '+fmt(totCap)+(totInt>0?' + Int: '+fmt(totInt):'')+'</span></div>'
+        +'<span>Total</span><span>Capital: '+fmt(totCapH)+(totIntH>0?' + Int: '+fmt(totIntH):'')+'</span></div>'
         +'</div>';
     }
-    var btnHist = (c.historialAbonos && c.historialAbonos.length)
-      ? '<button class="cred-btn" style="color:#fff;background:var(--accent);border-color:var(--accent);" onclick="(function(){var h=document.getElementById(&quot;hist_'+tipo+'_'+i+'&quot;);h.style.display=h.style.display===&quot;none&quot;?&quot;block&quot;:&quot;none&quot;})()">📋 <b>'+c.historialAbonos.length+'</b></button>'
-      : '';
-    return '<div class="cred-item">'
-      +'<div class="cred-top"><div><div class="cred-persona">'+c.persona+'</div><div class="cred-desc">'+c.descripcion+(c.interes?' · '+c.interes+'% int.':'')+(c.fechaOrigen?' · Otorgado: '+c.fechaOrigen:'')+(c.fechaLimite?' · Vence: '+c.fechaLimite:'')+'</div></div>'+badge+'</div>'
-      + resumenHtml
-      +'<div class="prog-wrap"><div class="prog-bar" style="width:'+pct+'%;'+(pct>=100?'background:#2d9e5f;':'')+'"></div></div>'
-      +'<div class="cred-btns">'
-      +(c.estado!=='pagado'?'<button class="cred-btn success" onclick="abonarCred('+i+',\''+tipo+'\')">' + '+ Abonar</button>':'')
-      +(c.estado!=='pagado'?'<button class="cred-btn success" onclick="pagarCred('+i+',\''+tipo+'\')">✅</button>':'')
-      + btnHist
-      +'<button class="cred-btn" onclick="editarCred('+i+',\''+tipo+'\')">✏️</button>'
-      +'<button class="cred-btn danger" onclick="borrarCred('+i+',\''+tipo+'\')">🗑️</button>'
+
+    div.innerHTML =
+      '<div class="cred-top"><div>'
+        +'<div class="cred-persona">'+c.persona+'</div>'
+        +'<div class="cred-desc">'+c.descripcion+descExtra+'</div>'
+      +'</div><span class="cred-badge '+badgeCls+'">'+badgeTxt+'</span></div>'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">'
+        +'<span style="font-size:0.73rem;background:var(--inp);border-radius:6px;padding:3px 8px;">Capital: <b>'+fmt(totalCap)+'</b> / '+fmt(c.monto)+'</span>'
+        + resumenExtra
       +'</div>'
-      + histHtml
-      +'</div>';
-  }).join('');
+      +'<div class="prog-wrap"><div class="prog-bar" style="width:'+pct+'%;'+(pct>=100?'background:#2d9e5f;':'')+'"></div></div>'
+      +'<div class="cred-btns" id="btns_'+tipo+'_'+i+'"></div>'
+      + histHtml;
+
+    // Botones via DOM (sin comillas problemáticas)
+    var btnsDiv = div.querySelector('#btns_'+tipo+'_'+i);
+
+    if(c.estado!=='pagado'){
+      var bAbonar = document.createElement('button');
+      bAbonar.className='cred-btn success'; bAbonar.textContent='+ Abonar';
+      (function(ri_, tipo_){ bAbonar.onclick=function(){ abonarCred(ri_, tipo_); }; })(ri, tipo);
+      btnsDiv.appendChild(bAbonar);
+
+      var bPagar = document.createElement('button');
+      bPagar.className='cred-btn success'; bPagar.textContent='✅';
+      (function(i_, tipo_){ bPagar.onclick=function(){ pagarCred(i_, tipo_); }; })(i, tipo);
+      btnsDiv.appendChild(bPagar);
+    }
+
+    if(c.historialAbonos && c.historialAbonos.length){
+      var bHist = document.createElement('button');
+      bHist.className='cred-btn'; bHist.style.cssText='color:#fff;background:var(--accent);border-color:var(--accent);';
+      bHist.innerHTML='📋 <b>'+c.historialAbonos.length+'</b>';
+      (function(hid){ bHist.onclick=function(){
+        var h=document.getElementById(hid);
+        if(h) h.style.display=h.style.display==='none'?'block':'none';
+      }; })(histId);
+      btnsDiv.appendChild(bHist);
+    }
+
+    var bEdit = document.createElement('button');
+    bEdit.className='cred-btn'; bEdit.textContent='✏️';
+    (function(i_, tipo_){ bEdit.onclick=function(){ editarCred(i_, tipo_); }; })(i, tipo);
+    btnsDiv.appendChild(bEdit);
+
+    var bDel = document.createElement('button');
+    bDel.className='cred-btn danger'; bDel.textContent='🗑️';
+    (function(i_, tipo_){ bDel.onclick=function(){ borrarCred(i_, tipo_); }; })(i, tipo);
+    btnsDiv.appendChild(bDel);
+
+    fragment.appendChild(div);
+  });
+
+  // Retornar string vacío — el render se hace por DOM
+  // Usamos un contenedor temporal para obtener el HTML
+  var tmp = document.createElement('div');
+  tmp.appendChild(fragment);
+  return tmp.innerHTML;
 }
 
 function renderCreditosDebo(){
@@ -3641,4 +3703,4 @@ function procesarComandoVoz(t){
 
 </script>
 </body>
-  </html>
+        </html>
