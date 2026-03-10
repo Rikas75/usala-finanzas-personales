@@ -326,9 +326,26 @@ select.inp{appearance:none;-webkit-appearance:none;}
         <div style="font-size:0.65rem;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Bienvenido de vuelta</div>
         <div id="sesionNombre" style="font-size:1.5rem;font-weight:900;color:var(--text);"></div>
       </div>
-      <button onclick="entrarSesionGuardada()" style="width:100%;padding:16px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:var(--navtext);border:none;border-radius:16px;font-family:'Outfit',sans-serif;font-size:1.05rem;font-weight:800;cursor:pointer;box-shadow:0 6px 20px rgba(45,106,255,0.35);margin-bottom:12px;letter-spacing:0.01em;">
-        ¡Continuar! →
-      </button>
+      <!-- NIP: solo visible si el usuario tiene NIP configurado -->
+      <div id="nipZona" style="display:none;margin-bottom:16px;">
+        <div style="font-size:0.78rem;color:var(--dim);text-align:center;margin-bottom:10px;">🔒 Ingresa tu NIP de seguridad</div>
+        <div style="display:flex;gap:10px;justify-content:center;margin-bottom:8px;">
+          <input id="nip1" type="password" inputmode="numeric" maxlength="1" class="inp" style="width:52px;height:56px;text-align:center;font-size:1.5rem;font-weight:800;padding:0;" oninput="nipSig(this,'nip2')" onkeydown="nipBack(event,this,null)">
+          <input id="nip2" type="password" inputmode="numeric" maxlength="1" class="inp" style="width:52px;height:56px;text-align:center;font-size:1.5rem;font-weight:800;padding:0;" oninput="nipSig(this,'nip3')" onkeydown="nipBack(event,this,'nip1')">
+          <input id="nip3" type="password" inputmode="numeric" maxlength="1" class="inp" style="width:52px;height:56px;text-align:center;font-size:1.5rem;font-weight:800;padding:0;" oninput="nipSig(this,'nip4')" onkeydown="nipBack(event,this,'nip2')">
+          <input id="nip4" type="password" inputmode="numeric" maxlength="1" class="inp" style="width:52px;height:56px;text-align:center;font-size:1.5rem;font-weight:800;padding:0;" oninput="nipSig(this,null)" onkeydown="nipBack(event,this,'nip3')">
+        </div>
+        <div id="nipErr" style="display:none;font-size:0.75rem;color:#e53;text-align:center;margin-bottom:6px;">NIP incorrecto, intenta de nuevo</div>
+        <button onclick="verificarNip()" style="width:100%;padding:15px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:var(--navtext);border:none;border-radius:16px;font-family:'Outfit',sans-serif;font-size:1rem;font-weight:800;cursor:pointer;box-shadow:0 6px 20px rgba(45,106,255,0.3);margin-bottom:10px;">
+          Entrar 🔓
+        </button>
+      </div>
+      <!-- Sin NIP: botón directo -->
+      <div id="sinNipZona">
+        <button onclick="entrarSesionGuardada()" style="width:100%;padding:16px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:var(--navtext);border:none;border-radius:16px;font-family:'Outfit',sans-serif;font-size:1.05rem;font-weight:800;cursor:pointer;box-shadow:0 6px 20px rgba(45,106,255,0.35);margin-bottom:12px;letter-spacing:0.01em;">
+          ¡Continuar! →
+        </button>
+      </div>
       <button onclick="mostrarPanelCodigo(true)" style="width:100%;padding:13px;background:none;border:1.5px solid var(--border);border-radius:14px;font-family:'Outfit',sans-serif;font-size:0.85rem;color:var(--dim);cursor:pointer;">
         No soy yo — ingresar con otro código
       </button>
@@ -704,8 +721,17 @@ function confirmarTema(){
       try{
         var ses = JSON.parse(raw);
         if(ses.isAdmin){
-          S.user = { nombre: 'Administrador', codigo: 'ADMIN', isAdmin: true };
-          initDashboard();
+          // Admin: verificar NIP si tiene uno configurado
+          var nipKeyA = 'usala_nip_admin';
+          var nipA = localStorage.getItem(nipKeyA);
+          if(nipA){
+            showScreen('accessScreen');
+            _sesionPendiente = ses;
+            mostrarPanelConNip(ses.nombre.split(' ')[0]);
+          } else {
+            S.user = { nombre: 'Administrador', codigo: 'ADMIN', isAdmin: true };
+            initDashboard();
+          }
           return;
         }
         var codigos = JSON.parse(localStorage.getItem('usala_codigos')||'[]');
@@ -715,10 +741,19 @@ function confirmarTema(){
           var venc = new Date(cod.vencimiento.split('-').join('/'));
           if(venc >= hoy){
             showScreen('accessScreen');
-            document.getElementById('panelSesion').style.display = 'block';
-            document.getElementById('panelCodigo').style.display  = 'none';
-            var el = document.getElementById('sesionNombre');
-            if(el) el.textContent = ses.nombre.split(' ')[0];
+            var nipKey = 'usala_nip_u_' + ses.codigo;
+            var nip = localStorage.getItem(nipKey);
+            if(nip){
+              _sesionPendiente = ses;
+              mostrarPanelConNip(ses.nombre.split(' ')[0]);
+            } else {
+              document.getElementById('panelSesion').style.display = 'block';
+              document.getElementById('panelCodigo').style.display  = 'none';
+              document.getElementById('nipZona').style.display = 'none';
+              document.getElementById('sinNipZona').style.display = 'block';
+              var el = document.getElementById('sesionNombre');
+              if(el) el.textContent = ses.nombre.split(' ')[0];
+            }
             return;
           }
         }
@@ -799,6 +834,126 @@ function verificarCodigo(){
   // Guardar sesión para próxima vez
   localStorage.setItem('usala_session', JSON.stringify({ nombre: nombre, codigo: codigo }));
   initDashboard();
+}
+
+// ══════════════════════════════════════════
+// NIP DE SEGURIDAD
+// ══════════════════════════════════════════
+var _sesionPendiente = null;
+
+function nipKey(){
+  if(!_sesionPendiente) return null;
+  return _sesionPendiente.isAdmin ? 'usala_nip_admin' : 'usala_nip_u_' + _sesionPendiente.codigo;
+}
+
+function mostrarPanelConNip(nombre){
+  document.getElementById('panelSesion').style.display = 'block';
+  document.getElementById('panelCodigo').style.display  = 'none';
+  document.getElementById('nipZona').style.display = 'block';
+  document.getElementById('sinNipZona').style.display = 'none';
+  document.getElementById('nipErr').style.display = 'none';
+  ['nip1','nip2','nip3','nip4'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+  var el = document.getElementById('sesionNombre');
+  if(el) el.textContent = nombre;
+  setTimeout(function(){ var n=document.getElementById('nip1'); if(n) n.focus(); },200);
+}
+
+function nipSig(el, nextId){
+  el.value = el.value.replace(/[^0-9]/g,'');
+  if(el.value.length === 1 && nextId){
+    var next = document.getElementById(nextId);
+    if(next) next.focus();
+  }
+  if(!nextId){
+    // último dígito — auto verificar
+    var n1=document.getElementById('nip1').value;
+    var n2=document.getElementById('nip2').value;
+    var n3=document.getElementById('nip3').value;
+    var n4=document.getElementById('nip4').value;
+    if(n1&&n2&&n3&&n4) setTimeout(verificarNip, 120);
+  }
+}
+
+function nipBack(e, el, prevId){
+  if(e.key==='Backspace' && el.value==='' && prevId){
+    var prev = document.getElementById(prevId);
+    if(prev){ prev.value=''; prev.focus(); }
+  }
+}
+
+function verificarNip(){
+  var ingresado = ['nip1','nip2','nip3','nip4'].map(function(id){
+    return document.getElementById(id).value;
+  }).join('');
+  if(ingresado.length < 4){ showToast('Ingresa los 4 dígitos'); return; }
+  var key = nipKey();
+  var guardado = localStorage.getItem(key);
+  if(ingresado === guardado){
+    document.getElementById('nipErr').style.display = 'none';
+    // Entrar
+    if(_sesionPendiente.isAdmin){
+      S.user = { nombre: 'Administrador', codigo: 'ADMIN', isAdmin: true };
+    } else {
+      S.user = { nombre: _sesionPendiente.nombre, codigo: _sesionPendiente.codigo, isAdmin: false };
+    }
+    _sesionPendiente = null;
+    initDashboard();
+  } else {
+    document.getElementById('nipErr').style.display = 'block';
+    ['nip1','nip2','nip3','nip4'].forEach(function(id){ var el=document.getElementById(id); if(el) el.value=''; });
+    setTimeout(function(){ var n=document.getElementById('nip1'); if(n) n.focus(); },100);
+  }
+}
+
+// Configurar NIP desde Configuración
+function abrirConfigNip(){
+  var uid = S.user ? (S.user.isAdmin ? 'admin' : 'u_' + S.user.codigo) : null;
+  if(!uid) return;
+  var keyNip = 'usala_nip_' + uid;
+  var tieneNip = !!localStorage.getItem(keyNip);
+  var html = '<div style="padding:20px 16px;">'
+    + '<div style="font-size:1rem;font-weight:800;margin-bottom:6px;color:var(--text);">🔒 NIP de seguridad</div>'
+    + '<div style="font-size:0.8rem;color:var(--dim);margin-bottom:20px;">Protege tu acceso con un NIP de 4 dígitos. Se pedirá cada vez que entres con sesión guardada.</div>';
+  if(tieneNip){
+    html += '<div style="display:flex;gap:10px;margin-bottom:16px;">'
+      + '<button onclick="cambiarNip()" style="flex:1;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:14px;font-family:'Outfit',sans-serif;font-size:0.9rem;font-weight:700;cursor:pointer;">✏️ Cambiar NIP</button>'
+      + '<button onclick="quitarNip()" style="flex:1;padding:13px;background:none;border:1.5px solid #e53;border-radius:14px;font-family:'Outfit',sans-serif;font-size:0.9rem;font-weight:700;color:#e53;cursor:pointer;">🗑 Quitar NIP</button>'
+      + '</div>';
+  } else {
+    html += '<label class="inp-label">Nuevo NIP (4 dígitos)</label>'
+      + '<input class="inp" id="nipNuevo" type="password" inputmode="numeric" maxlength="4" placeholder="••••" style="letter-spacing:0.3em;font-size:1.2rem;margin-bottom:10px;">'
+      + '<label class="inp-label">Confirmar NIP</label>'
+      + '<input class="inp" id="nipConfirm" type="password" inputmode="numeric" maxlength="4" placeholder="••••" style="letter-spacing:0.3em;font-size:1.2rem;margin-bottom:18px;" onkeydown="if(event.key==='Enter')guardarNip()">'
+      + '<button class="btn-main" onclick="guardarNip()">Activar NIP 🔒</button>';
+  }
+  html += '<button onclick="goSub('config')" style="width:100%;padding:12px;background:none;border:1.5px solid var(--border);border-radius:14px;font-family:'Outfit',sans-serif;font-size:0.9rem;color:var(--dim);cursor:pointer;margin-top:8px;">← Volver</button>'
+    + '</div>';
+  document.getElementById('mainContent').innerHTML = html;
+}
+
+function guardarNip(){
+  var n = (document.getElementById('nipNuevo').value||'').trim();
+  var c = (document.getElementById('nipConfirm').value||'').trim();
+  if(!/^[0-9]{4}$/.test(n)){ showToast('⚠ El NIP debe ser exactamente 4 dígitos'); return; }
+  if(n !== c){ showToast('⚠ Los NIPs no coinciden'); return; }
+  var uid = S.user.isAdmin ? 'admin' : 'u_' + S.user.codigo;
+  localStorage.setItem('usala_nip_' + uid, n);
+  showToast('🔒 NIP activado correctamente');
+  goSub('config');
+}
+
+function cambiarNip(){
+  var uid = S.user.isAdmin ? 'admin' : 'u_' + S.user.codigo;
+  localStorage.removeItem('usala_nip_' + uid);
+  abrirConfigNip();
+}
+
+function quitarNip(){
+  if(!confirm('¿Quitar el NIP? Tu sesión ya no pedirá NIP al entrar.')) return;
+  var uid = S.user.isAdmin ? 'admin' : 'u_' + S.user.codigo;
+  localStorage.removeItem('usala_nip_' + uid);
+  showToast('🔓 NIP eliminado');
+  goSub('config');
 }
 
 function entrarSesionGuardada(){
@@ -1695,12 +1850,36 @@ function guardarCred(tipo){
 }
 
 function abonarCred(i,tipo){
-  var abono=parseFloat(prompt('Monto a abonar ($):')); if(!abono||abono<=0) return;
   var creds=load('creditos',[]); var all=creds.filter(function(c){ return c.tipo===tipo; });
   var item=all[i]; var ri=creds.indexOf(item);
-  creds[ri].abonado=(creds[ri].abonado||0)+abono;
-  if(creds[ri].abonado>=creds[ri].monto) creds[ri].estado='pagado';
-  save('creditos',creds); showToast('✓ Abono registrado');
+  var pendiente = item.monto - (item.abonado||0);
+  var html='<div style="padding:20px 16px;">'
+    +'<div style="font-size:1rem;font-weight:800;color:var(--text);margin-bottom:16px;">+ Registrar Abono</div>'
+    +'<div style="font-size:0.78rem;color:var(--dim);margin-bottom:14px;">Pendiente: <b>'+fmt(pendiente)+'</b></div>'
+    +'<label class="inp-label">Monto a abonar</label>'
+    +'<input class="inp" id="abonoMonto" type="number" min="1" placeholder="$0.00" style="margin-bottom:12px;">'
+    +'<label class="inp-label">Fecha del abono</label>'
+    +'<input class="inp" id="abonoFecha" type="date" value="'+today()+'" style="margin-bottom:18px;">'
+    +'<button class="btn-main" onclick="confirmarAbono('+ri+',''+tipo+'')">Guardar abono</button>'
+    +'<button onclick="goSub(''+( tipo==='deuda'?'creditos_debo':'creditos_cobrar' )+'');" style="width:100%;padding:12px;background:none;border:1.5px solid var(--border);border-radius:14px;font-family:'Outfit',sans-serif;font-size:0.9rem;color:var(--dim);cursor:pointer;margin-top:8px;">Cancelar</button>'
+    +'</div>';
+  document.getElementById('mainContent').innerHTML = html;
+  setTimeout(function(){ var el=document.getElementById('abonoMonto'); if(el) el.focus(); },100);
+}
+
+function confirmarAbono(ri, tipo){
+  var monto = parseFloat(document.getElementById('abonoMonto').value);
+  var fecha = document.getElementById('abonoFecha').value;
+  if(!monto||monto<=0){ showToast('⚠ Ingresa un monto válido'); return; }
+  if(!fecha){ showToast('⚠ Selecciona la fecha'); return; }
+  var creds = load('creditos',[]);
+  creds[ri].abonado = (creds[ri].abonado||0) + monto;
+  // Guardar historial de abonos
+  if(!creds[ri].historialAbonos) creds[ri].historialAbonos = [];
+  creds[ri].historialAbonos.push({ monto: monto, fecha: fecha });
+  if(creds[ri].abonado >= creds[ri].monto){ creds[ri].estado='pagado'; showToast('🎉 ¡Crédito liquidado!'); }
+  else { showToast('✓ Abono de '+fmt(monto)+' registrado'); }
+  save('creditos', creds);
   goSub(tipo==='deuda'?'creditos_debo':'creditos_cobrar');
 }
 
@@ -2067,6 +2246,7 @@ function renderConfig(){
     +'<div class="card">'
     +'<div class="set-item" onclick="pickTema()"><div><div class="set-label">🎨 Cambiar tema</div></div><div class="set-arrow">›</div></div>'
     +'<div class="set-item" onclick="abrirSelectorMoneda()"><div><div class="set-label">💱 Moneda de la app</div><div class="set-sub">'+_getMonedaApp()+'</div></div><div class="set-arrow">›</div></div>'
+    +'<div class="set-item" onclick="abrirConfigNip()"><div><div class="set-label">🔒 NIP de seguridad</div><div class="set-sub">'+(localStorage.getItem('usala_nip_'+(S.user&&S.user.isAdmin?'admin':'u_'+(S.user&&S.user.codigo)))?'Activado ✓':'Sin NIP')+'</div></div><div class="set-arrow">›</div></div>'
     +'<div class="set-item" onclick="restablecerMic()"><div><div class="set-label">🎤 Restablecer micrófono</div><div class="set-sub" id="micEstadoLabel">'+_getMicEstado()+'</div></div><div class="set-arrow">›</div></div>'
     +'<div class="set-item" onclick="goSub(\'version\')"><div><div class="set-label">📋 Versión</div><div class="set-sub">v'+APP_VERSION+'</div></div><div class="set-arrow">›</div></div>'
     +'<div class="set-item" onclick="cerrarSesion()"><div><div class="set-label" style="color:var(--danger);">🚪 Cerrar sesión</div></div><div class="set-arrow">›</div></div>'
@@ -3337,4 +3517,4 @@ function procesarComandoVoz(t){
 }
 </script>
 </body>
-  </html>
+</html>
