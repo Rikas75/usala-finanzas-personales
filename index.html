@@ -166,6 +166,7 @@ html,body{height:100%;font-family:Outfit,sans-serif;background:var(--bg);color:v
 .bot-nav{position:fixed;bottom:0;left:0;right:0;background:var(--nav);display:flex;border-top:1px solid rgba(255,255,255,0.06);z-index:50;padding-bottom:env(safe-area-inset-bottom);}
 .nb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 2px 8px;border:none;background:none;color:var(--navtext);opacity:0.4;cursor:pointer;font-family:Outfit,sans-serif;transition:opacity 0.2s;}
 .nb.active{opacity:1;}
+#menuMasDrawer.open{transform:translateX(0);}
 .nb-ico{font-size:1.15rem;margin-bottom:2px;}
 .nb-lbl{font-size:0.46rem;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;}
 
@@ -522,7 +523,8 @@ select.inp{appearance:none;-webkit-appearance:none;}
     <button id="uFabBtn" class="top-icon" onclick="toggleUMenu()" title="Mis cuentas" style="display:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:900;font-size:0.95rem;letter-spacing:-0.5px;transition:transform 0.2s ease;">U</button>
     <button class="top-icon" id="btnVoz" onclick="toggleVoz()" title="Comando de voz" style="display:none;">🎙️</button>
     <button class="top-icon" onclick="abrirCalc()" title="Calculadora">🔢</button>
-    <button class="top-icon" onclick="goTab('mas',document.querySelectorAll('.nb')[4]);setTimeout(function(){goSub('ayuda');},50);" title="Ayuda">❓</button>
+    <button class="top-icon" onclick="abrirMenuMas()" title="Más opciones" id="btnMenuMas" style="font-size:1.25rem;font-weight:900;letter-spacing:-1px;">⋯</button>
+
   </div>
   <div class="content" id="mainContent"></div>
   <nav class="bot-nav">
@@ -530,10 +532,19 @@ select.inp{appearance:none;-webkit-appearance:none;}
     <button class="nb" onclick="goTab('cuentas',this)"><div class="nb-ico">🏦</div><div class="nb-lbl">Cuentas</div></button>
     <button class="nb" onclick="goTab('creditos',this)"><div class="nb-ico">🤝</div><div class="nb-lbl">Créditos</div></button>
     <button class="nb" onclick="goTab('reportes',this)"><div class="nb-ico">📊</div><div class="nb-lbl">Reportes</div></button>
-    <button class="nb" onclick="goTab('mas',this)"><div class="nb-ico">⋯</div><div class="nb-lbl">Más</div></button>
   </nav>
 </div>
 
+
+<!-- ══ MENÚ MÁS (drawer) ══ -->
+<div id="menuMasBackdrop" onclick="cerrarMenuMas()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1100;"></div>
+<div id="menuMasDrawer" style="display:none;position:fixed;top:0;right:0;height:100%;width:82%;max-width:320px;background:var(--card);z-index:1101;box-shadow:-8px 0 32px rgba(0,0,0,0.25);overflow-y:auto;transform:translateX(100%);transition:transform 0.28s cubic-bezier(.4,0,.2,1);">
+  <div style="padding:20px 18px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);margin-bottom:8px;">
+    <div style="font-weight:900;font-size:1rem;">⋯ Menú</div>
+    <button onclick="cerrarMenuMas()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--dim);line-height:1;">×</button>
+  </div>
+  <div id="menuMasContent" style="padding:0 10px 32px;"></div>
+</div>
 <!-- ══ TX MODAL ══ -->
 <!-- ══ BIENVENIDA MODAL ══ -->
 <div id="welcomeModal" style="display:none;position:fixed;inset:0;z-index:200;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0);">
@@ -3668,6 +3679,72 @@ function borrarCred(i,tipo){
 // ══════════════════════════════════════════
 // MÁS
 // ══════════════════════════════════════════
+function abrirMenuMas(){
+  var bd = document.getElementById('menuMasBackdrop');
+  var dr = document.getElementById('menuMasDrawer');
+  var mc = document.getElementById('menuMasContent');
+  if(!bd||!dr||!mc) return;
+  var isAdmin = S.user && S.user.isAdmin;
+  var items = [
+    {icon:'📈', label:'Mi Progreso Financiero', sub:'Patrimonio y salud',         fn:function(){ cerrarMenuMas(); irProgreso(); }},
+    {icon:'🏦', label:'Mis Activos',            sub:'Casa, carro, inversiones',   fn:function(){ cerrarMenuMas(); goSub('activos'); }},
+    {icon:'📊', label:'Reportes',               sub:'Ingresos, gastos y balance', fn:function(){ cerrarMenuMas(); goSub('reportes'); }},
+    {icon:'🎯', label:'Metas de Ahorro',         sub:'Seguimiento de objetivos',   fn:function(){ cerrarMenuMas(); goSub('metas'); }},
+    {icon:'🗂️', label:'Presupuesto Mensual',     sub:'Control por categorías',    fn:function(){ cerrarMenuMas(); goSub('presupuesto'); }},
+    {icon:'🔔', label:'Alertas de Gasto',        sub:'Notificaciones de límites',  fn:function(){ cerrarMenuMas(); goSub('alertas'); }},
+    {icon:'📋', label:'Historial',               sub:'Todas las transacciones',   fn:function(){ cerrarMenuMas(); goSub('historial'); }},
+    {icon:'💱', label:'Conversor de Monedas',    sub:'',                           fn:function(){ cerrarMenuMas(); goSub('conversor'); }},
+    isAdmin ? {icon:'🔑', label:'Usuarios',           sub:'Códigos de acceso',        fn:function(){ cerrarMenuMas(); goSub('codigos'); }}   : null,
+    isAdmin ? {icon:'📢', label:'Centro de Mensajes',  sub:'Noticias para invitados',  fn:function(){ cerrarMenuMas(); goSub('noticias'); }}  : null,
+    {icon:'⚙️', label:'Configuración',           sub:'',                           fn:function(){ cerrarMenuMas(); goSub('config'); }},
+    {icon:'❓', label:'Ayuda',                   sub:'',                           fn:function(){ cerrarMenuMas(); goSub('ayuda'); }},
+  ].filter(Boolean);
+  mc.innerHTML = '';
+  items.forEach(function(item){
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:14px;padding:13px 10px;border-radius:14px;cursor:pointer;margin-bottom:2px;transition:background 0.15s;';
+    var ico = document.createElement('div');
+    ico.style.cssText = 'width:40px;height:40px;border-radius:12px;background:var(--inp);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;';
+    ico.textContent = item.icon;
+    var txt = document.createElement('div');
+    txt.style.cssText = 'flex:1;min-width:0;';
+    var lbl = document.createElement('div');
+    lbl.style.cssText = 'font-weight:800;font-size:0.88rem;';
+    lbl.textContent = item.label;
+    txt.appendChild(lbl);
+    if(item.sub){
+      var sub = document.createElement('div');
+      sub.style.cssText = 'font-size:0.7rem;color:var(--dim);margin-top:1px;';
+      sub.textContent = item.sub;
+      txt.appendChild(sub);
+    }
+    var arr = document.createElement('div');
+    arr.style.cssText = 'color:var(--dim);font-size:1rem;';
+    arr.textContent = '›';
+    row.appendChild(ico);
+    row.appendChild(txt);
+    row.appendChild(arr);
+    row.addEventListener('click', item.fn);
+    row.addEventListener('touchstart', function(){ this.style.background='var(--inp)'; }, {passive:true});
+    row.addEventListener('touchend',   function(){ this.style.background=''; });
+    mc.appendChild(row);
+  });
+  bd.style.display = 'block';
+  dr.style.display = 'block';
+  requestAnimationFrame(function(){ dr.classList.add('open'); });
+}
+
+function cerrarMenuMas(){
+  var bd = document.getElementById('menuMasBackdrop');
+  var dr = document.getElementById('menuMasDrawer');
+  if(!dr) return;
+  dr.classList.remove('open');
+  setTimeout(function(){
+    if(bd) bd.style.display='none';
+    if(dr) dr.style.display='none';
+  }, 280);
+}
+
 function renderMas(){
   var isAdmin = S.user && S.user.isAdmin;
   return '<div style="font-size:1.05rem;font-weight:800;margin-bottom:14px;padding-top:4px;">⋯ Más opciones</div>'
@@ -8631,4 +8708,4 @@ function procesarComandoVoz(t){
 }
 </script>
 </body>
-  </html>
+        </html>
