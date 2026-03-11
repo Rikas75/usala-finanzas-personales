@@ -376,7 +376,7 @@ select.inp{appearance:none;-webkit-appearance:none;}
     <div class="access-card" id="panelSesion" style="display:none;">
       <div style="text-align:center;margin-bottom:20px;">
         <div id="sesionAvatar" style="width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:2.2rem;box-shadow:0 6px 24px rgba(45,106,255,0.35);">👤</div>
-        <div style="font-size:0.65rem;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Bienvenido de vuelta</div>
+        <div style="font-size:0.65rem;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Bienvenid@ de vuelta</div>
         <div id="sesionNombre" style="font-size:1.5rem;font-weight:900;color:var(--text);"></div>
       </div>
       <!-- NIP: solo visible si el usuario tiene NIP configurado -->
@@ -419,7 +419,7 @@ select.inp{appearance:none;-webkit-appearance:none;}
       </div>
       <!-- Saludo de regreso (se muestra cuando el nombre ya está guardado) -->
       <div id="accSaludo" style="display:none;background:#f0f7ff;border-radius:12px;padding:12px 14px;margin-bottom:14px;border:1.5px solid #c8deff;">
-        <div style="font-size:0.75rem;color:#7a90b8;font-weight:700;">👋 ¡Bienvenido de regreso!</div>
+        <div style="font-size:0.75rem;color:#7a90b8;font-weight:700;">👋 ¡Bienvenid@ de regreso!</div>
         <div id="accSaludoNombre" style="font-size:1rem;font-weight:900;color:#1a2b4a;margin-top:2px;"></div>
       </div>
       <div id="accessErr" class="access-err">Código incorrecto o vencido</div>
@@ -554,7 +554,7 @@ select.inp{appearance:none;-webkit-appearance:none;}
         margin-top:10px;margin-bottom:4px;
         animation:slideUp 0.5s ease 0.5s both;
         text-shadow:0 2px 12px rgba(0,0,0,0.2);
-      ">¡Bienvenido/a a USALA!</div>
+      ">¡Bienvenid@ a USALA!</div>
 
       <!-- Subtítulo -->
       <div style="
@@ -1233,7 +1233,7 @@ function initDashboard(){
     if(!localStorage.getItem(keyVisto)){
       setTimeout(function(){
         var wn = document.getElementById('welcomeName');
-        if(wn) wn.textContent = '¡Bienvenido/a, ' + u.nombre.split(' ')[0] + '! 👋';
+        if(wn) wn.textContent = '¡Bienvenid@, ' + u.nombre.split(' ')[0] + '! 👋';
         var m = document.getElementById('welcomeModal');
         var bd = document.getElementById('welcomeBackdrop');
         var sh = document.getElementById('welcomeSheet');
