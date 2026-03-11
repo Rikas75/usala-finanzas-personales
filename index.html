@@ -532,6 +532,7 @@ select.inp{appearance:none;-webkit-appearance:none;}
     <button class="nb" onclick="goTab('cuentas',this)"><div class="nb-ico">🏦</div><div class="nb-lbl">Cuentas</div></button>
     <button class="nb" onclick="goTab('creditos',this)"><div class="nb-ico">🤝</div><div class="nb-lbl">Créditos</div></button>
     <button class="nb" onclick="goTab('reportes',this)"><div class="nb-ico">📊</div><div class="nb-lbl">Reportes</div></button>
+    <button class="nb" onclick="goTab('mas',this)" style="visibility:hidden;pointer-events:none;width:0;padding:0;margin:0;overflow:hidden;"></button>
   </nav>
 </div>
 
@@ -1472,7 +1473,6 @@ function showScreen(id){
 }
 
 function goTab(tab, btn){
-  if(tab === 'mas'){ abrirMenuMas(); return; }
   S.tab = tab; S.subtab = null;
   document.querySelectorAll('.nb').forEach(function(b){ b.classList.remove('active'); });
   if(btn) btn.classList.add('active');
@@ -1542,7 +1542,6 @@ function getSimboloMoneda(){
 function fmt(n){ return getSimboloMoneda() + Number(n||0).toLocaleString('es-MX',{minimumFractionDigits:2}); }
 function showToast(msg){ var t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(function(){ t.remove(); },2500); }
 function backBtn(tab, idx){
-  if(tab==='mas'){ return '<button class="back-btn" onclick="goTab(\'mas\',null)">‹</button>'; }
   return '<button class="back-btn" onclick="goTab(\''+tab+'\',document.querySelectorAll(\'.nb\')['+idx+'])">‹</button>';
 }
 function backSubBtn(label){
