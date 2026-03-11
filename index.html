@@ -1847,27 +1847,42 @@ function renderInicio(){
     +'<div class="stat-label">✅ Total disponible</div><div class="stat-val" style="color:var(--accent2);">'+fmt(totalDisp)+'</div></div>'
     +(function(){
       var _h=new Date(); _h.setHours(0,0,0,0);
-      var _pp=loadPagosBase(),_pe=loadPagosEstado(),_n=0;
+      var _pp=loadPagosBase(),_pe=loadPagosEstado();
+      var _nVenc=0, _nProx=0;  // vencidos vs próximos (esta semana)
+
       _pp.forEach(function(p){
         if(_pe[p.id]&&_pe[p.id].pagado) return;
+        // Calcular fecha real del vencimiento (mismo algoritmo que _ppGetPagos)
         var _dia=Math.min(p.dia||1,28);
-        var _f=p.proximoPago?(function(){ var _pts=p.proximoPago.split('-'); return new Date(+_pts[0],+_pts[1]-1,+_pts[2]); })():new Date(_h.getFullYear(),_h.getMonth(),_dia);
-        _f.setHours(0,0,0,0);
-        // Si el día ya pasó este mes y no tiene proximoPago → mes siguiente
-        if(!p.proximoPago && _f<_h) _f.setMonth(_f.getMonth()+1);
-        if(Math.round((_f-_h)/86400000)<=7) _n++;
+        var _f;
+        if(p.proximoPago){
+          var _pts=p.proximoPago.split('-');
+          _f=new Date(+_pts[0],+_pts[1]-1,+_pts[2]); _f.setHours(0,0,0,0);
+        } else {
+          _f=new Date(_h.getFullYear(),_h.getMonth(),_dia); _f.setHours(0,0,0,0);
+        }
+        var _diff=Math.round((_f-_h)/86400000);
+        if(_diff<0)       _nVenc++;
+        else if(_diff<=7) _nProx++;
       });
+
       load('creditos',[]).forEach(function(c){
         if(c.estado==='pagado'||!c.fechaLimite) return;
         var _p=c.fechaLimite.split('-');
         var _f=new Date(+_p[0],+_p[1]-1,+_p[2]); _f.setHours(0,0,0,0);
-        if(Math.round((_f-_h)/86400000)<=7) _n++;
+        var _diff=Math.round((_f-_h)/86400000);
+        if(_diff<0)       _nVenc++;
+        else if(_diff<=7) _nProx++;
       });
-      var _c=_n>0?'#e53935':'var(--accent)';
+
+      // Badge: rojo si hay vencidos, naranja si hay próximos, oculto si nada
+      var _total = _nVenc + _nProx;
+      var _col   = _nVenc>0 ? '#e53935' : '#f57c00';
+      var _badgeNum = _nVenc>0 ? _nVenc : _nProx; // mostrar solo vencidos si los hay
       return '<div class="pp-btn-abrir" onclick="abrirPP()" style="position:relative;">'
         +'<div style="font-size:1.4rem;line-height:1;margin-bottom:3px;">⏰</div>'
         +'<div style="font-size:0.58rem;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:var(--dim);text-align:center;line-height:1.3;">Pago<br>Pendiente</div>'
-        +(_n>0?'<div style="position:absolute;top:5px;right:5px;background:'+_c+';color:#fff;font-size:0.58rem;font-weight:900;min-width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:0 3px;">'+_n+'</div>':'')
+        +(_total>0?'<div style="position:absolute;top:5px;right:5px;background:'+_col+';color:#fff;font-size:0.58rem;font-weight:900;min-width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:0 3px;">'+_badgeNum+'</div>':'')
         +'</div>';
     })()
     // Total que debo = TC + Creditos
@@ -4285,9 +4300,14 @@ function abrirCatModalBk(){
 var _ppTab = 'hoy';
 
 function abrirPP(){
-  _ppTab = 'hoy';
-  // Activar tab hoy visualmente
-  document.querySelectorAll('.pp-tab').forEach(function(b,i){ b.classList.toggle('active', i===0); });
+  // Decidir qué tab abrir: si hay vencidos → Hoy, si no → Semana
+  var _todos = _ppGetPagos();
+  var _hayVenc = _todos.some(function(p){ return p.diffDias < 0; });
+  _ppTab = _hayVenc ? 'hoy' : 'semana';
+  document.querySelectorAll('.pp-tab').forEach(function(b,i){
+    var tabs=['hoy','semana','mes','año'];
+    b.classList.toggle('active', tabs[i]===_ppTab);
+  });
   _ppRender();
   document.getElementById('ppOverlay').style.display='flex';
 }
@@ -4325,35 +4345,20 @@ function _ppGetPagos(){
 
     // Generar ocurrencias para este año
     var fechasOcurr = [];
-    // Calcular UNA sola fecha relevante por pago:
-    // - Si venció este mes → mostrar como vencido
-    // - Si no → próxima ocurrencia futura
+    // Fecha de vencimiento: siempre usar el día de ESTE mes.
+    // Si ya pasó = vencido. Si no = próximo. Sin magia, sin adelantar.
     var fechaRel = null;
 
     if(p.proximoPago){
-      var parts = p.proximoPago.split('-');
-      var base = new Date(+parts[0], +parts[1]-1, +parts[2]);
-      base.setHours(0,0,0,0);
-      // Retroceder hasta ocurrencia <= hoy
-      while(base > hoy){ base.setMonth(base.getMonth() - mesesFrec); }
-      // base es la última ocurrencia pasada o de hoy
-      // Si diff <= 0 (vencida/hoy): usarla. Si no: avanzar a la próxima futura
-      if(Math.round((base - hoy)/86400000) <= 0){
-        fechaRel = new Date(base); // vencida o hoy
-      } else {
-        base.setMonth(base.getMonth() + mesesFrec);
-        fechaRel = new Date(base);
-      }
+      // Tiene fecha específica configurada — usarla directamente
+      var _pts = p.proximoPago.split('-');
+      fechaRel = new Date(+_pts[0], +_pts[1]-1, +_pts[2]);
+      fechaRel.setHours(0,0,0,0);
     } else if(p.dia){
+      // Día del mes: usar este mes, sea pasado o futuro
       var dia = Math.min(p.dia, 28);
-      var f = new Date(anioAct, mesAct, dia); f.setHours(0,0,0,0);
-      if(f < hoy){
-        // Ya pasó este mes → vencido
-        fechaRel = f;
-      } else {
-        // Aún no llega este mes → próxima ocurrencia
-        fechaRel = f;
-      }
+      fechaRel = new Date(anioAct, mesAct, dia);
+      fechaRel.setHours(0,0,0,0);
     }
 
     if(fechaRel){
@@ -4367,7 +4372,7 @@ function _ppGetPagos(){
         freq:     freq,
         fuente:   'pago',
         pagado:   false,
-        urgencia: diffDias<0?'vencido': diffDias===0?'urgente': diffDias<=2?'urgente': diffDias<=7?'pronto':'ok'
+        urgencia: diffDias<0?'vencido': diffDias===0?'hoy': diffDias<=2?'urgente': diffDias<=7?'pronto':'ok'
       });
     }
   });
@@ -5747,4 +5752,4 @@ function procesarComandoVoz(t){
 
 </script>
 </body>
-  </html>
+        </html>
