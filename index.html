@@ -515,7 +515,7 @@ select.inp{appearance:none;-webkit-appearance:none;}
   <div class="topbar">
     <div class="top-logo">USALA <span class="top-ver" id="verBadge"></span></div>
     <div id="topUserName" style="font-size:0.72rem;font-weight:700;color:var(--dim);flex:1;text-align:right;padding-right:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
-    <button class="top-icon" id="btnSolicitudes" onclick="abrirMenuMas();setTimeout(function(){cerrarMenuMas();goSub('codigos');},50);" title="Solicitudes" style="display:none;position:relative;">
+    <button class="top-icon" id="btnSolicitudes" onclick="goTab('mas',null);setTimeout(function(){goSub('codigos');},50);" title="Solicitudes" style="display:none;position:relative;">
       📩
       <span id="badgeSolicitudes" style="position:absolute;top:2px;right:2px;background:#ff3b30;color:#fff;font-size:0.45rem;font-weight:800;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;"></span>
     </button>
@@ -1514,7 +1514,7 @@ function goSub(sub){
   if(sub==='progreso'){ renderProgreso(); return; }
   if(sub==='presupuesto'){ renderPresupuesto(); return; }
   if(sub==='autolock'){ abrirConfigAutolock(); return; }
-  if(sub==='config_nip'){ setTimeout(function(){ goSub('config'); setTimeout(abrirConfigNip,120); },80); return; }
+  if(sub==='config_nip'){ goTab('mas',null); setTimeout(function(){ goSub('config'); setTimeout(abrirConfigNip,120); },80); return; }
   var fn = renders[sub];
   if(fn) document.getElementById('mainContent').innerHTML = fn();
 }
@@ -1542,6 +1542,7 @@ function getSimboloMoneda(){
 function fmt(n){ return getSimboloMoneda() + Number(n||0).toLocaleString('es-MX',{minimumFractionDigits:2}); }
 function showToast(msg){ var t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(function(){ t.remove(); },2500); }
 function backBtn(tab, idx){
+  if(tab==='mas'){ return '<button class="back-btn" onclick="goTab(\'mas\',null)">‹</button>'; }
   return '<button class="back-btn" onclick="goTab(\''+tab+'\',document.querySelectorAll(\'.nb\')['+idx+'])">‹</button>';
 }
 function backSubBtn(label){
@@ -5412,7 +5413,7 @@ function guardarVersion(){
 // ══════════════════════════════════════════
 // AYUDA
 // ══════════════════════════════════════════
-function abrirAyuda(){ cerrarMenuMas(); goSub('ayuda'); }
+function abrirAyuda(){ goTab('mas',null); setTimeout(function(){ goSub('ayuda'); },10); }
 
 // ══════════════════════════════════════════
 // MENÚ USUARIO
@@ -6454,16 +6455,16 @@ function procesarComandoVoz(t){
   if(/\bcuentas?\b/.test(t) && !/tarjeta|tc\b/.test(t)){ goTab('cuentas',nb[1]); showToast('🏦 Cuentas'); return; }
   if(/\bcr[eé]ditos?\b|\bpr[eé]stamo\b/.test(t)){ goTab('creditos',nb[2]); showToast('🤝 Créditos'); return; }
   if(/\breportes?\b/.test(t)){ goTab('reportes',nb[3]); showToast('📊 Reportes'); return; }
-  if(/\bm[aá]s\b|\bajuste\b|\bconfig\b/.test(t)){ showToast('⋯ Más'); return; }
+  if(/\bm[aá]s\b|\bajuste\b|\bconfig\b/.test(t)){ goTab('mas',null); showToast('⋯ Más'); return; }
   if(/\befectivo\b/.test(t)){ goTab('cuentas',nb[1]); setTimeout(function(){ goSub('efectivo'); },60); showToast('💵 Efectivo'); return; }
   if(/\bbanco\b|\bcheque\b/.test(t)){ goTab('cuentas',nb[1]); setTimeout(function(){ goSub('cheques'); },60); showToast('🏦 Banco'); return; }
   if(/\btarjeta\b|\btc\b/.test(t)){ goTab('cuentas',nb[1]); setTimeout(function(){ goSub('tarjetas_credito'); },60); showToast('💳 Tarjetas'); return; }
   if(/\bcalculadora\b|\bcalc\b/.test(t)){ abrirCalc(); showToast('🔢 Calculadora'); return; }
-  if(/\bhistorial\b/.test(t)){ setTimeout(function(){ goSub('historial'); },60); showToast('📋 Historial'); return; }
-  if(/\bayuda\b/.test(t)){ setTimeout(function(){ goSub('ayuda'); },60); showToast('❓ Ayuda'); return; }
-  if(/\bmetas?\b/.test(t)){ setTimeout(function(){ goSub('metas'); },60); showToast('🎯 Metas'); return; }
-  if(/\bpresupuesto\b/.test(t)){ setTimeout(function(){ goSub('presupuesto'); },60); showToast('💰 Presupuesto'); return; }
-  if(/\bconversor\b|\btipo de cambio\b/.test(t)){ setTimeout(function(){ goSub('conversor'); },60); showToast('💱 Conversor'); return; }
+  if(/\bhistorial\b/.test(t)){ goTab('mas',null); setTimeout(function(){ goSub('historial'); },60); showToast('📋 Historial'); return; }
+  if(/\bayuda\b/.test(t)){ goTab('mas',null); setTimeout(function(){ goSub('ayuda'); },60); showToast('❓ Ayuda'); return; }
+  if(/\bmetas?\b/.test(t)){ goTab('mas',null); setTimeout(function(){ goSub('metas'); },60); showToast('🎯 Metas'); return; }
+  if(/\bpresupuesto\b/.test(t)){ goTab('mas',null); setTimeout(function(){ goSub('presupuesto'); },60); showToast('💰 Presupuesto'); return; }
+  if(/\bconversor\b|\btipo de cambio\b/.test(t)){ goTab('mas',null); setTimeout(function(){ goSub('conversor'); },60); showToast('💱 Conversor'); return; }
   var mG = t.match(/gast[eé]\s+(\d+[\.,]?\d*)/);
   var mI = t.match(/ingres[eé]\s+(\d+[\.,]?\d*)/);
   if(mG){
@@ -7638,7 +7639,7 @@ function guardarVersion(){
 // ══════════════════════════════════════════
 // AYUDA
 // ══════════════════════════════════════════
-function abrirAyuda(){ cerrarMenuMas(); goSub('ayuda'); }
+function abrirAyuda(){ goTab('mas',null); setTimeout(function(){ goSub('ayuda'); },10); }
 
 // ══════════════════════════════════════════
 // MENÚ USUARIO
@@ -8680,16 +8681,16 @@ function procesarComandoVoz(t){
   if(/\bcuentas?\b/.test(t) && !/tarjeta|tc\b/.test(t)){ goTab('cuentas',nb[1]); showToast('🏦 Cuentas'); return; }
   if(/\bcr[eé]ditos?\b|\bpr[eé]stamo\b/.test(t)){ goTab('creditos',nb[2]); showToast('🤝 Créditos'); return; }
   if(/\breportes?\b/.test(t)){ goTab('reportes',nb[3]); showToast('📊 Reportes'); return; }
-  if(/\bm[aá]s\b|\bajuste\b|\bconfig\b/.test(t)){ showToast('⋯ Más'); return; }
+  if(/\bm[aá]s\b|\bajuste\b|\bconfig\b/.test(t)){ goTab('mas',null); showToast('⋯ Más'); return; }
   if(/\befectivo\b/.test(t)){ goTab('cuentas',nb[1]); setTimeout(function(){ goSub('efectivo'); },60); showToast('💵 Efectivo'); return; }
   if(/\bbanco\b|\bcheque\b/.test(t)){ goTab('cuentas',nb[1]); setTimeout(function(){ goSub('cheques'); },60); showToast('🏦 Banco'); return; }
   if(/\btarjeta\b|\btc\b/.test(t)){ goTab('cuentas',nb[1]); setTimeout(function(){ goSub('tarjetas_credito'); },60); showToast('💳 Tarjetas'); return; }
   if(/\bcalculadora\b|\bcalc\b/.test(t)){ abrirCalc(); showToast('🔢 Calculadora'); return; }
-  if(/\bhistorial\b/.test(t)){ setTimeout(function(){ goSub('historial'); },60); showToast('📋 Historial'); return; }
-  if(/\bayuda\b/.test(t)){ setTimeout(function(){ goSub('ayuda'); },60); showToast('❓ Ayuda'); return; }
-  if(/\bmetas?\b/.test(t)){ setTimeout(function(){ goSub('metas'); },60); showToast('🎯 Metas'); return; }
-  if(/\bpresupuesto\b/.test(t)){ setTimeout(function(){ goSub('presupuesto'); },60); showToast('💰 Presupuesto'); return; }
-  if(/\bconversor\b|\btipo de cambio\b/.test(t)){ setTimeout(function(){ goSub('conversor'); },60); showToast('💱 Conversor'); return; }
+  if(/\bhistorial\b/.test(t)){ goTab('mas',null); setTimeout(function(){ goSub('historial'); },60); showToast('📋 Historial'); return; }
+  if(/\bayuda\b/.test(t)){ goTab('mas',null); setTimeout(function(){ goSub('ayuda'); },60); showToast('❓ Ayuda'); return; }
+  if(/\bmetas?\b/.test(t)){ goTab('mas',null); setTimeout(function(){ goSub('metas'); },60); showToast('🎯 Metas'); return; }
+  if(/\bpresupuesto\b/.test(t)){ goTab('mas',null); setTimeout(function(){ goSub('presupuesto'); },60); showToast('💰 Presupuesto'); return; }
+  if(/\bconversor\b|\btipo de cambio\b/.test(t)){ goTab('mas',null); setTimeout(function(){ goSub('conversor'); },60); showToast('💱 Conversor'); return; }
   var mG = t.match(/gast[eé]\s+(\d+[\.,]?\d*)/);
   var mI = t.match(/ingres[eé]\s+(\d+[\.,]?\d*)/);
   if(mG){
@@ -8712,4 +8713,4 @@ function procesarComandoVoz(t){
 }
 </script>
 </body>
-  </html>
+      </html>
