@@ -961,30 +961,42 @@ function enviarSolicitud(){
     estado: 'pendiente'
   });
   localStorage.setItem('usala_solicitudes', JSON.stringify(solicitudes));
-  // Generar código de solicitud para compartir con el admin
-  var payload = btoa(unescape(encodeURIComponent(JSON.stringify({
-    tipo: 'USALA_SOL',
-    nombre: nombre,
-    motivo: motivo,
-    contacto: contacto,
-    fecha: today()
-  }))));
-  document.getElementById('_solPayload').value = payload;
+
+  // Mostrar panel primero — siempre, sin importar lo que pase después
   document.getElementById('panelSolicitud').style.display='none';
   document.getElementById('panelEnviada').style.display='block';
-  // Rellenar mensaje de WhatsApp
-  var txt = '🔑 *Solicitud USALA*\n'
-    + '👤 Nombre: '+nombre+'\n'
-    + '📞 Contacto: '+contacto+'\n'
-    + '💬 Motivo: '+motivo+'\n'
-    + '📋 Código solicitud:\n'+payload;
-  var wa = document.getElementById('_solWaBtn');
-  if(wa) wa.href = 'https://wa.me/?text='+encodeURIComponent(txt);
-  var copybtn = document.getElementById('_solCopyBtn');
-  if(copybtn) copybtn.onclick = function(){
-    navigator.clipboard.writeText(txt).catch(function(){});
-    showToast('✓ Mensaje copiado');
-  };
+
+  // Generar payload para compartir con el admin
+  try {
+    var obj = { tipo:'USALA_SOL', nombre:nombre, motivo:motivo, contacto:contacto, fecha:today() };
+    var payload = btoa(encodeURIComponent(JSON.stringify(obj)).replace(/%([0-9A-F]{2})/g, function(m,p){ return String.fromCharCode(parseInt(p,16)); }));
+    var txt = '🔑 Solicitud USALA\n'
+      + '👤 ' + nombre + '\n'
+      + '📞 ' + contacto + '\n'
+      + '💬 ' + motivo + '\n'
+      + '📋 ' + payload;
+    var wa = document.getElementById('_solWaBtn');
+    if(wa) wa.href = 'https://wa.me/?text=' + encodeURIComponent(txt);
+    var copybtn = document.getElementById('_solCopyBtn');
+    if(copybtn) copybtn.onclick = function(){
+      navigator.clipboard.writeText(txt).catch(function(){});
+      showToast('✓ Mensaje copiado');
+    };
+  } catch(e) {
+    // Si falla el encode, usar JSON plano igual funciona
+    var txt2 = '🔑 Solicitud USALA\n'
+      + '👤 ' + nombre + '\n'
+      + '📞 ' + contacto + '\n'
+      + '💬 ' + motivo + '\n'
+      + '📋 ' + JSON.stringify({tipo:'USALA_SOL',nombre:nombre,motivo:motivo,contacto:contacto,fecha:today()});
+    var wa2 = document.getElementById('_solWaBtn');
+    if(wa2) wa2.href = 'https://wa.me/?text=' + encodeURIComponent(txt2);
+    var copybtn2 = document.getElementById('_solCopyBtn');
+    if(copybtn2) copybtn2.onclick = function(){
+      navigator.clipboard.writeText(txt2).catch(function(){});
+      showToast('✓ Mensaje copiado');
+    };
+  }
 }
 
 function importarSolicitud(){
@@ -8566,4 +8578,4 @@ function procesarComandoVoz(t){
 }
 </script>
 </body>
-      </html>
+  </html>
