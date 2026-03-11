@@ -458,8 +458,14 @@ select.inp{appearance:none;-webkit-appearance:none;}
       <input class="inp" id="solNombre" placeholder="¿Cómo te llamas?" autocomplete="off">
       <label class="inp-label">¿Para qué quieres usar USALA?</label>
       <textarea class="inp" id="solMotivo" placeholder="Ej: Quiero llevar control de mis gastos personales..." style="height:80px;resize:none;"></textarea>
-      <label class="inp-label">Tu contacto (WhatsApp, email, etc.)</label>
-      <input class="inp" id="solContacto" placeholder="Para que el admin te envíe el código">
+      <label class="inp-label">Tu contacto (WhatsApp o email)</label>
+      <input class="inp" id="solContacto"
+        type="text"
+        inputmode="tel"
+        placeholder="Ej: 55 1234 5678 o correo@email.com"
+        autocomplete="tel"
+        oninput="formatearContacto(this)">
+      <div id="solContactoHint" style="font-size:0.68rem;color:var(--dim);margin-top:4px;display:none;"></div>
       <button class="btn-main" onclick="enviarSolicitud()">📩 Enviar solicitud</button>
       <button onclick="mostrarPanelCodigo()" style="width:100%;padding:12px;background:none;border:none;color:var(--dim);font-family:Outfit,sans-serif;font-size:0.83rem;cursor:pointer;margin-top:4px;">← Ya tengo un código</button>
     </div>
@@ -941,6 +947,38 @@ function mostrarPanelSolicitud(){
   document.getElementById('panelEnviada').style.display='none';
   document.getElementById('solicitudMsg').style.display='none';
 }
+function formatearContacto(inp){
+  var v = inp.value;
+  var hint = document.getElementById('solContactoHint');
+  var digits = v.replace(/\D/g,'');
+  var soloTel = /^[0-9\s\(\)\-\+]+$/.test(v.trim()) && digits.length > 0;
+
+  if(soloTel){
+    // Normalizar lada internacional México +52 / 52
+    if(digits.length === 13 && digits.startsWith('152')) digits = digits.slice(3);
+    else if(digits.length === 12 && digits.startsWith('52')) digits = digits.slice(2);
+    else if(digits.length === 11 && digits.startsWith('1')) digits = digits.slice(1);
+
+    if(digits.length === 10){
+      inp.value = digits.slice(0,2)+' '+digits.slice(2,6)+' '+digits.slice(6);
+      if(hint){ hint.textContent = '✅ Número válido'; hint.style.color='var(--accent2)'; hint.style.display='block'; }
+    } else if(digits.length > 6){
+      if(hint){ hint.textContent = '⚠ Verifica el número — debe tener 10 dígitos'; hint.style.color='#f57c00'; hint.style.display='block'; }
+    } else {
+      if(hint) hint.style.display = 'none';
+    }
+  } else if(v.includes('@')){
+    var emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+    if(hint){
+      hint.textContent = emailOk ? '✅ Email válido' : '⚠ Verifica el formato del email';
+      hint.style.color = emailOk ? 'var(--accent2)' : '#f57c00';
+      hint.style.display = 'block';
+    }
+  } else {
+    if(hint) hint.style.display = 'none';
+  }
+}
+
 function enviarSolicitud(){
   var nombre   = document.getElementById('solNombre').value.trim();
   var motivo   = document.getElementById('solMotivo').value.trim();
@@ -948,6 +986,12 @@ function enviarSolicitud(){
   var msg = document.getElementById('solicitudMsg');
   if(!nombre || !motivo || !contacto){
     msg.textContent='⚠ Completa todos los campos';
+    msg.style.display='block'; msg.style.color='var(--danger)'; return;
+  }
+  // Validar que el contacto tenga al menos 7 caracteres útiles
+  var digitsOEmail = contacto.replace(/\D/g,'').length >= 7 || contacto.includes('@');
+  if(!digitsOEmail){
+    msg.textContent='⚠ Escribe un número de WhatsApp o email válido';
     msg.style.display='block'; msg.style.color='var(--danger)'; return;
   }
   // Guardar en localStorage (funciona si usan el mismo dispositivo/navegador)
@@ -4140,7 +4184,7 @@ function renderCodigos(){
       +'<div class="card-title">➕ Nuevo usuario</div>'
       +'<div class="form-row">'
         +'<div><label class="inp-label">Nombre completo</label><input class="inp" id="codNota" placeholder="Ej: María García"></div>'
-        +'<div><label class="inp-label">Contacto (WhatsApp, email...)</label><input class="inp" id="codContacto" placeholder="Ej: 55 1234 5678"></div>'
+        +'<div><label class="inp-label">Contacto (WhatsApp o email)</label><input class="inp" id="codContacto" inputmode="tel" autocomplete="tel" placeholder="Ej: 55 1234 5678" oninput="formatearContacto(this)"></div>'
       +'</div>'
       +'<div class="form-row">'
         +'<div><label class="inp-label">Prefijo</label><input class="inp" id="codPrefijo" placeholder="Ej: FIN" value="FIN"></div>'
