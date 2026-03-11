@@ -295,6 +295,8 @@ html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--bg);color
 .lock-key:active{transform:scale(0.92);background:var(--accent);color:var(--navtext);}
 .lock-key.del{font-size:1rem;}
 .lock-timeout-badge{display:inline-block;font-size:0.65rem;font-weight:800;padding:3px 10px;border-radius:20px;background:var(--accent);color:var(--navtext);margin-bottom:16px;}
+.ayuda-chip{flex-shrink:0;border:1.5px solid var(--border);border-radius:20px;padding:6px 14px;font-family:'Outfit',sans-serif;font-size:0.72rem;font-weight:700;background:var(--card);color:var(--dim);cursor:pointer;transition:all 0.15s;}
+.ayuda-chip.active,.ayuda-chip:active{background:var(--accent);color:var(--navtext);border-color:var(--accent);}
 .cat-add-btn{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:20px;border:1.5px dashed var(--accent);background:transparent;color:var(--accent);font-family:'Outfit',sans-serif;font-size:0.74rem;font-weight:700;cursor:pointer;margin-top:5px;transition:all 0.18s;}
 .cat-add-btn:hover{background:var(--accent);color:var(--navtext);}
 .cat-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:10000;display:flex;align-items:flex-end;justify-content:center;animation:fadeIn 0.15s;}
@@ -1326,6 +1328,7 @@ function goSub(sub){
   if(sub==='progreso'){ renderProgreso(); return; }
   if(sub==='presupuesto'){ renderPresupuesto(); return; }
   if(sub==='autolock'){ abrirConfigAutolock(); return; }
+  if(sub==='config_nip'){ goTab('mas',document.querySelectorAll('.nb')[4]); setTimeout(function(){ goSub('config'); setTimeout(abrirConfigNip,120); },80); return; }
   var fn = renders[sub];
   if(fn) document.getElementById('mainContent').innerHTML = fn();
 }
@@ -4799,6 +4802,80 @@ function abrirConfigAutolock(){
   S.subtab = 'config';
 }
 
+
+// ══════════════════════════════════════════
+// BANNER INTELIGENTE DE SEGURIDAD
+// ══════════════════════════════════════════
+function _getSecurityStatus(){
+  if(!S.user) return {nip:false, autolock:false};
+  var uid    = S.user.isAdmin ? 'admin' : 'u_' + S.user.codigo;
+  var nipKey = 'usala_nip_' + uid;
+  var lockKey2 = 'usala_autolock_' + uid;
+  return {
+    nip:      !!localStorage.getItem(nipKey),
+    autolock: parseInt(localStorage.getItem(lockKey2)||'0',10) > 0
+  };
+}
+
+function cerrarBannerSeg(){ var b=document.getElementById('secBanner'); if(b) b.style.display='none'; }
+function _bannerSeguridad(){
+  var st = _getSecurityStatus();
+  if(st.nip && st.autolock) return ''; // Todo protegido — sin banner
+
+  var nivel  = (!st.nip && !st.autolock) ? 'critico' : 'medio';
+  var titulo, msg, acciones;
+
+  if(nivel === 'critico'){
+    titulo  = '⚠️ Tu cuenta no está protegida';
+    msg     = 'Cualquier persona que acceda a este dispositivo podría ver tus finanzas. Activa al menos el NIP y el bloqueo automático.';
+    acciones = [
+      {label:'🔒 Activar NIP',     fn:"goSub('config_nip')"},
+      {label:'⏱ Bloqueo auto',     fn:"abrirConfigAutolock()"}
+    ];
+  } else if(!st.nip){
+    titulo  = '🔑 Falta tu NIP de seguridad';
+    msg     = 'Tienes bloqueo automático, pero sin NIP cualquiera puede desbloquear con un toque. Añade tu NIP para protección real.';
+    acciones = [{label:'🔒 Configurar NIP', fn:"goSub('config_nip')"}];
+  } else {
+    titulo  = '⏱ Sin bloqueo automático';
+    msg     = 'Tienes NIP, pero si dejas la app abierta queda expuesta. Programa un tiempo de bloqueo automático.';
+    acciones = [{label:'⏱ Activar bloqueo', fn:"abrirConfigAutolock()"}];
+  }
+
+  var colorBg  = nivel==='critico' ? 'rgba(229,57,53,0.07)'  : 'rgba(245,124,0,0.07)';
+  var colorBrd = nivel==='critico' ? 'rgba(229,57,53,0.25)'  : 'rgba(245,124,0,0.25)';
+  var colorTxt = nivel==='critico' ? '#c62828'                : '#e65100';
+  var icoBig   = nivel==='critico' ? '🛡️'                     : '🔐';
+
+  var btns = acciones.map(function(a){
+    return '<button onclick="'+a.fn+'" style="'
+      +'background:'+colorTxt+';color:#fff;border:none;border-radius:20px;'
+      +'padding:7px 16px;font-family:Outfit,sans-serif;font-size:0.72rem;'
+      +'font-weight:800;cursor:pointer;white-space:nowrap;">'+a.label+'</button>';
+  }).join('');
+
+  return '<div id="secBanner" style="'
+    +'background:'+colorBg+';border:1.5px solid '+colorBrd+';'
+    +'border-radius:16px;padding:14px 16px;margin-bottom:14px;'
+    +'animation:fadeIn 0.4s;">'
+    // Fila superior: ícono grande + texto
+    +'<div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:10px;">'
+      +'<div style="font-size:1.8rem;line-height:1;flex-shrink:0;">'+icoBig+'</div>'
+      +'<div>'
+        +'<div style="font-weight:900;font-size:0.85rem;color:'+colorTxt+';margin-bottom:3px;">'+titulo+'</div>'
+        +'<div style="font-size:0.75rem;color:var(--dim);line-height:1.5;">'+msg+'</div>'
+      +'</div>'
+    +'</div>'
+    // Fila botones + cerrar
+    +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'
+      +btns
+      +'<button onclick="cerrarBannerSeg()" '
+        +'style="margin-left:auto;background:none;border:none;color:var(--dim);'
+        +'font-size:0.7rem;cursor:pointer;white-space:nowrap;padding:4px 6px;">Ahora no ✕</button>'
+    +'</div>'
+    +'</div>';
+}
+
 function abrirCatModal(tipo, selectId){
   _catModalTipo = tipo;
   _catSelectId  = selectId;
@@ -5761,145 +5838,171 @@ function menuAccion(accion){
   else if(accion==='noticias'){ irMas('noticias'); }
 }
 function cerrarMenu(){ var m=document.getElementById('menuModal'); if(m) m.classList.remove('open'); }
-// ══════════════════════════════════════════
+
 var FAQS = [
   {cat:'🏠 Inicio', q:'¿Qué muestra la pantalla de Inicio?',
-   a:'Muestra el resumen de tus cuentas (Efectivo, Banco, Total disponible, Deuda TC), Créditos, Invitados (solo admin) y las últimas transacciones.'},
+   a:'Tu resumen financiero completo: Total disponible, Patrimonio Neto, Deudas, Pagos Pendientes, últimas transacciones y alertas de seguridad activas.'},
+  {cat:'🏠 Inicio', q:'¿Qué es el botón ⏰ Pago Pendiente?',
+   a:'Muestra cuántos pagos vencen pronto. El badge es rojo si hay vencidos, naranja si vencen esta semana. Tócalo para ver el detalle.'},
+  {cat:'🏠 Inicio', q:'¿Qué es el aviso de seguridad en el inicio?',
+   a:'Si tu cuenta no tiene NIP o bloqueo automático, aparece un banner de alerta. Puedes configurarlo desde ahí mismo o cerrarlo temporalmente.'},
   {cat:'🏠 Inicio', q:'¿Cómo registro un ingreso o gasto rápido?',
-   a:'Usa el botón U azul para acceder en un toque a Efectivo, Banco o Tarjetas. O di un comando de voz: "gasté 200" o "ingresé 500".'},
-
+   a:'Usa el botón U azul flotante para acceder en un toque a Efectivo, Banco o Tarjetas. O di un comando de voz: "gasté 200" o "ingresé 500".'},
   {cat:'🔵 Botón U', q:'¿Para qué sirve el botón U azul?',
-   a:'Acceso rápido a tus 3 cuentas desde cualquier pantalla. Tócalo y aparece un menú con Efectivo, Cheques/Banco y Tarjetas con el saldo actual de cada una.'},
-
-  {cat:'🎙️ Comandos de Voz', q:'¿Cómo funciona el control por voz?',
-   a:'Toca 🎙️ en la barra superior, se pone rojo y escucha. Di tu comando claramente. Al terminar ejecuta la acción y muestra una confirmación en pantalla. Sin IA, sin respuesta hablada, solo acción inmediata.'},
-  {cat:'🎙️ Comandos de Voz', q:'¿Necesita internet para funcionar?',
-   a:'⚠️ Sí. En Chrome (Android) el reconocimiento de voz envía el audio a los servidores de Google para procesarlo, por lo que necesita conexión a internet. Sin wifi o datos, el botón 🎙️ no puede escucharte.'},
-  {cat:'🎙️ Comandos de Voz', q:'¿Tiene inteligencia artificial?',
-   a:'No. El sistema de voz reconoce comandos fijos predefinidos. No entiende lenguaje libre ni preguntas. Solo reacciona a palabras clave específicas.'},
-  {cat:'🎙️ Comandos de Voz', q:'¿Qué comandos de navegación puedo usar?',
-   a:'Di: "inicio", "cuentas", "créditos", "reportes", "más", "efectivo", "banco", "tarjetas", "calculadora", "historial", "metas", "presupuesto", "conversor", "ayuda".'},
-  {cat:'🎙️ Comandos de Voz', q:'¿Puedo registrar gastos e ingresos con voz?',
-   a:'Sí. Di "gasté 200" para registrar $200 de gasto en Efectivo, o "ingresé 500" para un ingreso. El saldo se actualiza al instante.'},
-  {cat:'🎙️ Comandos de Voz', q:'¿En qué dispositivos funciona?',
-   a:'Chrome en Android, Edge y Safari en iOS 15+. Si tu navegador no lo soporta, el botón 🎙️ no aparece.'},
-  {cat:'🎙️ Comandos de Voz', q:'El micrófono está bloqueado, ¿qué hago?',
-   a:'Chrome Android: toca ⋮ → Configuración → Privacidad → Configuración del sitio → Micrófono → busca la página → Permitir → recarga la app.'},
-  {cat:'🎙️ Comandos de Voz', q:'¿Cómo restablecer el permiso del micrófono?',
-   a:'Más → Configuración → 🎤 Restablecer micrófono. El navegador volverá a preguntar la próxima vez que uses 🎙️.'},
-
+   a:'Acceso rápido a tus 3 cuentas desde cualquier pantalla. Tócalo y aparece un menú con Efectivo, Banco y Tarjetas con el saldo actual.'},
+  {cat:'🎙️ Voz', q:'¿Cómo funciona el control por voz?',
+   a:'Toca 🎙️ en la barra superior. Se activa y escucha. Di tu comando claramente. Ejecuta la acción al instante. Sin IA, solo acción.'},
+  {cat:'🎙️ Voz', q:'¿Necesita internet para funcionar?',
+   a:'Sí. En Chrome (Android) el reconocimiento de voz envía el audio a Google para procesarlo. Sin conexión el botón 🎙️ no funciona.'},
+  {cat:'🎙️ Voz', q:'¿Qué comandos de navegación puedo usar?',
+   a:'"inicio", "cuentas", "créditos", "reportes", "más", "efectivo", "banco", "tarjetas", "calculadora", "historial", "metas", "presupuesto", "conversor", "ayuda".'},
+  {cat:'🎙️ Voz', q:'¿Puedo registrar gastos con voz?',
+   a:'Sí. "Gasté 200" registra $200 de gasto en Efectivo. "Ingresé 500" registra un ingreso. El saldo se actualiza al instante.'},
+  {cat:'🎙️ Voz', q:'El micrófono está bloqueado, ¿qué hago?',
+   a:'Más → Configuración → 🎤 Restablecer micrófono. O en Chrome: ⋮ → Configuración → Privacidad → Micrófono → busca la app → Permitir.'},
   {cat:'🏦 Cuentas', q:'¿Qué módulos tiene Cuentas?',
-   a:'3 secciones: 💵 Efectivo, 🏧 Cheques/Banco y 💳 Tarjetas de Crédito. Cada una con su historial y formulario de movimientos.'},
-  {cat:'🏦 Cuentas', q:'¿Cómo registro un movimiento de Efectivo?',
-   a:'Cuentas → Efectivo (o botón U o di "efectivo"). Elige Entrada o Salida, llena el formulario. El saldo se actualiza al instante.'},
+   a:'3 secciones: 💵 Efectivo, 🏧 Banco y 💳 Tarjetas de Crédito. Cada una con historial y formulario de movimientos.'},
   {cat:'🏦 Cuentas', q:'¿Cómo transfiero efectivo a mi banco?',
-   a:'Efectivo → Salida → en "¿A qué banco?" elige tu cuenta. Automáticamente resta de Efectivo y suma al banco destino.'},
+   a:'Efectivo → Salida → en "¿A qué banco?" elige tu cuenta. Resta de Efectivo y suma al banco destino automáticamente.'},
   {cat:'🏦 Cuentas', q:'¿Qué pasa si borro una transacción?',
-   a:'El saldo de la cuenta se revierte automáticamente. Tienes 6 segundos para deshacer y el saldo se restaura también.'},
+   a:'El saldo se revierte automáticamente. Tienes 6 segundos para tocar "Deshacer" y restaurar todo.'},
   {cat:'🏦 Cuentas', q:'¿Las compras con TC afectan mi efectivo?',
    a:'No. Las compras con tarjeta solo aumentan la deuda de esa TC. Tu efectivo y banco NO se ven afectados.'},
-
-  {cat:'💳 Tarjetas de Crédito', q:'¿Qué información puedo registrar de mi TC?',
-   a:'Banco, tipo, últimos 4 dígitos, límite, saldo, interés, día de pago, fecha de corte, pago mínimo y monto sin intereses.'},
-  {cat:'💳 Tarjetas de Crédito', q:'¿Qué es el Saldo al Corte AUTO?',
-   a:'Se calcula sumando todas las compras del período actual. Aparece con badge naranja "AUTO". No lo calculas manualmente.'},
-  {cat:'💳 Tarjetas de Crédito', q:'¿Cómo registro una compra con TC?',
-   a:'En la tarjeta toca "🛒 Registrar compra". La deuda aumenta pero NO afecta efectivo ni banco.'},
-  {cat:'💳 Tarjetas de Crédito', q:'¿Cómo registro un pago de TC?',
-   a:'Toca "💳 Pago" en la tarjeta. El saldo se reduce. Si llega a $0 se marca "Al corriente".'},
-
-  {cat:'📊 Reportes', q:'¿Qué muestra Reportes?',
-   a:'Ingresos, gastos y flujo neto. Gastos por categoría con barras de progreso e ingresos por fuente.'},
-
-  {cat:'🤝 Créditos', q:'¿Qué son los Créditos?',
-   a:'"Mis Deudas" = dinero que tú pediste. "Por Cobrar" = dinero que tú prestaste. Con seguimiento de abonos y fechas.'},
-  {cat:'🤝 Créditos', q:'¿Cómo abono a una deuda?',
-   a:'Toca "+ Abonar". La barra de progreso se actualiza. Al 100% se marca como pagado.'},
-  {cat:'🤝 Créditos', q:'¿Qué significan los colores?',
-   a:'⏳ Amarillo = Pendiente. 🔴 Rojo = Vencido. ✅ Verde = Pagado.'},
-
-  {cat:'📋 Historial', q:'¿Qué muestra el Historial?',
-   a:'Todas tus transacciones. Filtra por Todos, Ingresos o Gastos. Cada registro muestra cuenta de origen con botones editar y eliminar.'},
-  {cat:'📋 Historial', q:'¿Puedo editar una transacción?',
-   a:'Sí, toca ✏️ en el historial. Al guardar, el saldo se recalcula automáticamente.'},
-
-  {cat:'🔐 Login', q:'¿Cómo entro más rápido la próxima vez?',
-   a:'La app recuerda tu sesión. Verás tu nombre y "¡Continuar! →". Un toque y estás adentro.'},
-  {cat:'🔐 Login', q:'¿Puedo cerrar sesión?',
-   a:'Sí. Toca "No soy yo" en la sesión recordada, o Más → Configuración → Cerrar sesión.'},
-
-  {cat:'🔑 Acceso', q:'¿Cómo entran otras personas?',
-   a:'El admin genera un código en Más → Códigos de Acceso. O el visitante solicita acceso y el admin aprueba.'},
-  {cat:'🔑 Acceso', q:'¿Cómo apruebo una solicitud?',
-   a:'Badge 🔴 en el topbar → Códigos de Acceso → Solicitudes pendientes → ✅ Aprobar.'},
-  {cat:'🔑 Acceso', q:'¿Los datos son privados por usuario?',
-   a:'Sí. Espacio completamente aislado por usuario. Nadie ve datos de otro.'},
-  {cat:'🔑 Acceso', q:'¿Olvidé mi contraseña de admin?',
-   a:'Login → 🔐 Admin → "¿Olvidaste tu contraseña?". Usa la clave maestra admin1234.'},
-
-  {cat:'⚙️ Config', q:'¿Cómo cambio el tema visual?',
-   a:'Más → Configuración → Cambiar tema. 5 temas disponibles.'},
-  {cat:'⚙️ Config', q:'¿Cómo borro mis datos?',
-   a:'Más → Configuración → Zona de peligro. Puedes borrar transacciones o restablecer toda la cuenta.'},
-
-  {cat:'↩️ General', q:'¿Puedo deshacer un borrado?',
-   a:'Sí. 6 segundos para tocar "Deshacer". El saldo también se restaura.'},
-  {cat:'↩️ General', q:'¿Funciona sin internet?',
-   a:'Sí. Todo se guarda localmente en tu dispositivo.'},
-  {cat:'↩️ General', q:'¿Cómo uso la calculadora?',
-   a:'Toca 🔢 en la barra superior. Arrástrala, minimízala (−) sin perder cálculos, o ciérrala (×). O di "calculadora" por voz.'},
-
-  {cat:'🔒 NIP de Seguridad', q:'¿Qué es el NIP?',
-   a:'Un código de 4 dígitos opcional que protege tu sesión. Aunque alguien tenga tu código de acceso, necesita el NIP para entrar.'},
-  {cat:'🔒 NIP de Seguridad', q:'¿Cómo activo el NIP?',
-   a:'Más → Configuración → 🔒 NIP de seguridad → Activar. Ingresa 4 dígitos. Desde ese momento se pedirá al entrar.'},
-  {cat:'🔒 NIP de Seguridad', q:'¿Cómo cambio o quito mi NIP?',
-   a:'Más → Configuración → 🔒 NIP → Cambiar NIP o Quitar NIP. Para quitarlo se pide confirmación.'},
-  {cat:'🔒 NIP de Seguridad', q:'Olvidé mi NIP, ¿qué hago?',
-   a:'El admin puede resetearlo. En Más → Códigos de Acceso busca tu código → toca 🔓. El NIP se elimina y puedes entrar sin él y configurar uno nuevo.'},
-
+  {cat:'💳 Tarjetas', q:'¿Qué es el Saldo al Corte AUTO?',
+   a:'Se calcula sumando todas las compras del período actual. Aparece con badge naranja "AUTO". No tienes que calcularlo manualmente.'},
+  {cat:'💳 Tarjetas', q:'¿Cómo registro un pago de TC?',
+   a:'Toca "💳 Pago" en la tarjeta. El saldo se reduce. Al llegar a $0 se marca "Al corriente".'},
   {cat:'📅 Pagos del Mes', q:'¿Para qué sirven los Pagos del Mes?',
-   a:'Para registrar todos tus pagos fijos mensuales: TC, servicios (luz, cable, teléfono), renta, predial, tenencia, seguros, etc. Llevas control de cuánto has pagado y cuánto falta.'},
+   a:'Para registrar todos tus pagos fijos: servicios, renta, seguros, TC, etc. Llevas control de cuánto has pagado y cuánto falta cada mes.'},
   {cat:'📅 Pagos del Mes', q:'¿Cómo agrego un pago fijo?',
-   a:'Créditos → Deuda a Pagar Mensual → + Agregar pago fijo. Escribe nombre, categoría, monto estimado y día de vencimiento.'},
-  {cat:'📅 Pagos del Mes', q:'¿Cómo marco un pago como realizado?',
-   a:'Toca ✅ Pagar en el pago. Te pregunta el monto real pagado (puede diferir del estimado). Queda marcado con línea tachada.'},
-  {cat:'📅 Pagos del Mes', q:'¿Los pagos se resetean solos?',
-   a:'Sí. El estado (pagado/pendiente) se resetea automáticamente cada mes. Los pagos fijos permanecen, solo el estado cambia.'},
-  {cat:'📅 Pagos del Mes', q:'¿Dónde veo el resumen de pagos del mes?',
-   a:'En la pantalla de Inicio aparece una tarjeta 📅 Pagos del Mes con total, barra de progreso, monto pagado y pendiente.'},
-
-  {cat:'🏦 Mis Activos', q:'¿Qué son los Activos?',
-   a:'Todo lo que posees con valor económico: casa, carro, negocio, inversiones, criptomonedas, maquinaria, joyas, etc. Su valor suma a tu Patrimonio Neto.'},
-  {cat:'🏦 Mis Activos', q:'¿Cómo registro un activo?',
-   a:'Cuentas → Mis Activos (o Más → Mis Activos) → + Registrar activo. Ingresa nombre, categoría, valor estimado, fecha y notas opcionales.'},
-  {cat:'🏦 Mis Activos', q:'¿Cada cuánto debo actualizar el valor?',
-   a:'Cuando el valor cambie significativamente. Edita el activo con ✏️ y actualiza el monto. Afectará tu Patrimonio Neto en el siguiente snapshot.'},
-
-  {cat:'📈 Progreso Financiero', q:'¿Qué es Mi Progreso Financiero?',
-   a:'Un dashboard que compara tu situación mes a mes. Muestra patrimonio neto, deudas, ingresos, gastos y una gráfica de evolución para saber si estás avanzando o retrocediendo.'},
-  {cat:'📈 Progreso Financiero', q:'¿Qué es el Patrimonio Neto?',
-   a:'Efectivo + Banco + Activos − Total Deudas. Es el indicador más importante: si sube, estás progresando financieramente.'},
-  {cat:'📈 Progreso Financiero', q:'¿Qué significa el semáforo de salud?',
-   a:'🟢 Progresando = patrimonio sube, deudas bajan, ingresos > gastos. 🟡 Estable = situación sin cambios. 🔴 Atención = deudas suben o patrimonio baja.'},
-  {cat:'📈 Progreso Financiero', q:'¿Cuándo se guarda el snapshot mensual?',
+   a:'Créditos → Pagos del Mes → + Agregar. Escribe nombre, categoría, monto estimado, frecuencia y día de vencimiento.'},
+  {cat:'📅 Pagos del Mes', q:'¿Cómo funciona el panel ⏰ de la pantalla principal?',
+   a:'Muestra los pagos que vencen próximamente en 4 vistas: Hoy, Esta semana, Este mes y Este año. Badge rojo = pagos ya vencidos.'},
+  {cat:'📅 Pagos del Mes', q:'¿Los pagos se resetean solos cada mes?',
+   a:'Sí. El estado (pagado/pendiente) se resetea automáticamente cada mes. Tus pagos fijos permanecen.'},
+  {cat:'🤝 Créditos', q:'¿Qué son los Créditos?',
+   a:'"Mis Deudas" = dinero que tú pediste prestado. "Por Cobrar" = dinero que tú prestaste. Con seguimiento de abonos, intereses y fechas límite.'},
+  {cat:'🤝 Créditos', q:'¿Cómo abono a una deuda?',
+   a:'Toca "+ Abonar". La barra de progreso se actualiza. Al 100% se marca como pagado automáticamente.'},
+  {cat:'🔐 Seguridad', q:'¿Por qué me aparece un aviso de seguridad?',
+   a:'Tu cuenta no tiene NIP o bloqueo automático activos. Son medidas opcionales pero muy recomendadas para que nadie más vea tus finanzas.'},
+  {cat:'🔐 Seguridad', q:'¿Qué es el NIP y para qué sirve?',
+   a:'Un código secreto de 4 dígitos. Aunque alguien tenga tu dispositivo o código de invitado, sin el NIP no puede entrar a tus finanzas.'},
+  {cat:'🔐 Seguridad', q:'¿Cómo activo mi NIP?',
+   a:'Más → Configuración → 🔒 NIP de seguridad → escribe 4 dígitos y confirma. Desde ese momento se pedirá cada vez que entres.'},
+  {cat:'🔐 Seguridad', q:'¿Qué es el bloqueo automático?',
+   a:'La app se bloquea sola si no la usas por el tiempo elegido (1 min a 1 hora). Al bloquearse pedirá tu NIP para volver a entrar.'},
+  {cat:'🔐 Seguridad', q:'¿Cómo activo el bloqueo automático?',
+   a:'Más → Configuración → ⏱ Bloqueo automático → elige el tiempo. Cualquier toque reinicia el contador. Recomendamos 5 minutos.'},
+  {cat:'🔐 Seguridad', q:'¿Qué pasa si me bloquea y no tengo NIP?',
+   a:'Aparece un botón "Desbloquear" directo. Por eso recomendamos ambos: NIP + bloqueo automático. Sin NIP el bloqueo no protege realmente.'},
+  {cat:'🔐 Seguridad', q:'¿Puedo cerrar sesión desde la pantalla bloqueada?',
+   a:'Sí. En la pantalla de bloqueo hay un botón "Salir" que cierra sesión completamente.'},
+  {cat:'🔐 Seguridad', q:'Olvidé mi NIP, ¿qué hago?',
+   a:'El admin puede resetearlo: Más → Códigos de Acceso → busca tu código → toca 🔓. El NIP se elimina y puedes configurar uno nuevo.'},
+  {cat:'🔐 Seguridad', q:'¿Mis datos son privados respecto a otros usuarios?',
+   a:'Sí. Cada usuario tiene su espacio completamente aislado. Nadie puede ver los datos de otro, ni el administrador.'},
+  {cat:'🏦 Activos', q:'¿Qué son los Activos Personales?',
+   a:'Todo lo que posees con valor: casa, carro, negocio, inversiones, joyas, etc. Su valor suma a tu Patrimonio Neto.'},
+  {cat:'🏦 Activos', q:'¿Cada cuánto actualizo el valor?',
+   a:'Cuando cambie significativamente. Edita con ✏️ y actualiza el monto. Afectará tu Patrimonio Neto en el siguiente snapshot.'},
+  {cat:'📈 Progreso', q:'¿Qué es el Patrimonio Neto?',
+   a:'Efectivo + Banco + Activos − Total Deudas. Si sube mes a mes, estás progresando financieramente.'},
+  {cat:'📈 Progreso', q:'¿Qué significa el semáforo de salud financiera?',
+   a:'🟢 Progresando = patrimonio sube, deudas bajan. 🟡 Estable = sin cambios. 🔴 Atención = deudas suben o patrimonio baja.'},
+  {cat:'📈 Progreso', q:'¿Cuándo se guarda el snapshot mensual?',
    a:'Automáticamente al abrir la app, una vez por mes. También puedes forzarlo con 📸 Guardar snapshot ahora dentro del módulo.'},
-  {cat:'📈 Progreso Financiero', q:'¿Cuántos meses de historial guarda?',
-   a:'Guarda todos los meses desde que empezaste. La gráfica muestra los últimos 6 meses y la tabla los últimos 6 también.'},
+  {cat:'🔑 Acceso', q:'¿Cómo entran otras personas?',
+   a:'El admin genera un código en Más → Códigos de Acceso. O el visitante solicita acceso y el admin aprueba desde el badge 🔴.'},
+  {cat:'🔑 Acceso', q:'¿Los códigos de invitado tienen vencimiento?',
+   a:'Sí. El admin define la fecha de vencimiento al crear el código. Pasada esa fecha el código deja de funcionar.'},
+  {cat:'🔑 Acceso', q:'¿Olvidé mi contraseña de admin?',
+   a:'Login → 🔐 Admin → "¿Olvidaste tu contraseña?". Usa la clave maestra admin1234 para recuperar el acceso.'},
+  {cat:'⚙️ Config', q:'¿Cómo cambio el tema visual?',
+   a:'Más → Configuración → 🎨 Cambiar tema. 5 temas: Verde Natural, Oscuro Pro, Dorado Élite, Océano y Rosa Elegante.'},
+  {cat:'⚙️ Config', q:'¿Cómo cambio la moneda?',
+   a:'Más → Configuración → 💱 Moneda. 9 monedas disponibles: MXN, USD, EUR, CAD, GBP, COP, ARS, GTQ, PEN.'},
+  {cat:'⚙️ Config', q:'¿Cómo agrego categorías personalizadas?',
+   a:'Más → Configuración → 🏷️ Mis categorías. Categorías ilimitadas para Gastos, Ingresos, Activos y Pagos fijos.'},
+  {cat:'⚙️ Config', q:'¿Cómo borro mis datos?',
+   a:'Más → Configuración → Zona de peligro. Borra transacciones o restablece toda la cuenta. ⚠️ No se puede deshacer.'},
+  {cat:'↩️ General', q:'¿Puedo deshacer un borrado?',
+   a:'Sí. Tienes 6 segundos para tocar "Deshacer". El saldo también se restaura automáticamente.'},
+  {cat:'↩️ General', q:'¿Funciona sin internet?',
+   a:'Sí, casi todo. Solo el reconocimiento de voz y el conversor de monedas requieren conexión.'},
+  {cat:'↩️ General', q:'¿Cómo uso la calculadora?',
+   a:'Toca 🔢 en la barra superior. Arrástrala, minimízala con − sin perder el cálculo, o ciérrala con ×.'},
 ];
 
+
 function renderAyuda(){
+  var st = _getSecurityStatus();
+  var nipOk   = st.nip;
+  var lockOk  = st.autolock;
+  var ambos   = nipOk && lockOk;
+
+  // Tarjeta de estado de seguridad
+  var secCard = '<div style="border-radius:18px;padding:16px;margin-bottom:16px;'
+    +(ambos
+      ? 'background:rgba(45,158,95,0.08);border:1.5px solid rgba(45,158,95,0.25);'
+      : 'background:rgba(229,57,53,0.06);border:1.5px solid rgba(229,57,53,0.2);')
+    +'">'
+    +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">'
+      +'<div style="font-size:2rem;line-height:1;">'+(ambos?'🛡️':'⚠️')+'</div>'
+      +'<div>'
+        +'<div style="font-weight:900;font-size:0.9rem;">'
+          +(ambos?'Tu cuenta está protegida ✓':'Tu seguridad necesita atención')
+        +'</div>'
+        +'<div style="font-size:0.72rem;color:var(--dim);margin-top:2px;">'
+          +(ambos?'NIP activo + bloqueo automático configurado':'Configura NIP y bloqueo para proteger tus datos')
+        +'</div>'
+      +'</div>'
+    +'</div>'
+    // Checks de estado
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">'
+      +'<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;font-weight:700;padding:5px 10px;border-radius:20px;'
+        +(nipOk?'background:rgba(45,158,95,0.12);color:#2d7a4f;':'background:rgba(229,57,53,0.1);color:#c62828;')
+        +'">'+( nipOk?'✅':'❌')+' NIP de seguridad</div>'
+      +'<div style="display:flex;align-items:center;gap:5px;font-size:0.72rem;font-weight:700;padding:5px 10px;border-radius:20px;'
+        +(lockOk?'background:rgba(45,158,95,0.12);color:#2d7a4f;':'background:rgba(229,57,53,0.1);color:#c62828;')
+        +'">'+( lockOk?'✅':'❌')+' Bloqueo automático</div>'
+    +'</div>';
+
+  if(!ambos){
+    secCard += '<div style="display:flex;gap:8px;flex-wrap:wrap;">'
+      +(!nipOk?'<button onclick="goSub(\'config_nip\')" style="background:#c62828;color:#fff;border:none;border-radius:20px;padding:7px 14px;font-family:Outfit,sans-serif;font-size:0.72rem;font-weight:800;cursor:pointer;">🔒 Activar NIP</button>':'')
+      +(!lockOk?'<button onclick="abrirConfigAutolock()" style="background:#e65100;color:#fff;border:none;border-radius:20px;padding:7px 14px;font-family:Outfit,sans-serif;font-size:0.72rem;font-weight:800;cursor:pointer;">⏱ Bloqueo auto</button>':'')
+    +'</div>';
+  }
+  secCard += '</div>';
+
   var html = '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">❓ Ayuda</div></div>'
-    +'<div style="position:relative;margin-bottom:14px;">'
-    +'<input class="inp" id="ayudaBusca" placeholder="🔍 Buscar en la ayuda..." oninput="filtrarAyuda()" style="padding-left:16px;">'
+    // Tarjeta seguridad al tope
+    + secCard
+    // Buscador
+    +'<div style="position:relative;margin-bottom:16px;">'
+      +'<input class="inp" id="ayudaBusca" placeholder="🔍 Buscar en la ayuda..." oninput="filtrarAyuda()" style="padding-left:16px;">'
+    +'</div>'
+    // Accesos rápidos por tema
+    +'<div style="display:flex;gap:7px;overflow-x:auto;padding-bottom:8px;margin-bottom:10px;scrollbar-width:none;">'
+      +'<div style="display:flex;gap:7px;overflow-x:auto;padding-bottom:8px;margin-bottom:10px;scrollbar-width:none;">'
+      +'<button class="ayuda-chip active" id="chip_todos" data-cat="" onclick="ayudaChipEv(this)">Todos</button>'
+      +'<button class="ayuda-chip" data-cat="Seguridad" onclick="ayudaChipEv(this)">🔐 Seguridad</button>'
+      +'<button class="ayuda-chip" data-cat="Pagos" onclick="ayudaChipEv(this)">📅 Pagos</button>'
+      +'<button class="ayuda-chip" data-cat="Cuentas" onclick="ayudaChipEv(this)">🏦 Cuentas</button>'
+      +'<button class="ayuda-chip" data-cat="Créditos" onclick="ayudaChipEv(this)">🤝 Créditos</button>'
+      +'<button class="ayuda-chip" data-cat="Voz" onclick="ayudaChipEv(this)">🎙️ Voz</button>'
+      +'<button class="ayuda-chip" data-cat="Config" onclick="ayudaChipEv(this)">⚙️ Config</button>'
     +'</div>'
     +'<div id="ayudaLista">'+renderFaqs('')+'</div>';
   return html;
 }
-function renderFaqs(q){
-  var term = q.toLowerCase().trim();
+function renderFaqs(q, catFiltro){
+  var term = (q||'').toLowerCase().trim();
   var filtrados = FAQS.filter(function(f){
-    return !term || f.q.toLowerCase().includes(term) || f.a.toLowerCase().includes(term) || f.cat.toLowerCase().includes(term);
+    var matchQ   = !term || f.q.toLowerCase().includes(term) || f.a.toLowerCase().includes(term) || f.cat.toLowerCase().includes(term);
+    var matchCat = !catFiltro || f.cat.toLowerCase().includes(catFiltro.toLowerCase());
+    return matchQ && matchCat;
   });
   if(!filtrados.length) return '<div style="text-align:center;padding:24px;color:var(--dim);font-size:0.83rem;">No se encontraron resultados para "'+q+'"</div>';
   var porCat = {};
@@ -5918,9 +6021,20 @@ function renderFaqs(q){
         }).join('');
   }).join('');
 }
+function ayudaChipEv(btn){
+  ayudaChip(btn, btn.getAttribute('data-cat')||'');
+}
+function ayudaChip(btn, cat){
+  document.querySelectorAll('.ayuda-chip').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  var q = document.getElementById('ayudaBusca').value;
+  document.getElementById('ayudaLista').innerHTML = renderFaqs(q, cat);
+}
 function filtrarAyuda(){
   var q=document.getElementById('ayudaBusca').value;
-  document.getElementById('ayudaLista').innerHTML=renderFaqs(q);
+  var chipActivo = document.querySelector('.ayuda-chip.active');
+  var cat = chipActivo ? (chipActivo.id==='chip_todos'?'':chipActivo.textContent.replace(/[^a-zA-ZáéíóúÁÉÍÓÚ ]/g,'').trim()) : '';
+  document.getElementById('ayudaLista').innerHTML=renderFaqs(q, cat);
 }
 function toggleFaq(id){
   var el=document.getElementById(id);
@@ -6011,4 +6125,4 @@ function procesarComandoVoz(t){
 
 </script>
 </body>
-  </html>
+      </html>
