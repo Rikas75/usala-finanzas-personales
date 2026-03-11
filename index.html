@@ -2657,7 +2657,12 @@ function renderPagosMes(){
       var pts=p.proximoPago.split('-');
       return new Date(+pts[0],+pts[1]-1,+pts[2]);
     }
-    return new Date(ref.getFullYear(), ref.getMonth(), Math.min(p.dia||1,28));
+    // Si el día ya pasó este mes → apuntar al mes siguiente
+    var dia = Math.min(p.dia||1, 28);
+    var f = new Date(ref.getFullYear(), ref.getMonth(), dia);
+    f.setHours(0,0,0,0);
+    if(f < ref) f.setMonth(f.getMonth()+1);
+    return f;
   }
   function _diasLabel(diff){
     if(diff<0)  return {txt:'Vencido hace '+Math.abs(diff)+' día'+(Math.abs(diff)!==1?'s':''), col:'#e53935', bg:'rgba(229,57,53,0.08)'};
@@ -2665,7 +2670,7 @@ function renderPagosMes(){
     if(diff===1)return {txt:'Vence mañana',  col:'#f57c00', bg:'rgba(245,124,0,0.08)'};
     if(diff<=3) return {txt:'En '+diff+' días', col:'#f57c00', bg:'rgba(245,124,0,0.06)'};
     if(diff<=7) return {txt:'En '+diff+' días', col:'#f9a825', bg:'rgba(249,168,37,0.07)'};
-    return      {txt:'Día '+(diff), col:'var(--dim)', bg:'transparent'};
+    return      {txt:'Día '+diff, col:'var(--dim)', bg:'transparent'};
   }
 
   // ── Header ──
@@ -2690,7 +2695,8 @@ function renderPagosMes(){
 
   var alertaTxt = '';
   if(masUrgente!==null){
-    if(masUrgente<0)       alertaTxt='⚠️ Tienes '+pendientes.length+' pago'+(pendientes.length!==1?'s':'')+' vencido'+(pendientes.length!==1?'s':'');
+    var _nVencidos=pendientes.filter(function(p){ return Math.round((_calcFechaVenc(p,hoy)-hoy)/86400000)<0; }).length;
+    if(masUrgente<0)       alertaTxt='⚠️ Tienes '+_nVencidos+' pago'+(_nVencidos!==1?'s':'')+' vencido'+(_nVencidos!==1?'s':'');
     else if(masUrgente===0) alertaTxt='📍 Tienes pagos que vencen HOY';
     else if(masUrgente===1) alertaTxt='⏰ Tu próximo pago vence MAÑANA';
     else if(masUrgente<=3)  alertaTxt='⏰ Próximo vencimiento en '+masUrgente+' días';
@@ -5681,4 +5687,4 @@ function procesarComandoVoz(t){
 
 </script>
 </body>
-                                                                                     </html>
+  </html>
