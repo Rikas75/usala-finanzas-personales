@@ -872,37 +872,6 @@ function confirmarTema(){
   if(t){ S.theme = t; applyTheme(t); }
 
   function arrancarApp(){
-    // ── Leer código desde URL (link que mandó el admin) ──
-    try {
-      var params = new URLSearchParams(window.location.search);
-      var pCod  = params.get('c');
-      var pVenc = params.get('v');
-      var pNom  = params.get('n');
-      if(pCod && pVenc){
-        pCod = pCod.toUpperCase();
-        // Registrar el código en localStorage si no existe ya
-        var codsUrl = JSON.parse(localStorage.getItem('usala_codigos')||'[]');
-        var yaExiste = codsUrl.find(function(x){ return x.codigo===pCod; });
-        if(!yaExiste){
-          codsUrl.push({
-            codigo: pCod,
-            vencimiento: pVenc,
-            nota: pNom ? decodeURIComponent(pNom) : '',
-            activo: true,
-            usado: false,
-            creado: pVenc
-          });
-          localStorage.setItem('usala_codigos', JSON.stringify(codsUrl));
-        }
-        // Pre-rellenar el campo de código
-        setTimeout(function(){
-          var inp = document.getElementById('accCodigo');
-          if(inp){ inp.value = pCod; accCodigoLookup(pCod); }
-        }, 200);
-        // Limpiar URL sin recargar
-        window.history.replaceState({}, '', window.location.pathname);
-      }
-    } catch(e){}
     var raw = localStorage.getItem('usala_session');
     if(raw){
       try{
@@ -4293,61 +4262,10 @@ function _confirmarAprobacion(){
   solicitudes[_aprobarIdx].estado='aprobada';
   solicitudes[_aprobarIdx].codigoGenerado=codigo;
   localStorage.setItem('usala_solicitudes',JSON.stringify(solicitudes));
-  // Generar link con el código embebido para que el usuario lo abra
-  var baseUrl = window.location.origin + window.location.pathname;
-  var link = baseUrl + '?c=' + encodeURIComponent(codigo)
-           + '&v=' + encodeURIComponent(vencStr)
-           + '&n=' + encodeURIComponent(s.nombre);
-  var msgWa = '🔑 *Tu acceso a USALA*\n'
-    + '👤 ' + s.nombre + '\n'
-    + '📋 Código: *' + codigo + '*\n'
-    + '📅 Válido hasta: ' + vencStr + '\n\n'
-    + '👆 Toca este link para entrar directo:\n' + link;
-  // Guardar el link para mostrarlo
-  _ultimoLinkGenerado = link;
-  _ultimoMsgGenerado  = msgWa;
-  _ultimoCodigoGenerado = codigo;
-  _ultimoNombreGenerado = s.nombre;
   navigator.clipboard.writeText(codigo).catch(function(){});
   var modal=document.getElementById('aprobarModal'); if(modal) modal.remove();
-  // Mostrar modal con link y opciones de compartir
-  _mostrarModalCompartir();
+  showToast('✅ Código '+codigo+' generado y copiado — compártelo con '+s.nombre);
   goSub('codigos');
-}
-
-function cerrarCompartirModal(){ var m=document.getElementById('compartirModal'); if(m) m.remove(); }
-var _ultimoLinkGenerado='', _ultimoMsgGenerado='', _ultimoCodigoGenerado='', _ultimoNombreGenerado='';
-function _mostrarModalCompartir(){
-  var mc2 = document.createElement('div');
-  mc2.id = 'compartirModal';
-  mc2.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:flex-end;justify-content:center;';
-  mc2.innerHTML =
-    '<div style="background:var(--card);border-radius:24px 24px 0 0;padding:24px 20px 36px;width:100%;max-width:480px;">'
-    +'<div style="font-size:2rem;text-align:center;margin-bottom:8px;">✅</div>'
-    +'<div style="font-weight:900;font-size:1rem;text-align:center;margin-bottom:4px;">Código generado</div>'
-    +'<div style="text-align:center;color:var(--dim);font-size:0.8rem;margin-bottom:16px;">Envíaselo a '+_ultimoNombreGenerado+'</div>'
-    // Código grande
-    +'<div style="background:var(--inp);border-radius:14px;padding:14px;text-align:center;margin-bottom:16px;">'
-      +'<div style="font-size:0.65rem;color:var(--dim);font-weight:700;text-transform:uppercase;margin-bottom:4px;">Código de acceso</div>'
-      +'<div style="font-family:monospace;font-size:1.6rem;font-weight:900;letter-spacing:0.15em;">'+_ultimoCodigoGenerado+'</div>'
-    +'</div>'
-    // Botón WhatsApp con link
-    +'<a href="https://wa.me/?text='+encodeURIComponent(_ultimoMsgGenerado)+'" target="_blank"'
-      +' style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px;background:#25D366;color:#fff;border:none;border-radius:14px;font-family:Outfit,sans-serif;font-size:0.92rem;font-weight:800;cursor:pointer;margin-bottom:10px;text-decoration:none;">'
-      +'📲 Enviar link por WhatsApp'
-    +'</a>'
-    +'<button id="btnCopiarLinkCompartir" style="width:100%;padding:13px;background:var(--inp);color:var(--text);border:1.5px solid var(--border);border-radius:14px;font-family:Outfit,sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;margin-bottom:16px;">📋 Copiar link</button>'
-    +'<div style="font-size:0.72rem;color:var(--dim);text-align:center;margin-bottom:16px;line-height:1.6;">'
-      +'El usuario solo toca el link y entra directo.<br>No necesita hacer nada más.'
-    +'</div>'
-    +'<button onclick="cerrarCompartirModal()" style="width:100%;padding:12px;background:none;border:none;color:var(--dim);font-family:Outfit,sans-serif;font-size:0.85rem;cursor:pointer;">Cerrar</button>'
-    +'</div>';
-  document.body.appendChild(mc2);
-  var btnCL = document.getElementById('btnCopiarLinkCompartir');
-  if(btnCL) btnCL.onclick = function(){
-    navigator.clipboard.writeText(_ultimoLinkGenerado).catch(function(){});
-    showToast('✓ Link copiado');
-  };
 }
 
 function rechazarSolicitud(idx){
@@ -4371,22 +4289,9 @@ function generarCodigo(){
   var codigos=JSON.parse(localStorage.getItem('usala_codigos')||'[]');
   codigos.push({codigo:codigo,vencimiento:vencStr,nota:nota,contacto:contacto,activo:true,usado:false,creado:today()});
   localStorage.setItem('usala_codigos',JSON.stringify(codigos));
-  var baseUrl2 = window.location.origin + window.location.pathname;
-  var link2 = baseUrl2 + '?c=' + encodeURIComponent(codigo)
-            + '&v=' + encodeURIComponent(vencStr)
-            + '&n=' + encodeURIComponent(nota);
-  var msgWa2 = '🔑 *Tu acceso a USALA*\n'
-    + '👤 ' + nota + '\n'
-    + '📋 Código: *' + codigo + '*\n'
-    + '📅 Válido hasta: ' + vencStr + '\n\n'
-    + '👆 Toca este link para entrar directo:\n' + link2;
-  _ultimoLinkGenerado = link2;
-  _ultimoMsgGenerado  = msgWa2;
-  _ultimoCodigoGenerado = codigo;
-  _ultimoNombreGenerado = nota;
   navigator.clipboard.writeText(codigo).catch(function(){});
+  showToast('✓ Código '+codigo+' copiado — compártelo con '+nota);
   goSub('codigos');
-  _mostrarModalCompartir();
 }
 function resetearNipUsuario(arg){var codigo=(typeof arg==="string")?arg:(arg&&arg.closest?arg.closest("[data-cod]").dataset.cod:"");
   var cods = JSON.parse(localStorage.getItem('usala_codigos')||'[]');
