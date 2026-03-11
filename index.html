@@ -999,6 +999,14 @@ function enviarSolicitud(){
   }
 }
 
+function limpiarTodasSolicitudes(){
+  if(!confirm('¿Borrar TODAS las solicitudes (pendientes, aprobadas y rechazadas)?\nÚsalo para limpiar las pruebas.')) return;
+  localStorage.removeItem('usala_solicitudes');
+  actualizarBadgeSolicitudes();
+  showToast('✓ Solicitudes eliminadas');
+  goSub('codigos');
+}
+
 function importarSolicitud(){
   var raw = (document.getElementById('importSolInp').value||'').trim();
   if(!raw){ showToast('⚠ Pega el mensaje de la solicitud'); return; }
@@ -1026,10 +1034,10 @@ function importarSolicitud(){
 
     var solicitudes = JSON.parse(localStorage.getItem('usala_solicitudes')||'[]');
     var existe = solicitudes.find(function(s){
-      return s.contacto === data.contacto && s.nombre === data.nombre;
+      return s.estado === 'pendiente' && s.contacto === data.contacto;
     });
     if(existe){
-      showToast('⚠ Ya existe una solicitud de '+data.nombre);
+      showToast('⚠ Ya hay una solicitud pendiente de '+data.nombre+' — revísala en la lista');
       return;
     }
     solicitudes.push({
@@ -4125,6 +4133,7 @@ function renderCodigos(){
       +'<div id="importSolPanel" style="display:none;">'
         +'<textarea class="inp" id="importSolInp" placeholder="Pega aquí el mensaje completo que te mandó el usuario por WhatsApp..." style="height:90px;resize:none;font-size:0.75rem;"></textarea>'
         +'<button onclick="importarSolicitud()" style="width:100%;padding:11px;background:#25D366;color:#fff;border:none;border-radius:12px;font-family:Outfit,sans-serif;font-weight:800;font-size:0.85rem;cursor:pointer;margin-top:6px;">✅ Registrar solicitud</button>'
+      +'<button onclick="limpiarTodasSolicitudes()" style="width:100%;padding:8px;background:none;border:none;color:var(--dim);font-family:Outfit,sans-serif;font-size:0.72rem;cursor:pointer;margin-top:4px;">🗑 Limpiar todas las solicitudes</button>'
       +'</div>'
     +'</div>'
     +'<div class="card" style="margin-bottom:14px;">'
