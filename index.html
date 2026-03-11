@@ -4197,31 +4197,74 @@ function renderCodigos(){
     +(!codigos.length?'<div style="text-align:center;padding:32px 0;color:var(--dim);"><div style="font-size:2.5rem;margin-bottom:10px;">👥</div><div style="font-weight:800;margin-bottom:4px;">Sin usuarios registrados</div><div style="font-size:0.78rem;">Genera el primer código arriba</div></div>':'');
 }
 
+function _generarCodigoUnico(prefijo){
+  var chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // sin 0,O,1,I,L
+  function rnd4(){ var s=''; for(var i=0;i<4;i++) s+=chars[Math.floor(Math.random()*chars.length)]; return s; }
+  var cods = JSON.parse(localStorage.getItem('usala_codigos')||'[]');
+  var codigo = prefijo+'-'+rnd4();
+  var intentos = 0;
+  while(cods.find(function(x){ return x.codigo===codigo; }) && intentos++<20){
+    codigo = prefijo+'-'+rnd4();
+  }
+  return codigo;
+}
+
 function aprobarSolicitud(idx){
   var solicitudes=JSON.parse(localStorage.getItem('usala_solicitudes')||'[]');
   var s=solicitudes[idx]; if(!s) return;
-  // Generar código automático con nombre
-  var prefijo=(s.nombre.split(' ')[0]).substring(0,4).toUpperCase()||'USR';
-  var rand=(Date.now().toString(36).slice(-3)+Math.random().toString(36).substring(2,4)).toUpperCase();
-  var codigo=prefijo+'-'+rand;
-  // Garantizar unicidad
-  var codsCheck=JSON.parse(localStorage.getItem('usala_codigos')||'[]');
-  while(codsCheck.find(function(x){ return x.codigo===codigo; })){
-    rand=(Date.now().toString(36).slice(-3)+Math.random().toString(36).substring(2,4)).toUpperCase();
-    codigo=prefijo+'-'+rand;
+  // Mostrar modal de configuración antes de aprobar
+  _aprobarIdx = idx;
+  var mc = document.getElementById('aprobarModal');
+  if(!mc){
+    mc = document.createElement('div');
+    mc.id = 'aprobarModal';
+    mc.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;display:flex;align-items:flex-end;justify-content:center;';
+    mc.innerHTML =
+      '<div style="background:var(--card);border-radius:24px 24px 0 0;padding:24px 20px 32px;width:100%;max-width:480px;">'
+      +'<div style="font-weight:900;font-size:1rem;margin-bottom:4px;">✅ Aprobar solicitud</div>'
+      +'<div id="aprobarNombreLabel" style="font-size:0.8rem;color:var(--dim);margin-bottom:18px;"></div>'
+      +'<label class="inp-label">Prefijo del código</label>'
+      +'<input class="inp" id="aprobarPrefijo" maxlength="5" style="text-transform:uppercase;">'
+      +'<label class="inp-label">Vigencia del acceso</label>'
+      +'<select class="inp" id="aprobarVence">'
+        +'<option value="7">7 días</option>'
+        +'<option value="15">15 días</option>'
+        +'<option value="30" selected>1 mes</option>'
+        +'<option value="90">3 meses</option>'
+        +'<option value="180">6 meses</option>'
+        +'<option value="365">1 año</option>'
+      +'</select>'
+      +'<button onclick="_confirmarAprobacion()" style="width:100%;margin-top:14px;padding:14px;background:var(--accent2);color:#fff;border:none;border-radius:14px;font-family:Outfit,sans-serif;font-weight:800;font-size:0.92rem;cursor:pointer;">🔑 Generar código</button>'
+      +'<button onclick="cerrarAprobarModal()" style="width:100%;margin-top:8px;padding:12px;background:none;border:none;color:var(--dim);font-family:Outfit,sans-serif;font-size:0.85rem;cursor:pointer;">Cancelar</button>'
+      +'</div>';
+    document.body.appendChild(mc);
   }
-  var venc=new Date(); venc.setDate(venc.getDate()+30);
+  // Prefijo automático del nombre
+  var prefijoAuto = (s.nombre.split(' ')[0]).substring(0,4).toUpperCase()||'USR';
+  document.getElementById('aprobarPrefijo').value = prefijoAuto;
+  document.getElementById('aprobarNombreLabel').textContent = '👤 '+s.nombre+(s.contacto?' · 📞 '+s.contacto:'');
+  mc.style.display = 'flex';
+}
+
+function cerrarAprobarModal(){ var m=document.getElementById('aprobarModal'); if(m) m.remove(); }
+var _aprobarIdx = -1;
+function _confirmarAprobacion(){
+  var solicitudes=JSON.parse(localStorage.getItem('usala_solicitudes')||'[]');
+  var s=solicitudes[_aprobarIdx]; if(!s) return;
+  var prefijo=(document.getElementById('aprobarPrefijo').value.trim().toUpperCase()||'USR').substring(0,5);
+  var dias=parseInt(document.getElementById('aprobarVence').value)||30;
+  var codigo=_generarCodigoUnico(prefijo);
+  var venc=new Date(); venc.setDate(venc.getDate()+dias);
   var vencStr=venc.toISOString().split('T')[0];
   var codigos=JSON.parse(localStorage.getItem('usala_codigos')||'[]');
   codigos.push({codigo:codigo,vencimiento:vencStr,nota:s.nombre,contacto:s.contacto||'',activo:true,usado:false,creado:today()});
   localStorage.setItem('usala_codigos',JSON.stringify(codigos));
-  // Marcar solicitud como aprobada
-  solicitudes[idx].estado='aprobada';
-  solicitudes[idx].codigoGenerado=codigo;
+  solicitudes[_aprobarIdx].estado='aprobada';
+  solicitudes[_aprobarIdx].codigoGenerado=codigo;
   localStorage.setItem('usala_solicitudes',JSON.stringify(solicitudes));
-  // Copiar código al portapapeles
   navigator.clipboard.writeText(codigo).catch(function(){});
-  showToast('✅ Código '+codigo+' generado y copiado — compártelo con '+s.nombre);
+  var modal=document.getElementById('aprobarModal'); if(modal) modal.remove();
+  showToast('✅ Código '+codigo+' copiado — envíaselo a '+s.nombre);
   goSub('codigos');
 }
 
@@ -4240,14 +4283,7 @@ function generarCodigo(){
   var nota=document.getElementById('codNota').value.trim();
   var contacto=document.getElementById('codContacto').value.trim();
   if(!nota){ showToast('⚠ Escribe el nombre del usuario'); return; }
-  var rand=(Date.now().toString(36).slice(-3)+Math.random().toString(36).substring(2,4)).toUpperCase();
-  var codigo=prefijo+'-'+rand;
-  // Garantizar unicidad
-  var codsCheck2=JSON.parse(localStorage.getItem('usala_codigos')||'[]');
-  while(codsCheck2.find(function(x){ return x.codigo===codigo; })){
-    rand=(Date.now().toString(36).slice(-3)+Math.random().toString(36).substring(2,4)).toUpperCase();
-    codigo=prefijo+'-'+rand;
-  }
+  var codigo=_generarCodigoUnico(prefijo);
   var venc=new Date(); venc.setDate(venc.getDate()+dias);
   var vencStr=venc.toISOString().split('T')[0];
   var codigos=JSON.parse(localStorage.getItem('usala_codigos')||'[]');
