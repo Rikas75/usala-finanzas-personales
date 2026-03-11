@@ -465,11 +465,24 @@ select.inp{appearance:none;-webkit-appearance:none;}
     </div>
 
     <!-- Panel: Solicitud enviada -->
-    <div class="access-card" id="panelEnviada" style="display:none;text-align:center;padding:32px 20px;">
-      <div style="font-size:3rem;margin-bottom:12px;">✅</div>
-      <div class="access-title">¡Solicitud enviada!</div>
-      <div class="access-sub" style="margin-top:8px;">El administrador revisará tu solicitud y te contactará para darte acceso.<br><br>Cuando tengas tu código, regresa aquí e ingrésalo.</div>
-      <button onclick="mostrarPanelCodigo()" style="margin-top:20px;width:100%;padding:13px;background:var(--accent);color:var(--navtext);border:none;border-radius:14px;font-family:Outfit,sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;">← Volver al login</button>
+    <div class="access-card" id="panelEnviada" style="display:none;text-align:center;padding:28px 20px;">
+      <div style="font-size:3rem;margin-bottom:10px;">📩</div>
+      <div class="access-title">¡Solicitud lista!</div>
+      <div class="access-sub" style="margin-top:6px;margin-bottom:18px;">Ahora <strong>envíala al administrador</strong> para que pueda registrarla y darte acceso.</div>
+      <!-- Botones de envío -->
+      <a id="_solWaBtn" href="#" target="_blank"
+        style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px;background:#25D366;color:#fff;border:none;border-radius:14px;font-family:Outfit,sans-serif;font-size:0.92rem;font-weight:800;cursor:pointer;margin-bottom:10px;text-decoration:none;">
+        <span style="font-size:1.2rem;">📲</span> Enviar por WhatsApp
+      </a>
+      <button id="_solCopyBtn"
+        style="width:100%;padding:14px;background:var(--inp);color:var(--text);border:1.5px solid var(--border);border-radius:14px;font-family:Outfit,sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;margin-bottom:18px;">
+        📋 Copiar mensaje
+      </button>
+      <input type="hidden" id="_solPayload" value="">
+      <div style="font-size:0.75rem;color:var(--dim);margin-bottom:18px;line-height:1.5;">
+        El admin pegará el mensaje en la app para registrar tu solicitud automáticamente.
+      </div>
+      <button onclick="mostrarPanelCodigo()" style="width:100%;padding:13px;background:var(--accent);color:var(--navtext);border:none;border-radius:14px;font-family:Outfit,sans-serif;font-size:0.88rem;font-weight:700;cursor:pointer;">← Ya envié, volver al login</button>
     </div>
   </div>
 </div>
@@ -937,6 +950,7 @@ function enviarSolicitud(){
     msg.textContent='⚠ Completa todos los campos';
     msg.style.display='block'; msg.style.color='var(--danger)'; return;
   }
+  // Guardar en localStorage (funciona si usan el mismo dispositivo/navegador)
   var solicitudes = JSON.parse(localStorage.getItem('usala_solicitudes')||'[]');
   solicitudes.push({
     id: Date.now(),
@@ -947,8 +961,59 @@ function enviarSolicitud(){
     estado: 'pendiente'
   });
   localStorage.setItem('usala_solicitudes', JSON.stringify(solicitudes));
+  // Generar código de solicitud para compartir con el admin
+  var payload = btoa(unescape(encodeURIComponent(JSON.stringify({
+    tipo: 'USALA_SOL',
+    nombre: nombre,
+    motivo: motivo,
+    contacto: contacto,
+    fecha: today()
+  }))));
+  document.getElementById('_solPayload').value = payload;
   document.getElementById('panelSolicitud').style.display='none';
   document.getElementById('panelEnviada').style.display='block';
+  // Rellenar mensaje de WhatsApp
+  var txt = '🔑 *Solicitud USALA*\n'
+    + '👤 Nombre: '+nombre+'\n'
+    + '📞 Contacto: '+contacto+'\n'
+    + '💬 Motivo: '+motivo+'\n'
+    + '📋 Código solicitud:\n'+payload;
+  var wa = document.getElementById('_solWaBtn');
+  if(wa) wa.href = 'https://wa.me/?text='+encodeURIComponent(txt);
+  var copybtn = document.getElementById('_solCopyBtn');
+  if(copybtn) copybtn.onclick = function(){
+    navigator.clipboard.writeText(txt).catch(function(){});
+    showToast('✓ Mensaje copiado');
+  };
+}
+
+function importarSolicitud(){
+  var raw = (document.getElementById('importSolInp').value||'').trim();
+  if(!raw){ showToast('⚠ Pega el código de solicitud'); return; }
+  try {
+    var data = JSON.parse(decodeURIComponent(escape(atob(raw))));
+    if(data.tipo !== 'USALA_SOL') throw new Error('inválido');
+    var solicitudes = JSON.parse(localStorage.getItem('usala_solicitudes')||'[]');
+    // Evitar duplicados
+    var existe = solicitudes.find(function(s){ return s.contacto===data.contacto && s.nombre===data.nombre; });
+    if(existe){ showToast('⚠ Esta solicitud ya existe'); return; }
+    solicitudes.push({
+      id: Date.now(),
+      nombre: data.nombre,
+      motivo: data.motivo,
+      contacto: data.contacto,
+      fecha: data.fecha || today(),
+      estado: 'pendiente'
+    });
+    localStorage.setItem('usala_solicitudes', JSON.stringify(solicitudes));
+    actualizarBadgeSolicitudes();
+    document.getElementById('importSolInp').value = '';
+    document.getElementById('importSolPanel').style.display = 'none';
+    showToast('✅ Solicitud de '+data.nombre+' registrada');
+    goSub('codigos');
+  } catch(e) {
+    showToast('⚠ Código inválido — verifica que lo pegaste completo');
+  }
 }
 
 // Lookup en tiempo real: si el código ya tiene nombre guardado, ocultamos el campo
@@ -3992,6 +4057,18 @@ function renderCodigos(){
     +'<div class="stat-grid" style="margin-bottom:14px;">'
       +'<div class="stat-card"><div class="stat-label">👥 Total registrados</div><div class="stat-val">'+codigos.length+'</div></div>'
       +'<div class="stat-card"><div class="stat-label">✅ Con acceso activo</div><div class="stat-val" style="color:var(--accent2);">'+activos.length+'</div></div>'
+    +'</div>'
+    +'<div class="card" style="margin-bottom:14px;border:1.5px solid rgba(37,211,102,0.25);">'
+      +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'
+        +'<div style="font-size:1.4rem;">📲</div>'
+        +'<div><div style="font-weight:900;font-size:0.88rem;">¿Te mandaron una solicitud?</div>'
+        +'<div style="font-size:0.72rem;color:var(--dim);">Pega el mensaje del usuario para registrarla al instante</div></div>'
+        +'<button onclick="document.getElementById(\'importSolPanel\').style.display=document.getElementById(\'importSolPanel\').style.display===\'none\'?\'block\':\'none\'" style="margin-left:auto;background:rgba(37,211,102,0.12);color:#25D366;border:1.5px solid rgba(37,211,102,0.25);border-radius:10px;padding:6px 12px;font-family:Outfit,sans-serif;font-size:0.75rem;font-weight:800;cursor:pointer;flex-shrink:0;">+ Pegar</button>'
+      +'</div>'
+      +'<div id="importSolPanel" style="display:none;">'
+        +'<textarea class="inp" id="importSolInp" placeholder="Pega aquí el mensaje completo que te envió el usuario..." style="height:90px;resize:none;font-size:0.75rem;"></textarea>'
+        +'<button onclick="importarSolicitud()" style="width:100%;padding:11px;background:#25D366;color:#fff;border:none;border-radius:12px;font-family:Outfit,sans-serif;font-weight:800;font-size:0.85rem;cursor:pointer;margin-top:6px;">✅ Registrar solicitud</button>'
+      +'</div>'
     +'</div>'
     +'<div class="card" style="margin-bottom:14px;">'
       +'<div class="card-title">➕ Nuevo usuario</div>'
@@ -8444,4 +8521,4 @@ function procesarComandoVoz(t){
 }
 </script>
 </body>
-      </html>
+    </html>
