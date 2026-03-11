@@ -1805,8 +1805,12 @@ function renderInicio(){
       var _pp=loadPagosBase(),_pe=loadPagosEstado(),_n=0;
       _pp.forEach(function(p){
         if(_pe[p.id]&&_pe[p.id].pagado) return;
-        var _f=p.proximoPago?new Date(p.proximoPago):new Date(_h.getFullYear(),_h.getMonth(),p.dia||1);
-        _f.setHours(0,0,0,0); if(Math.round((_f-_h)/86400000)<=7) _n++;
+        var _dia=Math.min(p.dia||1,28);
+        var _f=p.proximoPago?(function(){ var _pts=p.proximoPago.split('-'); return new Date(+_pts[0],+_pts[1]-1,+_pts[2]); })():new Date(_h.getFullYear(),_h.getMonth(),_dia);
+        _f.setHours(0,0,0,0);
+        // Si el día ya pasó este mes y no tiene proximoPago → mes siguiente
+        if(!p.proximoPago && _f<_h) _f.setMonth(_f.getMonth()+1);
+        if(Math.round((_f-_h)/86400000)<=7) _n++;
       });
       load('creditos',[]).forEach(function(c){
         if(c.estado==='pagado'||!c.fechaLimite) return;
@@ -4290,11 +4294,18 @@ function _ppGetPagos(){
         iter.setMonth(iter.getMonth() + mesesFrec);
       }
     } else if(p.dia){
-      // Usar día del mes
-      for(var m=0; m<12; m+=mesesFrec){
-        var d = new Date(anioAct, m, Math.min(p.dia, 28));
-        d.setHours(0,0,0,0);
-        if(d >= hoy) fechasOcurr.push(d);
+      // Calcular próxima fecha con el mismo fix: si el día ya pasó este mes → mes siguiente
+      var dia = Math.min(p.dia, 28);
+      var fBase = new Date(anioAct, mesAct, dia); fBase.setHours(0,0,0,0);
+      // Si ya pasó este mes, retroceder un mes para incluir el vencido
+      var startMes = (fBase < hoy) ? mesAct : mesAct;
+      // Siempre incluir el vencimiento del mes actual (aunque sea pasado = vencido)
+      var fActual = new Date(anioAct, mesAct, dia); fActual.setHours(0,0,0,0);
+      fechasOcurr.push(fActual);
+      // Agregar ocurrencias futuras del resto del año
+      for(var m=mesAct+mesesFrec; m<12; m+=mesesFrec){
+        var d2 = new Date(anioAct, m, dia); d2.setHours(0,0,0,0);
+        fechasOcurr.push(d2);
       }
     }
 
@@ -4344,11 +4355,13 @@ function _ppFiltrar(lista, tab){
   var hoy   = new Date(); hoy.setHours(0,0,0,0);
   var fin;
   if(tab==='hoy'){
-    return lista.filter(function(p){ return p.diffDias <= 0 || p.diffDias === 0; });
+    // Hoy = vencidos + vence hoy
+    return lista.filter(function(p){ return p.diffDias <= 0; });
   }
   if(tab==='semana'){
     fin = new Date(hoy); fin.setDate(fin.getDate()+7);
-    return lista.filter(function(p){ return p.fecha<=fin && p.fecha>=new Date(hoy.getTime()-86400000); });
+    // Incluir vencidos + los de esta semana
+    return lista.filter(function(p){ return p.fecha<=fin; });
   }
   if(tab==='mes'){
     fin = new Date(hoy.getFullYear(), hoy.getMonth()+1, 0);
