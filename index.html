@@ -280,6 +280,21 @@ html,body{height:100%;font-family:'Outfit',sans-serif;background:var(--bg);color
 .pp-section-title{font-size:0.62rem;font-weight:800;text-transform:uppercase;letter-spacing:0.09em;color:var(--dim);padding:12px 0 6px;}
 .pp-btn-abrir{display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--card);border-radius:14px;padding:14px 10px;box-shadow:var(--shadow);cursor:pointer;border:1.5px solid var(--border);gap:2px;transition:all 0.15s;}
 .pp-btn-abrir:active{transform:scale(0.96);}
+/* ── AUTOLOCK ── */
+.lock-screen{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);animation:fadeIn 0.3s;}
+.lock-card{background:var(--card);border-radius:28px;padding:32px 28px;width:90%;max-width:340px;box-shadow:0 24px 60px rgba(0,0,0,0.25);text-align:center;}
+.lock-avatar{width:72px;height:72px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:2rem;margin:0 auto 14px;box-shadow:0 8px 24px rgba(0,0,0,0.15);}
+.lock-nombre{font-size:1.1rem;font-weight:900;margin-bottom:4px;}
+.lock-sub{font-size:0.75rem;color:var(--dim);margin-bottom:22px;}
+.lock-dots{display:flex;justify-content:center;gap:12px;margin-bottom:20px;}
+.lock-dot{width:14px;height:14px;border-radius:50%;background:var(--border);transition:background 0.15s;}
+.lock-dot.filled{background:var(--accent);}
+.lock-dot.error{background:#e53935;}
+.lock-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:240px;margin:0 auto;}
+.lock-key{height:56px;border-radius:16px;border:1.5px solid var(--border);background:var(--inp);font-family:'Outfit',sans-serif;font-size:1.2rem;font-weight:700;cursor:pointer;color:var(--text);transition:all 0.1s;}
+.lock-key:active{transform:scale(0.92);background:var(--accent);color:var(--navtext);}
+.lock-key.del{font-size:1rem;}
+.lock-timeout-badge{display:inline-block;font-size:0.65rem;font-weight:800;padding:3px 10px;border-radius:20px;background:var(--accent);color:var(--navtext);margin-bottom:16px;}
 .cat-add-btn{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:20px;border:1.5px dashed var(--accent);background:transparent;color:var(--accent);font-family:'Outfit',sans-serif;font-size:0.74rem;font-weight:700;cursor:pointer;margin-top:5px;transition:all 0.18s;}
 .cat-add-btn:hover{background:var(--accent);color:var(--navtext);}
 .cat-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:10000;display:flex;align-items:flex-end;justify-content:center;animation:fadeIn 0.15s;}
@@ -653,6 +668,40 @@ select.inp{appearance:none;-webkit-appearance:none;}
       <button class="pp-tab" onclick="ppSetTab('año',this)">📆 Este año</button>
     </div>
     <div class="pp-body" id="ppBody"></div>
+  </div>
+</div>
+
+<!-- PANTALLA DE BLOQUEO AUTOMÁTICO -->
+<div id="lockScreen" class="lock-screen" style="display:none;">
+  <div class="lock-card">
+    <div class="lock-avatar">🔒</div>
+    <div class="lock-nombre" id="lockNombre">Hola</div>
+    <div class="lock-sub">La app se bloqueó por inactividad</div>
+    <div class="lock-timeout-badge" id="lockTimeBadge">⏱ Bloqueado automáticamente</div>
+    <div class="lock-dots" id="lockDots">
+      <div class="lock-dot" id="ld0"></div>
+      <div class="lock-dot" id="ld1"></div>
+      <div class="lock-dot" id="ld2"></div>
+      <div class="lock-dot" id="ld3"></div>
+    </div>
+    <div id="lockErr" style="font-size:0.75rem;color:#e53935;min-height:18px;margin-bottom:8px;font-weight:700;"></div>
+    <div class="lock-pad">
+      <button class="lock-key" onclick="lockKey('1')">1</button>
+      <button class="lock-key" onclick="lockKey('2')">2</button>
+      <button class="lock-key" onclick="lockKey('3')">3</button>
+      <button class="lock-key" onclick="lockKey('4')">4</button>
+      <button class="lock-key" onclick="lockKey('5')">5</button>
+      <button class="lock-key" onclick="lockKey('6')">6</button>
+      <button class="lock-key" onclick="lockKey('7')">7</button>
+      <button class="lock-key" onclick="lockKey('8')">8</button>
+      <button class="lock-key" onclick="lockKey('9')">9</button>
+      <button class="lock-key del" onclick="lockCerrarSesion()" style="font-size:0.65rem;color:var(--dim);">Salir</button>
+      <button class="lock-key" onclick="lockKey('0')">0</button>
+      <button class="lock-key del" onclick="lockDel()">⌫</button>
+    </div>
+    <div id="lockNoNipMsg" style="display:none;margin-top:16px;">
+      <button class="btn-main" onclick="lockDesbloquear()" style="width:100%;">🔓 Desbloquear</button>
+    </div>
   </div>
 </div>
 
@@ -1157,6 +1206,8 @@ function recuperarAdmin(){
 // ══════════════════════════════════════════
 function initDashboard(){
   showScreen('dashboard');
+  _lockIniciarEscuchas();
+  _lockReiniciar();
   // Mostrar botón U flotante
   var ub = document.getElementById('uFabBtn');
   if(ub) ub.style.display = 'flex';
@@ -1267,6 +1318,7 @@ function goSub(sub){
   if(sub==='ingresos_activos'){ document.getElementById('mainContent').innerHTML=renderIngresosActivos(); return; }
   if(sub==='progreso'){ renderProgreso(); return; }
   if(sub==='presupuesto'){ renderPresupuesto(); return; }
+  if(sub==='autolock'){ abrirConfigAutolock(); return; }
   var fn = renders[sub];
   if(fn) document.getElementById('mainContent').innerHTML = fn();
 }
@@ -3971,6 +4023,9 @@ function renderConfig(){
     +'<div class="set-item" onclick="pickTema()"><div><div class="set-label">🎨 Cambiar tema</div></div><div class="set-arrow">›</div></div>'
     +'<div class="set-item" onclick="abrirSelectorMoneda()"><div><div class="set-label">💱 Moneda de la app</div><div class="set-sub">'+_getMonedaApp()+'</div></div><div class="set-arrow">›</div></div>'
     +'<div class="set-item" onclick="abrirConfigNip()"><div><div class="set-label">🔒 NIP de seguridad</div><div class="set-sub">'+(localStorage.getItem('usala_nip_'+(S.user&&S.user.isAdmin?'admin':'u_'+(S.user&&S.user.codigo)))?'Activado ✓':'Sin NIP')+'</div></div><div class="set-arrow">›</div></div>'
+    +'<div class="set-item" onclick="abrirConfigAutolock()"><div><div class="set-label">⏱ Bloqueo automático</div><div class="set-sub" id="autolockSubLabel">'
+    +(function(){ var m=getLockTimeout(); var op=LOCK_OPCIONES.find(function(o){return o.val===m;}); return op?op.label:'Desactivado'; })()
+    +'</div></div><div class="set-arrow">›</div></div>'
     +'<div class="set-item" onclick="restablecerMic()"><div><div class="set-label">🎤 Restablecer micrófono</div><div class="set-sub" id="micEstadoLabel">'+_getMicEstado()+'</div></div><div class="set-arrow">›</div></div>'
     +'<div class="set-item" onclick="goSub(\'version\')"><div><div class="set-label">📋 Versión</div><div class="set-sub">v'+APP_VERSION+'</div></div><div class="set-arrow">›</div></div>'
     +'<div class="set-item" onclick="cerrarSesion()"><div><div class="set-label" style="color:var(--danger);">🚪 Cerrar sesión</div></div><div class="set-arrow">›</div></div>'
@@ -4538,6 +4593,203 @@ function _ppMkItem(p){
 
   row.appendChild(dot); row.appendChild(ico); row.appendChild(info); row.appendChild(right);
   return row;
+}
+
+
+// ══════════════════════════════════════════════════════
+// SISTEMA AUTOLOCK — Bloqueo automático por inactividad
+// ══════════════════════════════════════════════════════
+var _lockTimer    = null;
+var _lockPin      = '';
+var _lockActivo   = false;
+
+// Tiempos disponibles en minutos (0 = desactivado)
+var LOCK_OPCIONES = [
+  {val:0,   label:'Desactivado'},
+  {val:1,   label:'1 minuto'},
+  {val:2,   label:'2 minutos'},
+  {val:5,   label:'5 minutos'},
+  {val:10,  label:'10 minutos'},
+  {val:15,  label:'15 minutos'},
+  {val:30,  label:'30 minutos'},
+  {val:60,  label:'1 hora'}
+];
+
+function _lockKey(){
+  var u = S.user;
+  if(!u) return null;
+  return 'usala_autolock_' + (u.isAdmin ? 'admin' : 'u_'+u.codigo);
+}
+
+function getLockTimeout(){
+  var k = _lockKey();
+  if(!k) return 0;
+  return parseInt(localStorage.getItem(k)||'0', 10);
+}
+
+function setLockTimeout(minutos){
+  var k = _lockKey();
+  if(!k) return;
+  if(minutos===0){ localStorage.removeItem(k); }
+  else { localStorage.setItem(k, String(minutos)); }
+  _lockReiniciar();
+  showToast(minutos===0 ? '🔓 Bloqueo automático desactivado' : '⏱ Se bloqueará tras '+minutos+' min de inactividad');
+}
+
+// Reiniciar el timer cada vez que hay actividad
+function _lockReiniciar(){
+  if(_lockTimer) clearTimeout(_lockTimer);
+  var mins = getLockTimeout();
+  if(!mins || _lockActivo) return;
+  _lockTimer = setTimeout(function(){ _lockBloqueAhora(); }, mins * 60 * 1000);
+}
+
+// Actividades que resetean el timer
+function _lockActividad(){
+  if(_lockActivo) return;
+  _lockReiniciar();
+}
+
+// Bloquear ahora
+function _lockBloqueAhora(){
+  if(!S.user) return;
+  _lockActivo = true;
+  if(_lockTimer) clearTimeout(_lockTimer);
+  // Preparar pantalla
+  var nombre = S.user.nombre || 'Usuario';
+  document.getElementById('lockNombre').textContent = nombre.split(' ')[0];
+  var mins = getLockTimeout();
+  document.getElementById('lockTimeBadge').textContent = '⏱ Bloqueado tras '+mins+' min sin uso';
+  // Ver si tiene NIP
+  var nipK = S.user.isAdmin ? 'usala_nip_admin' : 'usala_nip_u_'+S.user.codigo;
+  var tieneNip = !!localStorage.getItem(nipK);
+  document.getElementById('lockNoNipMsg').style.display = tieneNip ? 'none' : 'block';
+  // Reset dots
+  _lockPin = '';
+  _lockActualizarDots();
+  document.getElementById('lockErr').textContent = '';
+  document.getElementById('lockScreen').style.display = 'flex';
+}
+
+// Teclado del lock
+function lockKey(d){
+  if(_lockPin.length >= 4) return;
+  _lockPin += d;
+  _lockActualizarDots();
+  if(_lockPin.length === 4) setTimeout(_lockVerificar, 120);
+}
+function lockDel(){
+  _lockPin = _lockPin.slice(0,-1);
+  _lockActualizarDots();
+  document.getElementById('lockErr').textContent='';
+}
+function _lockActualizarDots(){
+  for(var i=0;i<4;i++){
+    var dot = document.getElementById('ld'+i);
+    dot.classList.toggle('filled', i < _lockPin.length);
+    dot.classList.remove('error');
+  }
+}
+function _lockVerificar(){
+  var nipK = S.user.isAdmin ? 'usala_nip_admin' : 'usala_nip_u_'+S.user.codigo;
+  var nip  = localStorage.getItem(nipK);
+  if(nip && _lockPin === nip){
+    lockDesbloquear();
+  } else {
+    // Error visual
+    for(var i=0;i<4;i++) document.getElementById('ld'+i).classList.add('error');
+    document.getElementById('lockErr').textContent = '⚠ NIP incorrecto';
+    setTimeout(function(){
+      _lockPin=''; _lockActualizarDots();
+      document.getElementById('lockErr').textContent='';
+    }, 900);
+  }
+}
+function lockDesbloquear(){
+  _lockActivo = false;
+  _lockPin    = '';
+  document.getElementById('lockScreen').style.display = 'none';
+  _lockReiniciar(); // reiniciar timer
+}
+function lockCerrarSesion(){
+  document.getElementById('lockScreen').style.display = 'none';
+  _lockActivo = false;
+  cerrarSesion();
+}
+
+// Capturar TODA actividad del usuario
+function _lockIniciarEscuchas(){
+  ['touchstart','mousedown','keydown','scroll'].forEach(function(ev){
+    document.addEventListener(ev, _lockActividad, {passive:true});
+  });
+}
+
+
+function abrirConfigAutolock(){
+  var mc = document.getElementById('mainContent');
+  mc.innerHTML = '';
+  var actual = getLockTimeout();
+
+  var d = document.createElement('div');
+  d.style.padding = '20px 16px';
+
+  // Header
+  d.innerHTML =
+    '<div class="page-header">'+backSubBtn()+'<div class="page-title">⏱ Bloqueo automático</div></div>'
+    +'<div style="font-size:0.8rem;color:var(--dim);margin-bottom:20px;line-height:1.5;">'
+      +'Bloquea la app automáticamente si no la usas durante el tiempo elegido. '
+      +'Al bloquearse pedirá tu NIP para volver a entrar.'
+    +'</div>';
+
+  // Opciones de tiempo como lista de selección
+  var lista = document.createElement('div');
+  lista.className = 'card';
+  lista.style.padding = '4px 0';
+
+  LOCK_OPCIONES.forEach(function(op){
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:14px 18px;cursor:pointer;border-bottom:1px solid var(--border);transition:background 0.1s;';
+    row.innerHTML =
+      '<div style="font-weight:600;font-size:0.9rem;">'+(op.val===0?'🔓 ':'⏱ ')+op.label+'</div>'
+      +'<div id="lockOpt_'+op.val+'" style="font-size:1.1rem;">'+(op.val===actual?'✅':'')+'</div>';
+    row.onmouseenter = function(){ this.style.background='var(--inp)'; };
+    row.onmouseleave = function(){ this.style.background=''; };
+    (function(v, lbl){
+      row.onclick = function(){
+        setLockTimeout(v);
+        // Actualizar checkmarks
+        LOCK_OPCIONES.forEach(function(o){
+          var el=document.getElementById('lockOpt_'+o.val);
+          if(el) el.textContent = (o.val===v?'✅':'');
+        });
+        // Actualizar sublabel en config
+        var sub = document.getElementById('autolockSubLabel');
+        if(sub) sub.textContent = lbl;
+      };
+    })(op.val, op.label);
+    lista.appendChild(row);
+  });
+
+  // Quitar borde al último
+  lista.lastChild.style.borderBottom = 'none';
+
+  // Nota si no tiene NIP
+  var nipK = S.user && S.user.isAdmin ? 'usala_nip_admin' : 'usala_nip_u_'+(S.user&&S.user.codigo);
+  var tieneNip = !!localStorage.getItem(nipK);
+  var nota = document.createElement('div');
+  nota.style.cssText = 'font-size:0.74rem;margin-top:12px;padding:10px 14px;border-radius:12px;'
+    +(tieneNip
+      ? 'background:rgba(45,158,95,0.08);color:var(--accent2);border:1px solid rgba(45,158,95,0.2);'
+      : 'background:rgba(245,124,0,0.08);color:#f57c00;border:1px solid rgba(245,124,0,0.2);');
+  nota.innerHTML = tieneNip
+    ? '🔒 Tienes NIP activo — se pedirá al desbloquear'
+    : '⚠️ No tienes NIP configurado. Al bloquearse solo habrá un botón de desbloquear. <b>Configura tu NIP para mayor seguridad.</b>';
+
+  d.appendChild(lista);
+  d.appendChild(nota);
+  mc.appendChild(d);
+  // Redirigir a goSub config al usar backSubBtn
+  S.subtab = 'config';
 }
 
 function abrirCatModal(tipo, selectId){
@@ -5752,4 +6004,4 @@ function procesarComandoVoz(t){
 
 </script>
 </body>
-        </html>
+  </html>
