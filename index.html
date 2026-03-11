@@ -101,8 +101,8 @@ html,body{height:100%;font-family:Outfit,sans-serif;background:var(--bg);color:v
   overflow-y:auto;
 }
 .lg-wrap{width:100%;max-width:390px;margin:0 auto;padding:32px 22px 48px;display:flex;flex-direction:column;align-items:center;}
-.lg-logo{font-size:2.6rem;font-weight:900;letter-spacing:-0.04em;color:var(--accent);line-height:1;}
-.lg-sub{font-size:0.72rem;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--dim);margin-top:4px;margin-bottom:36px;}
+.lg-logo{font-size:2.6rem;font-weight:900;letter-spacing:-0.04em;color:var(--accent);line-height:1;text-align:center;}
+.lg-sub{font-size:0.72rem;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:var(--dim);margin-top:4px;margin-bottom:0;text-align:center;}
 .lg-card{width:100%;background:var(--card);border-radius:24px;padding:28px 24px;box-shadow:var(--shadow);margin-bottom:16px;}
 .lg-avatar{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:900;color:#fff;margin:0 auto 12px;box-shadow:0 8px 24px rgba(0,0,0,0.15);}
 .lg-greeting{font-size:0.65rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--dim);text-align:center;margin-bottom:4px;}
@@ -372,9 +372,9 @@ select.inp{appearance:none;-webkit-appearance:none;}
 <div class="lg-wrap">
 
   <!-- Logo -->
-  <div style="text-align:center;margin-bottom:32px;">
-    <div class="lg-logo">USALA</div>
-    <div class="lg-sub">Finanzas Personales</div>
+  <div style="text-align:center;width:100%;margin-bottom:32px;">
+    <div class="lg-logo" style="text-align:center;">USALA</div>
+    <div class="lg-sub" style="text-align:center;">Finanzas Personales</div>
   </div>
 
   <!-- ── PANEL: Sesión recordada ── -->
@@ -1138,6 +1138,11 @@ function mostrarPanelConNip(nombre){
 // Mantener compatibilidad con nipSig/nipBack viejos (por si quedaron refs)
 function nipSig(el,nextId){ }
 function nipBack(e,el,prevId){ }
+
+function nipKey(){
+  if(!_sesionPendiente) return null;
+  return _sesionPendiente.isAdmin ? 'usala_nip_admin' : 'usala_nip_u_' + _sesionPendiente.codigo;
+}
 
 function verificarNip(){
   var key=nipKey();
@@ -8469,4 +8474,4 @@ function procesarComandoVoz(t){
 }
 </script>
 </body>
-                                                          </html>
+        </html>
