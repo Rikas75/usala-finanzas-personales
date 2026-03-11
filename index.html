@@ -398,15 +398,25 @@ select.inp{appearance:none;-webkit-appearance:none;}
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:22px;">
         <div style="font-size:2.4rem;line-height:1;">🔑</div>
         <div>
-          <div style="font-size:1.2rem;font-weight:900;color:#1a2b4a;line-height:1.2;">Código de acceso</div>
-          <div style="font-size:0.8rem;color:#7a90b8;margin-top:3px;line-height:1.4;">Ingresa el código que te compartieron</div>
+          <div id="accTitulo" style="font-size:1.2rem;font-weight:900;color:#1a2b4a;line-height:1.2;">Código de acceso</div>
+          <div id="accSubtitulo" style="font-size:0.8rem;color:#7a90b8;margin-top:3px;line-height:1.4;">Ingresa el código que te compartieron</div>
         </div>
       </div>
+      <!-- Saludo de regreso (se muestra cuando el nombre ya está guardado) -->
+      <div id="accSaludo" style="display:none;background:#f0f7ff;border-radius:12px;padding:12px 14px;margin-bottom:14px;border:1.5px solid #c8deff;">
+        <div style="font-size:0.75rem;color:#7a90b8;font-weight:700;">👋 ¡Bienvenido de regreso!</div>
+        <div id="accSaludoNombre" style="font-size:1rem;font-weight:900;color:#1a2b4a;margin-top:2px;"></div>
+      </div>
       <div id="accessErr" class="access-err">Código incorrecto o vencido</div>
-      <label class="inp-label">Tu nombre</label>
-      <input class="inp" id="accNombre" placeholder="¿Cómo te llamas?" autocomplete="off">
+      <!-- Campo nombre: solo visible si es primera vez -->
+      <div id="accNombreRow">
+        <label class="inp-label">Tu nombre</label>
+        <input class="inp" id="accNombre" placeholder="¿Cómo te llamas?" autocomplete="off">
+      </div>
       <label class="inp-label">Código</label>
-      <input class="inp" id="accCodigo" placeholder="Ej: FIN-2026" autocomplete="off" style="font-family:'JetBrains Mono',monospace;letter-spacing:0.08em;" onkeydown="if(event.key==='Enter')verificarCodigo()">
+      <input class="inp" id="accCodigo" placeholder="Ej: FIN-2026" autocomplete="off" style="font-family:'JetBrains Mono',monospace;letter-spacing:0.08em;"
+        oninput="accCodigoLookup(this.value)"
+        onkeydown="if(event.key==='Enter')verificarCodigo()">
       <button class="btn-main" onclick="verificarCodigo()">Entrar →</button>
       <div style="display:flex;align-items:center;gap:10px;margin:20px 0 10px;">
         <div style="flex:1;height:1.5px;background:#e2eaf8;"></div>
@@ -890,12 +900,44 @@ function enviarSolicitud(){
   document.getElementById('panelEnviada').style.display='block';
 }
 
+// Lookup en tiempo real: si el código ya tiene nombre guardado, ocultamos el campo
+function accCodigoLookup(val){
+  val = val.trim().toUpperCase();
+  if(val.length < 3){ _accMostrarNombreRow(true); return; }
+  var codigos = JSON.parse(localStorage.getItem('usala_codigos')||'[]');
+  var cod = codigos.find(function(c){ return c.codigo===val && c.activo; });
+  if(cod && cod.nombreUsuario){
+    // Ya tiene nombre — mostrar saludo y ocultar campo nombre
+    _accMostrarNombreRow(false, cod.nombreUsuario);
+  } else {
+    _accMostrarNombreRow(true);
+  }
+}
+
+function _accMostrarNombreRow(mostrar, nombre){
+  var row    = document.getElementById('accNombreRow');
+  var saludo = document.getElementById('accSaludo');
+  var saludoNombre = document.getElementById('accSaludoNombre');
+  var titulo = document.getElementById('accTitulo');
+  var sub    = document.getElementById('accSubtitulo');
+  if(mostrar){
+    row.style.display    = 'block';
+    saludo.style.display = 'none';
+    titulo.textContent   = 'Código de acceso';
+    sub.textContent      = 'Ingresa el código que te compartieron';
+  } else {
+    row.style.display      = 'none';
+    saludo.style.display   = 'block';
+    saludoNombre.textContent = nombre;
+    titulo.textContent     = '¡Hola, ' + nombre.split(' ')[0] + '!';
+    sub.textContent        = 'Confirma tu código para continuar';
+  }
+}
+
 function verificarCodigo(){
-  var nombre = document.getElementById('accNombre').value.trim();
   var codigo = document.getElementById('accCodigo').value.trim().toUpperCase();
   var err = document.getElementById('accessErr');
   err.style.display = 'none';
-  if(!nombre){ err.textContent='Ingresa tu nombre'; err.style.display='block'; return; }
   if(!codigo){ err.textContent='Ingresa el código'; err.style.display='block'; return; }
   var codigos = JSON.parse(localStorage.getItem('usala_codigos') || '[]');
   var hoy = new Date();
@@ -903,11 +945,14 @@ function verificarCodigo(){
   if(!cod){ err.textContent='Código incorrecto o no existe'; err.style.display='block'; return; }
   var venc = new Date(cod.vencimiento.split('-').join('/'));
   if(venc < hoy){ err.textContent='Este código ha vencido'; err.style.display='block'; return; }
-  // Marcar uso
+  // Nombre: del campo si es primera vez, o del guardado si ya entró antes
+  var nombreInp = document.getElementById('accNombre').value.trim();
+  var nombre = nombreInp || cod.nombreUsuario || '';
+  if(!nombre){ err.textContent='Ingresa tu nombre'; err.style.display='block'; document.getElementById('accNombreRow').style.display='block'; return; }
+  // Guardar nombre en el código para futuras sesiones
   cod.usado = true; cod.nombreUsuario = nombre; cod.fechaUso = today();
   localStorage.setItem('usala_codigos', JSON.stringify(codigos));
   S.user = { nombre: nombre, codigo: codigo, isAdmin: false };
-  // Guardar sesión para próxima vez
   localStorage.setItem('usala_session', JSON.stringify({ nombre: nombre, codigo: codigo }));
   initDashboard();
 }
@@ -4132,6 +4177,7 @@ function cerrarSesion(){
   S.user=null; S.tab='inicio';
   document.getElementById('accNombre').value='';
   document.getElementById('accCodigo').value='';
+  _accMostrarNombreRow(true);  // resetear UI al estado inicial
   document.getElementById('panelSesion').style.display='none';
   document.getElementById('panelCodigo').style.display='block';
   // Ocultar botón U
