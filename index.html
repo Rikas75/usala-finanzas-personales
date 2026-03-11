@@ -4158,8 +4158,14 @@ function aprobarSolicitud(idx){
   var s=solicitudes[idx]; if(!s) return;
   // Generar código automático con nombre
   var prefijo=(s.nombre.split(' ')[0]).substring(0,4).toUpperCase()||'USR';
-  var rand=Math.random().toString(36).substring(2,5).toUpperCase();
+  var rand=(Date.now().toString(36).slice(-3)+Math.random().toString(36).substring(2,4)).toUpperCase();
   var codigo=prefijo+'-'+rand;
+  // Garantizar unicidad
+  var codsCheck=JSON.parse(localStorage.getItem('usala_codigos')||'[]');
+  while(codsCheck.find(function(x){ return x.codigo===codigo; })){
+    rand=(Date.now().toString(36).slice(-3)+Math.random().toString(36).substring(2,4)).toUpperCase();
+    codigo=prefijo+'-'+rand;
+  }
   var venc=new Date(); venc.setDate(venc.getDate()+30);
   var vencStr=venc.toISOString().split('T')[0];
   var codigos=JSON.parse(localStorage.getItem('usala_codigos')||'[]');
@@ -4190,8 +4196,14 @@ function generarCodigo(){
   var nota=document.getElementById('codNota').value.trim();
   var contacto=document.getElementById('codContacto').value.trim();
   if(!nota){ showToast('⚠ Escribe el nombre del usuario'); return; }
-  var rand=Math.random().toString(36).substring(2,6).toUpperCase();
+  var rand=(Date.now().toString(36).slice(-3)+Math.random().toString(36).substring(2,4)).toUpperCase();
   var codigo=prefijo+'-'+rand;
+  // Garantizar unicidad
+  var codsCheck2=JSON.parse(localStorage.getItem('usala_codigos')||'[]');
+  while(codsCheck2.find(function(x){ return x.codigo===codigo; })){
+    rand=(Date.now().toString(36).slice(-3)+Math.random().toString(36).substring(2,4)).toUpperCase();
+    codigo=prefijo+'-'+rand;
+  }
   var venc=new Date(); venc.setDate(venc.getDate()+dias);
   var vencStr=venc.toISOString().split('T')[0];
   var codigos=JSON.parse(localStorage.getItem('usala_codigos')||'[]');
@@ -6436,54 +6448,6 @@ function desactivarCodigo(codigo){
 function copiarCodigo(c){ navigator.clipboard.writeText(c).catch(function(){}); showToast('✓ Copiado: '+c); }
 
 
-function aprobarSolicitud(idx){
-  var solicitudes=JSON.parse(localStorage.getItem('usala_solicitudes')||'[]');
-  var s=solicitudes[idx]; if(!s) return;
-  // Generar código automático con nombre
-  var prefijo=(s.nombre.split(' ')[0]).substring(0,4).toUpperCase()||'USR';
-  var rand=Math.random().toString(36).substring(2,5).toUpperCase();
-  var codigo=prefijo+'-'+rand;
-  var venc=new Date(); venc.setDate(venc.getDate()+30);
-  var vencStr=venc.toISOString().split('T')[0];
-  var codigos=JSON.parse(localStorage.getItem('usala_codigos')||'[]');
-  codigos.push({codigo:codigo,vencimiento:vencStr,nota:s.nombre,contacto:s.contacto||'',activo:true,usado:false,creado:today()});
-  localStorage.setItem('usala_codigos',JSON.stringify(codigos));
-  // Marcar solicitud como aprobada
-  solicitudes[idx].estado='aprobada';
-  solicitudes[idx].codigoGenerado=codigo;
-  localStorage.setItem('usala_solicitudes',JSON.stringify(solicitudes));
-  // Copiar código al portapapeles
-  navigator.clipboard.writeText(codigo).catch(function(){});
-  showToast('✅ Código '+codigo+' generado y copiado — compártelo con '+s.nombre);
-  goSub('codigos');
-}
-
-function rechazarSolicitud(idx){
-  if(!confirm('¿Rechazar esta solicitud?')) return;
-  var solicitudes=JSON.parse(localStorage.getItem('usala_solicitudes')||'[]');
-  solicitudes[idx].estado='rechazada';
-  localStorage.setItem('usala_solicitudes',JSON.stringify(solicitudes));
-  showToast('✓ Solicitud rechazada');
-  goSub('codigos');
-}
-
-function generarCodigo(){
-  var prefijo=document.getElementById('codPrefijo').value.trim().toUpperCase()||'FIN';
-  var dias=parseInt(document.getElementById('codVence').value);
-  var nota=document.getElementById('codNota').value.trim();
-  var contacto=document.getElementById('codContacto').value.trim();
-  if(!nota){ showToast('⚠ Escribe el nombre del usuario'); return; }
-  var rand=Math.random().toString(36).substring(2,6).toUpperCase();
-  var codigo=prefijo+'-'+rand;
-  var venc=new Date(); venc.setDate(venc.getDate()+dias);
-  var vencStr=venc.toISOString().split('T')[0];
-  var codigos=JSON.parse(localStorage.getItem('usala_codigos')||'[]');
-  codigos.push({codigo:codigo,vencimiento:vencStr,nota:nota,contacto:contacto,activo:true,usado:false,creado:today()});
-  localStorage.setItem('usala_codigos',JSON.stringify(codigos));
-  navigator.clipboard.writeText(codigo).catch(function(){});
-  showToast('✓ Código '+codigo+' copiado — compártelo con '+nota);
-  goSub('codigos');
-}
 function copiarCodigo(c){ navigator.clipboard.writeText(c).catch(function(){}); showToast('✓ Copiado: '+c); }
 
 // ══════════════════════════════════════════
