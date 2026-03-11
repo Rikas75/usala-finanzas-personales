@@ -2651,6 +2651,23 @@ function renderPagosMes(){
   var mesActKey = new Date().toISOString().slice(0,7);
   var mesNombre = hoy.toLocaleString('es-MX',{month:'long',year:'numeric'});
 
+  // Helpers definidos primero para que todo el scope los vea
+  function _calcFechaVenc(p, ref){
+    if(p.proximoPago){
+      var pts=p.proximoPago.split('-');
+      return new Date(+pts[0],+pts[1]-1,+pts[2]);
+    }
+    return new Date(ref.getFullYear(), ref.getMonth(), Math.min(p.dia||1,28));
+  }
+  function _diasLabel(diff){
+    if(diff<0)  return {txt:'Vencido hace '+Math.abs(diff)+' día'+(Math.abs(diff)!==1?'s':''), col:'#e53935', bg:'rgba(229,57,53,0.08)'};
+    if(diff===0)return {txt:'Vence HOY',     col:'#e53935', bg:'rgba(229,57,53,0.1)'};
+    if(diff===1)return {txt:'Vence mañana',  col:'#f57c00', bg:'rgba(245,124,0,0.08)'};
+    if(diff<=3) return {txt:'En '+diff+' días', col:'#f57c00', bg:'rgba(245,124,0,0.06)'};
+    if(diff<=7) return {txt:'En '+diff+' días', col:'#f9a825', bg:'rgba(249,168,37,0.07)'};
+    return      {txt:'Día '+(diff), col:'var(--dim)', bg:'transparent'};
+  }
+
   // ── Header ──
   var hdr = document.createElement('div');
   hdr.innerHTML = '<div class="page-header">'+backSubBtn()+'<div class="page-title">📅 Pagos del Mes</div></div>';
@@ -2716,24 +2733,6 @@ function renderPagosMes(){
   var listaCont = document.createElement('div');
   listaCont.id = 'pmListaCont';
   mc.appendChild(listaCont);
-
-  // Función para ordenar por fecha de vencimiento
-  function _calcFechaVenc(p, ref){
-    if(p.proximoPago){
-      var pts=p.proximoPago.split('-');
-      return new Date(+pts[0],+pts[1]-1,+pts[2]);
-    }
-    return new Date(ref.getFullYear(), ref.getMonth(), Math.min(p.dia||1,28));
-  }
-
-  function _diasLabel(diff){
-    if(diff<0)  return {txt:'Vencido hace '+Math.abs(diff)+' día'+(Math.abs(diff)!==1?'s':''), col:'#e53935', bg:'rgba(229,57,53,0.08)'};
-    if(diff===0)return {txt:'Vence HOY',     col:'#e53935', bg:'rgba(229,57,53,0.1)'};
-    if(diff===1)return {txt:'Vence mañana',  col:'#f57c00', bg:'rgba(245,124,0,0.08)'};
-    if(diff<=3) return {txt:'En '+diff+' días', col:'#f57c00', bg:'rgba(245,124,0,0.06)'};
-    if(diff<=7) return {txt:'En '+diff+' días', col:'#f9a825', bg:'rgba(249,168,37,0.07)'};
-    return      {txt:'Día '+( p ? (p.dia||diff) : diff),  col:'var(--dim)', bg:'transparent'};
-  }
 
   function renderPendientes(){
     var cont = document.getElementById('pmListaCont');
@@ -5682,4 +5681,4 @@ function procesarComandoVoz(t){
 
 </script>
 </body>
-  </html>
+                                                                                     </html>
