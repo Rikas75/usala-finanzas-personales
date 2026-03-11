@@ -4325,49 +4325,51 @@ function _ppGetPagos(){
 
     // Generar ocurrencias para este año
     var fechasOcurr = [];
+    // Calcular UNA sola fecha relevante por pago:
+    // - Si venció este mes → mostrar como vencido
+    // - Si no → próxima ocurrencia futura
+    var fechaRel = null;
+
     if(p.proximoPago){
       var parts = p.proximoPago.split('-');
       var base = new Date(+parts[0], +parts[1]-1, +parts[2]);
       base.setHours(0,0,0,0);
-      // Retroceder hasta la ocurrencia más antigua que no sea futura
+      // Retroceder hasta ocurrencia <= hoy
       while(base > hoy){ base.setMonth(base.getMonth() - mesesFrec); }
-      // base ahora es <= hoy: puede ser la fecha vencida o anterior
-      // Incluirla si es vencida (diffDias <= 0) o es hoy
-      var iter = new Date(base);
-      while(iter.getFullYear() <= anioAct){
-        fechasOcurr.push(new Date(iter));
-        iter.setMonth(iter.getMonth() + mesesFrec);
+      // base es la última ocurrencia pasada o de hoy
+      // Si diff <= 0 (vencida/hoy): usarla. Si no: avanzar a la próxima futura
+      if(Math.round((base - hoy)/86400000) <= 0){
+        fechaRel = new Date(base); // vencida o hoy
+      } else {
+        base.setMonth(base.getMonth() + mesesFrec);
+        fechaRel = new Date(base);
       }
     } else if(p.dia){
-      // Calcular próxima fecha con el mismo fix: si el día ya pasó este mes → mes siguiente
       var dia = Math.min(p.dia, 28);
-      var fBase = new Date(anioAct, mesAct, dia); fBase.setHours(0,0,0,0);
-      // Si ya pasó este mes, retroceder un mes para incluir el vencido
-      var startMes = (fBase < hoy) ? mesAct : mesAct;
-      // Siempre incluir el vencimiento del mes actual (aunque sea pasado = vencido)
-      var fActual = new Date(anioAct, mesAct, dia); fActual.setHours(0,0,0,0);
-      fechasOcurr.push(fActual);
-      // Agregar ocurrencias futuras del resto del año
-      for(var m=mesAct+mesesFrec; m<12; m+=mesesFrec){
-        var d2 = new Date(anioAct, m, dia); d2.setHours(0,0,0,0);
-        fechasOcurr.push(d2);
+      var f = new Date(anioAct, mesAct, dia); f.setHours(0,0,0,0);
+      if(f < hoy){
+        // Ya pasó este mes → vencido
+        fechaRel = f;
+      } else {
+        // Aún no llega este mes → próxima ocurrencia
+        fechaRel = f;
       }
     }
 
-    fechasOcurr.forEach(function(fecha){
-      var diffDias = Math.round((fecha - hoy) / 86400000);
+    if(fechaRel){
+      var diffDias = Math.round((fechaRel - hoy) / 86400000);
       lista.push({
         nombre:   p.nombre||'Sin nombre',
         monto:    p.monto||0,
-        fecha:    fecha,
+        fecha:    fechaRel,
         diffDias: diffDias,
         cat:      p.categoria||'📦 Otros',
         freq:     freq,
         fuente:   'pago',
         pagado:   false,
-        urgencia: diffDias<=0?'vencido': diffDias<=2?'urgente': diffDias<=7?'pronto':'ok'
+        urgencia: diffDias<0?'vencido': diffDias===0?'urgente': diffDias<=2?'urgente': diffDias<=7?'pronto':'ok'
       });
-    });
+    }
   });
 
   // ── FUENTE 2: Créditos con fecha límite ──
@@ -5745,4 +5747,4 @@ function procesarComandoVoz(t){
 
 </script>
 </body>
-        </html>
+                                                                                                                                                             </html>
