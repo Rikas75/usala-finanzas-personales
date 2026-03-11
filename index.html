@@ -989,21 +989,44 @@ function enviarSolicitud(){
 
 function importarSolicitud(){
   var raw = (document.getElementById('importSolInp').value||'').trim();
-  if(!raw){ showToast('⚠ Pega el código de solicitud'); return; }
+  if(!raw){ showToast('⚠ Pega el mensaje de la solicitud'); return; }
+
+  // Intentar extraer el código base64 si viene el mensaje completo de WhatsApp
+  // El mensaje tiene varias líneas — el código base64 es la última línea no vacía
+  var lineas = raw.split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return l.length > 0; });
+  var candidato = raw; // por defecto intentar todo
+
+  // Si el texto tiene más de 1 línea, buscar la línea que sea base64 puro
+  if(lineas.length > 1){
+    // base64 solo tiene A-Z a-z 0-9 + / =  — buscar la línea más larga que cumpla
+    var b64re = /^[A-Za-z0-9+/]+=*$/;
+    var b64lineas = lineas.filter(function(l){ return l.length > 20 && b64re.test(l); });
+    if(b64lineas.length > 0){
+      // Tomar la más larga
+      candidato = b64lineas.reduce(function(a,b){ return b.length>a.length?b:a; });
+    }
+  }
+
   try {
-    var data = JSON.parse(decodeURIComponent(escape(atob(raw))));
-    if(data.tipo !== 'USALA_SOL') throw new Error('inválido');
+    var decoded = decodeURIComponent(escape(atob(candidato)));
+    var data = JSON.parse(decoded);
+    if(!data.tipo || data.tipo !== 'USALA_SOL') throw new Error('tipo inválido');
+
     var solicitudes = JSON.parse(localStorage.getItem('usala_solicitudes')||'[]');
-    // Evitar duplicados
-    var existe = solicitudes.find(function(s){ return s.contacto===data.contacto && s.nombre===data.nombre; });
-    if(existe){ showToast('⚠ Esta solicitud ya existe'); return; }
+    var existe = solicitudes.find(function(s){
+      return s.contacto === data.contacto && s.nombre === data.nombre;
+    });
+    if(existe){
+      showToast('⚠ Ya existe una solicitud de '+data.nombre);
+      return;
+    }
     solicitudes.push({
       id: Date.now(),
-      nombre: data.nombre,
-      motivo: data.motivo,
+      nombre:   data.nombre,
+      motivo:   data.motivo,
       contacto: data.contacto,
-      fecha: data.fecha || today(),
-      estado: 'pendiente'
+      fecha:    data.fecha || today(),
+      estado:   'pendiente'
     });
     localStorage.setItem('usala_solicitudes', JSON.stringify(solicitudes));
     actualizarBadgeSolicitudes();
@@ -1012,7 +1035,29 @@ function importarSolicitud(){
     showToast('✅ Solicitud de '+data.nombre+' registrada');
     goSub('codigos');
   } catch(e) {
-    showToast('⚠ Código inválido — verifica que lo pegaste completo');
+    // Intento 2: quizás pegó solo el JSON directamente (sin codificar)
+    try {
+      var data2 = JSON.parse(raw);
+      if(data2.nombre && data2.contacto){
+        var solic2 = JSON.parse(localStorage.getItem('usala_solicitudes')||'[]');
+        solic2.push({
+          id: Date.now(),
+          nombre:   data2.nombre,
+          motivo:   data2.motivo || '—',
+          contacto: data2.contacto,
+          fecha:    data2.fecha || today(),
+          estado:   'pendiente'
+        });
+        localStorage.setItem('usala_solicitudes', JSON.stringify(solic2));
+        actualizarBadgeSolicitudes();
+        document.getElementById('importSolInp').value = '';
+        document.getElementById('importSolPanel').style.display = 'none';
+        showToast('✅ Solicitud de '+data2.nombre+' registrada');
+        goSub('codigos');
+        return;
+      }
+    } catch(e2){}
+    showToast('⚠ No se pudo leer la solicitud. Pega el mensaje completo tal como lo recibiste.');
   }
 }
 
@@ -4066,7 +4111,7 @@ function renderCodigos(){
         +'<button onclick="document.getElementById(\'importSolPanel\').style.display=document.getElementById(\'importSolPanel\').style.display===\'none\'?\'block\':\'none\'" style="margin-left:auto;background:rgba(37,211,102,0.12);color:#25D366;border:1.5px solid rgba(37,211,102,0.25);border-radius:10px;padding:6px 12px;font-family:Outfit,sans-serif;font-size:0.75rem;font-weight:800;cursor:pointer;flex-shrink:0;">+ Pegar</button>'
       +'</div>'
       +'<div id="importSolPanel" style="display:none;">'
-        +'<textarea class="inp" id="importSolInp" placeholder="Pega aquí el mensaje completo que te envió el usuario..." style="height:90px;resize:none;font-size:0.75rem;"></textarea>'
+        +'<textarea class="inp" id="importSolInp" placeholder="Pega aquí el mensaje completo que te mandó el usuario por WhatsApp..." style="height:90px;resize:none;font-size:0.75rem;"></textarea>'
         +'<button onclick="importarSolicitud()" style="width:100%;padding:11px;background:#25D366;color:#fff;border:none;border-radius:12px;font-family:Outfit,sans-serif;font-weight:800;font-size:0.85rem;cursor:pointer;margin-top:6px;">✅ Registrar solicitud</button>'
       +'</div>'
     +'</div>'
@@ -8521,4 +8566,4 @@ function procesarComandoVoz(t){
 }
 </script>
 </body>
-    </html>
+      </html>
