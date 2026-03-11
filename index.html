@@ -4326,14 +4326,13 @@ function _ppGetPagos(){
     // Generar ocurrencias para este año
     var fechasOcurr = [];
     if(p.proximoPago){
-      // Usar proximoPago como ancla y proyectar
       var parts = p.proximoPago.split('-');
       var base = new Date(+parts[0], +parts[1]-1, +parts[2]);
       base.setHours(0,0,0,0);
-      // Retroceder hasta antes de hoy para encontrar el ancla
+      // Retroceder hasta la ocurrencia más antigua que no sea futura
       while(base > hoy){ base.setMonth(base.getMonth() - mesesFrec); }
-      while(base <= hoy){ base.setMonth(base.getMonth() + mesesFrec); }
-      // Ahora base es la próxima ocurrencia futura
+      // base ahora es <= hoy: puede ser la fecha vencida o anterior
+      // Incluirla si es vencida (diffDias <= 0) o es hoy
       var iter = new Date(base);
       while(iter.getFullYear() <= anioAct){
         fechasOcurr.push(new Date(iter));
@@ -5746,4 +5745,4 @@ function procesarComandoVoz(t){
 
 </script>
 </body>
-  </html>
+        </html>
