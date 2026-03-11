@@ -3948,7 +3948,7 @@ function renderCodigos(){
     var btnCopiar='<button data-fn="copiar" style="background:var(--inp);border:none;border-radius:10px;padding:6px 10px;font-size:0.75rem;cursor:pointer;font-weight:700;">📋</button>';
     var btnNip=tieneNip?'<button data-fn="nip" style="background:rgba(229,57,53,0.08);color:var(--danger);border:1px solid rgba(229,57,53,0.2);border-radius:10px;padding:6px 10px;font-size:0.75rem;cursor:pointer;font-weight:700;">🔓</button>':'';
     var btnRen=estaVenc?'<button data-fn="renovar" style="background:rgba(45,158,95,0.1);color:var(--accent2);border:1px solid rgba(45,158,95,0.2);border-radius:10px;padding:6px 10px;font-size:0.75rem;cursor:pointer;font-weight:700;">🔄</button>':'';
-    var btnDes=(c.activo&&!estaVenc)?'<button data-fn="borrar" style="background:rgba(229,57,53,0.06);color:var(--danger);border:none;border-radius:10px;padding:6px 10px;font-size:0.75rem;cursor:pointer;font-weight:700;">🗑</button>':'';
+    var btnDes='<button data-fn="borrar" style="background:rgba(229,57,53,0.06);color:var(--danger);border:none;border-radius:10px;padding:6px 10px;font-size:0.75rem;cursor:pointer;font-weight:700;">🗑</button>';
     return '<div class="ficha-cod" data-cod="'+c.codigo+'" style="border:1.5px solid var(--border);border-radius:16px;padding:14px;margin-bottom:10px;background:var(--card);cursor:pointer;">'
       +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;" data-fn="ficha">'
         +'<div style="width:44px;height:44px;border-radius:50%;background:'+stCol+';'+(estaVenc?'opacity:0.5;':'')+';display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:0.9rem;flex-shrink:0;">'+initials+'</div>'
@@ -6226,7 +6226,7 @@ function verFichaCodigo(codigo){
       +'<div style="display:flex;flex-direction:column;gap:8px;">'
         +(estaVenc?'<button id="btnRenovarFicha" style="width:100%;padding:13px;background:rgba(45,158,95,0.1);color:var(--accent2);border:1.5px solid rgba(45,158,95,0.3);border-radius:14px;font-family:Outfit,sans-serif;font-weight:700;font-size:0.88rem;cursor:pointer;">🔄 Renovar acceso 30 días</button>':'')
         +(tieneNip?'<button id="btnNipFicha" style="width:100%;padding:13px;background:rgba(229,57,53,0.07);color:var(--danger);border:1.5px solid rgba(229,57,53,0.2);border-radius:14px;font-family:Outfit,sans-serif;font-weight:700;font-size:0.88rem;cursor:pointer;">🔓 Resetear NIP</button>':'')
-        +(c.activo&&!estaVenc?'<button id="btnBorrarFicha" style="width:100%;padding:13px;background:rgba(229,57,53,0.06);color:var(--danger);border:1.5px solid rgba(229,57,53,0.15);border-radius:14px;font-family:Outfit,sans-serif;font-weight:700;font-size:0.88rem;cursor:pointer;">🗑 Eliminar usuario</button>':'')
+        +'<button id="btnBorrarFicha" style="width:100%;padding:13px;background:rgba(229,57,53,0.06);color:var(--danger);border:1.5px solid rgba(229,57,53,0.15);border-radius:14px;font-family:Outfit,sans-serif;font-weight:700;font-size:0.88rem;cursor:pointer;">🗑 Eliminar usuario</button>'
       +'</div>'
     +'</div>';
   // Eventos — sin problemas de comillas
@@ -8444,4 +8444,4 @@ function procesarComandoVoz(t){
 }
 </script>
 </body>
-  </html>
+      </html>
