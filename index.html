@@ -1001,9 +1001,16 @@ function verificarCodigo(){
   // Guardar nombre en el código para futuras sesiones
   cod.usado = true; cod.nombreUsuario = nombre; cod.fechaUso = today();
   localStorage.setItem('usala_codigos', JSON.stringify(codigos));
-  S.user = { nombre: nombre, codigo: codigo, isAdmin: false };
   localStorage.setItem('usala_session', JSON.stringify({ nombre: nombre, codigo: codigo }));
-  initDashboard();
+  // Verificar NIP si tiene configurado — igual que entrarSesionGuardada
+  var nip = localStorage.getItem('usala_nip_u_' + codigo);
+  if(nip){
+    _sesionPendiente = { nombre: nombre, codigo: codigo, isAdmin: false };
+    mostrarPanelConNip(nombre.split(' ')[0]);
+  } else {
+    S.user = { nombre: nombre, codigo: codigo, isAdmin: false };
+    initDashboard();
+  }
 }
 
 // ══════════════════════════════════════════
