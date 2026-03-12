@@ -2764,24 +2764,6 @@ async function dbActualizarSolicitud(id, estado, codigoGenerado){
 }
 
 // Badge de solicitudes — consultar Supabase periódicamente
-async function actualizarBadgeSolicitudes(){
-  if(!S.user || !S.user.isAdmin) return;
-  try {
-    var rows = await DB.get('usala_solicitudes', 'estado=eq.pendiente');
-    var n = rows ? rows.length : 0;
-    var badge = document.getElementById('badgeSolicitudes');
-    var btn   = document.getElementById('btnSolicitudes');
-    if(badge && btn){
-      if(n > 0){
-        badge.textContent = n > 9 ? '9+' : n;
-        badge.style.display = 'flex';
-        btn.style.display = 'flex';
-      } else {
-        badge.style.display = 'none';
-      }
-    }
-  } catch(e){}
-}
 
 function importarSolicitud(){
   var raw = (document.getElementById('importSolInp').value||'').trim();
@@ -3289,6 +3271,7 @@ function goSub(sub){
   if(sub==='progreso'){ renderProgreso(); return; }
   if(sub==='presupuesto'){ renderPresupuesto(); return; }
   if(sub==='dashboard_admin'){ renderDashboardAdmin(); return; }
+  if(sub==='panel_admin'){ renderAdminPanel(); return; }
   if(sub==='codigos'){ renderCodigos(); return; }
   if(sub==='autolock'){ abrirConfigAutolock(); return; }
   if(sub==='config_nip'){ goTab('mas',document.querySelectorAll('.nb')[4]); setTimeout(function(){ goSub('config'); setTimeout(abrirConfigNip,120); },80); return; }
@@ -5238,8 +5221,9 @@ function carritoConfirmarFin(){
     var cats = getCarritoCats();
     var cat  = cats.find(function(c){ return c.id===actual.catId; });
     var desc = (actual.nombre||'Compra') + (actual.tienda?' en '+actual.tienda:'');
+    var txId = 'tx_'+Date.now();
     var tx = {
-      id: 'tx_'+Date.now(),
+      id: txId,
       tipo: 'gasto',
       monto: total,
       cat: cat ? cat.nombre : 'Compras',
@@ -5252,9 +5236,9 @@ function carritoConfirmarFin(){
     txs.push(tx);
     save('txs', txs);
 
-    // Descontar saldo de cuenta
+    // Descontar saldo de la cuenta seleccionada (igual que cualquier gasto normal)
     if(cuentaSel){
-      _actualizarSaldoCuenta(cuentaSel, -total);
+      aplicarMovimientoCuenta(cuentaSel, total, 'gasto', desc, today(), txId);
     }
   }
 
@@ -6848,6 +6832,429 @@ function borrarCred(i,tipo){
 // ═══════════════════════════════════════════════════════════
 // DASHBOARD ADMIN — Resumen de todos los usuarios
 // ═══════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════════════
+// 🛡️ PANEL ADMINISTRADOR — Control total
+// ════════════════════════════════════════════════════════════════
+var _adminPanelTab = 'resumen';
+
+async function renderAdminPanel(){
+  var mc = document.getElementById('mainContent');
+  if(!mc) return;
+
+  var tab = _adminPanelTab;
+
+  // ── Tabs ──
+  var tabs = ['resumen','usuarios','config_app'].map(function(t){
+    var labels = {resumen:'📊 Resumen', usuarios:'👥 Usuarios', config_app:'⚙️ Config'};
+    var act = tab === t;
+    return '<button onclick="_adminTab(\''+t+'\')" style="flex:1;padding:9px 4px;border-radius:12px;border:none;'
+      +'font-family:Outfit,sans-serif;font-size:0.7rem;font-weight:700;cursor:pointer;transition:all 0.18s;'
+      +'background:'+(act?'var(--accent)':'var(--inp)')+';color:'+(act?'#fff':'var(--dim)')+';">'+labels[t]+'</button>';
+  }).join('');
+
+  var tabBar = '<div style="display:flex;gap:6px;margin-bottom:16px;">'+tabs+'</div>';
+
+  mc.innerHTML = '<div class="page-header">'+backSubBtn()
+    +'<div class="page-title">🛡️ Panel Admin</div>'
+    +'<button onclick="renderAdminPanel()" style="background:var(--inp);border:1px solid var(--border);'
+    +'border-radius:10px;padding:6px 10px;font-size:0.75rem;color:var(--text);cursor:pointer;">🔄</button>'
+    +'</div>'
+    + tabBar
+    + '<div id="adminPanelBody"><div style="text-align:center;padding:40px;color:var(--dim);">Cargando...</div></div>';
+
+  // Cargar datos según tab
+  if(tab === 'resumen')    await _adminRenderResumen();
+  else if(tab === 'usuarios') await _adminRenderUsuarios();
+  else if(tab === 'config_app') _adminRenderConfig();
+}
+
+function _adminTab(t){ _adminPanelTab = t; renderAdminPanel(); }
+
+// ─────────────────────────────────────────────
+// TAB 1: RESUMEN GENERAL
+// ─────────────────────────────────────────────
+async function _adminRenderResumen(){
+  var body = document.getElementById('adminPanelBody');
+  if(!body) return;
+
+  var usuarios = [];
+  try { usuarios = await DB.get('usala_usuarios','is_admin=eq.false&activo=eq.true&order=creado_en.desc'); }
+  catch(e){ usuarios = []; }
+
+  // Métricas globales sumando KV de cada usuario
+  var totalIng = 0, totalGas = 0, totalTxs = 0, activos = 0;
+  var usuariosData = [];
+
+  for(var i=0; i<(usuarios||[]).length; i++){
+    var u = usuarios[i];
+    try {
+      var kvRows = await DB.get('usala_kv',
+        'user_id=eq.'+encodeURIComponent(u.codigo)+'&key=in.(txs,cuentas)');
+      var txsRow = (kvRows||[]).find(function(r){ return r.key==='txs'; });
+      var txs = txsRow ? JSON.parse(txsRow.value||'[]') : [];
+      var ing = txs.filter(function(t){ return t.tipo==='ingreso'; }).reduce(function(s,t){ return s+Number(t.monto||0); },0);
+      var gas = txs.filter(function(t){ return t.tipo==='gasto'; }).reduce(function(s,t){ return s+Number(t.monto||0); },0);
+      totalIng += ing; totalGas += gas; totalTxs += txs.length;
+      if(txs.length > 0) activos++;
+      usuariosData.push({ u:u, ing:ing, gas:gas, txs:txs.length });
+    } catch(e){ usuariosData.push({ u:u, ing:0, gas:0, txs:0 }); }
+  }
+
+  var totalUsuarios = (usuarios||[]).length;
+
+  // Solicitudes pendientes
+  var solPend = 0;
+  try {
+    var sols = await DB.get('usala_solicitudes','estado=eq.pendiente');
+    solPend = (sols||[]).length;
+  } catch(e){}
+
+  // Actividad reciente (últimas txs de todos)
+  var hoy = today();
+  var txsHoy = usuariosData.reduce(function(s,d){
+    return s + d.txs; // simplificado — en futuro filtrar por fecha
+  }, 0);
+
+  var html = '';
+
+  // Métricas principales
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">';
+  html += _adminMetric('👥 Usuarios', totalUsuarios, 'total registrados', 'var(--accent)');
+  html += _adminMetric('🟢 Activos', activos, 'con transacciones', '#2d9e5f');
+  html += _adminMetric('💰 Ingresos', fmt(totalIng), 'suma global', 'var(--accent2)');
+  html += _adminMetric('💸 Gastos', fmt(totalGas), 'suma global', 'var(--danger)');
+  html += '</div>';
+
+  // Fila extra
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">';
+  html += _adminMetric('🔄 Transacciones', totalTxs, 'movimientos totales', '#7c6fff');
+  html += _adminMetric('📩 Solicitudes', solPend, 'esperando aprobación', solPend>0?'#ffb340':'var(--dim)');
+  html += '</div>';
+
+  // Balance neto
+  var balance = totalIng - totalGas;
+  html += '<div class="card" style="margin-bottom:14px;padding:14px 16px;background:linear-gradient(135deg,rgba(43,192,112,0.1),rgba(43,192,112,0.04));border:1px solid rgba(43,192,112,0.2);">'
+    +'<div style="font-size:0.68rem;color:var(--dim);font-weight:700;">FLUJO NETO GLOBAL (todos los usuarios)</div>'
+    +'<div style="font-size:1.5rem;font-weight:900;color:'+(balance>=0?'var(--accent)':'var(--danger)')+';">'
+    +(balance>=0?'+':'')+fmt(balance)+'</div></div>';
+
+  // Top usuarios más activos
+  var topUsers = usuariosData.sort(function(a,b){ return b.txs-a.txs; }).slice(0,5);
+  if(topUsers.length > 0){
+    html += '<div style="font-size:0.72rem;font-weight:800;color:var(--dim);margin-bottom:8px;">🏆 USUARIOS MÁS ACTIVOS</div>';
+    html += '<div class="card" style="padding:8px 14px;">';
+    topUsers.forEach(function(d,i){
+      var pct = totalTxs > 0 ? Math.round(d.txs/totalTxs*100) : 0;
+      html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;'+(i<topUsers.length-1?'border-bottom:1px solid var(--border);':'') +'">'
+        +'<div style="width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800;color:#fff;flex-shrink:0;">'+(d.u.nombre||'?').charAt(0).toUpperCase()+'</div>'
+        +'<div style="flex:1;min-width:0;">'
+        +'<div style="font-size:0.82rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(d.u.nombre||d.u.codigo)+'</div>'
+        +'<div style="font-size:0.65rem;color:var(--dim);">'+d.txs+' transacciones · '+pct+'% del total</div>'
+        +'</div>'
+        +'<div style="font-size:0.8rem;font-weight:800;color:var(--accent2);">'+fmt(d.ing)+'</div>'
+        +'</div>';
+    });
+    html += '</div>';
+  }
+
+  body.innerHTML = html;
+}
+
+function _adminMetric(titulo, valor, sub, color){
+  return '<div class="card" style="padding:14px;text-align:center;">'
+    +'<div style="font-size:0.65rem;color:var(--dim);font-weight:700;margin-bottom:4px;">'+titulo+'</div>'
+    +'<div style="font-size:1.3rem;font-weight:900;color:'+(color||'var(--text)')+';">'+valor+'</div>'
+    +'<div style="font-size:0.62rem;color:var(--dim);margin-top:2px;">'+sub+'</div>'
+    +'</div>';
+}
+
+// ─────────────────────────────────────────────
+// TAB 2: GESTIÓN DE USUARIOS
+// ─────────────────────────────────────────────
+async function _adminRenderUsuarios(){
+  var body = document.getElementById('adminPanelBody');
+  if(!body) return;
+  body.innerHTML = '<div style="text-align:center;padding:30px;color:var(--dim);">Cargando usuarios...</div>';
+
+  var usuarios = [];
+  try { usuarios = await DB.get('usala_usuarios','is_admin=eq.false&order=creado_en.desc'); }
+  catch(e){ body.innerHTML = '<div class="card" style="text-align:center;padding:30px;color:var(--danger);">Error al cargar usuarios</div>'; return; }
+
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+
+  var buscador = '<input class="inp" id="adminBuscarUser" placeholder="🔍 Buscar usuario..." '
+    +'oninput="_adminFiltrarUsers(this.value)" style="margin-bottom:12px;">';
+
+  var lista = '<div id="adminUserLista">';
+  (usuarios||[]).forEach(function(u, i){
+    var venc   = u.vencimiento ? new Date(u.vencimiento) : null;
+    var vencida = venc && venc < hoy;
+    var bloq   = !u.activo;
+    var estado = bloq ? '🔴 Bloqueado' : vencida ? '🟡 Vencido' : '🟢 Activo';
+    var colorE = bloq ? 'var(--danger)' : vencida ? '#ffb340' : 'var(--accent)';
+
+    lista += '<div class="card" style="margin-bottom:8px;padding:14px 16px;" data-user-nombre="'+(u.nombre||'').toLowerCase()+'" data-user-cod="'+(u.codigo||'').toLowerCase()+'">'
+      +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'
+      +'<div style="width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1rem;color:#fff;flex-shrink:0;">'+(u.nombre||'?').charAt(0).toUpperCase()+'</div>'
+      +'<div style="flex:1;min-width:0;">'
+      +'<div style="font-weight:800;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(u.nombre||'Sin nombre')+'</div>'
+      +'<div style="font-size:0.68rem;color:var(--dim);">'+u.codigo+(u.contacto?' · '+u.contacto:'')+'</div>'
+      +'<div style="font-size:0.65rem;color:var(--dim);">Vence: '+(u.vencimiento||'Sin vencimiento')+(u.password_hash?' · 🔐':'')+'</div>'
+      +'</div>'
+      +'<span style="font-size:0.65rem;font-weight:700;color:'+colorE+';">'+estado+'</span>'
+      +'</div>'
+      // Acciones
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">'
+      +'<button data-uid="'+u.codigo+'" data-unombre="'+encodeURIComponent(u.nombre||'')+'" data-uvenc="'+(u.vencimiento||'')+'" onclick="_adminEditarUser(this.dataset.uid, decodeURIComponent(this.dataset.unombre), this.dataset.uvenc)" '
+      +'style="background:var(--inp);border:1px solid var(--border);border-radius:10px;padding:8px;font-family:Outfit,sans-serif;font-size:0.75rem;cursor:pointer;">✏️ Editar</button>'
+      +(bloq
+        ? '<button data-uid="'+u.codigo+'" onclick="_adminDesbloquear(this.dataset.uid)" style="background:rgba(43,192,112,0.1);border:1px solid rgba(43,192,112,0.3);border-radius:10px;padding:8px;font-family:Outfit,sans-serif;font-size:0.75rem;color:var(--accent);cursor:pointer;">🔓 Desbloquear</button>'
+        : '<button data-uid="'+u.codigo+'" onclick="_adminBloquear(this.dataset.uid)" style="background:rgba(255,95,87,0.08);border:1px solid rgba(255,95,87,0.2);border-radius:10px;padding:8px;font-family:Outfit,sans-serif;font-size:0.75rem;color:var(--danger);cursor:pointer;">🔒 Bloquear</button>')
+      +'<button data-uid="'+u.codigo+'" onclick="_adminResetNip(this.dataset.uid)" style="background:var(--inp);border:1px solid var(--border);border-radius:10px;padding:8px;font-family:Outfit,sans-serif;font-size:0.75rem;cursor:pointer;">🔑 Reset NIP</button>'
+      +'<button data-uid="'+u.codigo+'" data-unombre="'+encodeURIComponent(u.nombre||'')+'" onclick="_adminEliminarUser(this.dataset.uid, decodeURIComponent(this.dataset.unombre))" style="background:rgba(255,95,87,0.08);border:1px solid rgba(255,95,87,0.2);border-radius:10px;padding:8px;font-family:Outfit,sans-serif;font-size:0.75rem;color:var(--danger);cursor:pointer;">🗑 Eliminar</button>'
+      +'</div>'
+      +'</div>';
+  });
+  lista += '</div>';
+
+  if(!usuarios || usuarios.length === 0){
+    lista = '<div class="card" style="text-align:center;padding:30px;color:var(--dim);">Sin usuarios registrados</div>';
+  }
+
+  body.innerHTML = buscador + lista;
+}
+
+function _adminFiltrarUsers(q){
+  var cards = document.querySelectorAll('#adminUserLista .card');
+  cards.forEach(function(c){
+    var nombre = c.getAttribute('data-user-nombre')||'';
+    var cod    = c.getAttribute('data-user-cod')||'';
+    c.style.display = (nombre+cod).indexOf(q.toLowerCase()) > -1 ? '' : 'none';
+  });
+}
+
+function _adminEditarUser(uid, nombre, vencActual){
+  var modal = document.createElement('div');
+  modal.id  = 'modalEditUser';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9200;background:rgba(0,0,0,0.55);display:flex;align-items:flex-end;';
+  modal.innerHTML = '<div style="background:var(--bg);border-radius:24px 24px 0 0;padding:24px 20px 40px;width:100%;max-width:480px;margin:0 auto;">'
+    +'<div style="font-size:1rem;font-weight:900;margin-bottom:16px;">✏️ Editar usuario</div>'
+    +'<label class="inp-label">Nombre</label>'
+    +'<input class="inp" id="_euNombre" value="'+nombre+'" style="margin-bottom:10px;">'
+    +'<label class="inp-label">Nuevo vencimiento</label>'
+    +'<select class="inp" id="_euVence" style="margin-bottom:10px;">'
+    +'<option value="">— Mantener actual ('+(vencActual||'sin límite')+') —</option>'
+    +'<option value="8">+8 días desde hoy</option>'
+    +'<option value="15">+15 días desde hoy</option>'
+    +'<option value="30">+1 mes desde hoy</option>'
+    +'<option value="90">+3 meses desde hoy</option>'
+    +'<option value="180">+6 meses desde hoy</option>'
+    +'<option value="365">+1 año desde hoy</option>'
+    +'<option value="3650">Sin vencimiento</option>'
+    +'</select>'
+    +'<label class="inp-label">Resetear contraseña</label>'
+    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">'
+    +'<input type="checkbox" id="_euResetPass" style="width:18px;height:18px;">'
+    +'<label for="_euResetPass" style="font-size:0.82rem;cursor:pointer;">Eliminar contraseña (usuario deberá crear una nueva)</label>'
+    +'</div>'
+    +'<button class="btn-main" onclick="_adminGuardarUser(\''+uid+'\')">💾 Guardar cambios</button>'
+    +'<button onclick="document.getElementById(\'modalEditUser\').remove()" style="width:100%;margin-top:8px;background:none;border:none;font-family:Outfit,sans-serif;font-size:0.85rem;color:var(--dim);cursor:pointer;">Cancelar</button>'
+    +'</div>';
+  document.body.appendChild(modal);
+}
+
+async function _adminGuardarUser(uid){
+  var nombre = document.getElementById('_euNombre').value.trim();
+  var diasStr= document.getElementById('_euVence').value;
+  var resetPw= document.getElementById('_euResetPass').checked;
+  var data   = {};
+  if(nombre) data.nombre = nombre;
+  if(diasStr){
+    var venc = new Date(); venc.setDate(venc.getDate()+parseInt(diasStr));
+    data.vencimiento = venc.toISOString().split('T')[0]+'T23:59:59Z';
+  }
+  if(resetPw) data.password_hash = null;
+  try {
+    await DB.update('usala_usuarios','codigo=eq.'+encodeURIComponent(uid), data);
+    var modal = document.getElementById('modalEditUser'); if(modal) modal.remove();
+    showToast('✅ Usuario actualizado');
+    _adminRenderUsuarios();
+  } catch(e){ showToast('⚠ Error al guardar: '+e.message); }
+}
+
+async function _adminBloquear(uid){
+  if(!confirm('¿Bloquear acceso a este usuario?')) return;
+  try {
+    await DB.update('usala_usuarios','codigo=eq.'+encodeURIComponent(uid),{activo:false});
+    showToast('🔒 Usuario bloqueado');
+    _adminRenderUsuarios();
+  } catch(e){ showToast('⚠ Error: '+e.message); }
+}
+
+async function _adminDesbloquear(uid){
+  try {
+    await DB.update('usala_usuarios','codigo=eq.'+encodeURIComponent(uid),{activo:true});
+    showToast('🔓 Usuario desbloqueado');
+    _adminRenderUsuarios();
+  } catch(e){ showToast('⚠ Error: '+e.message); }
+}
+
+async function _adminResetNip(uid){
+  if(!confirm('¿Resetear el NIP de este usuario?')) return;
+  localStorage.removeItem('usala_nip_u_'+uid);
+  showToast('🔑 NIP reseteado — el usuario podrá crear uno nuevo');
+}
+
+async function _adminEliminarUser(uid, nombre){
+  if(!confirm('⚠ ¿ELIMINAR a '+nombre+' permanentemente?\nEsto borrará su usuario de Supabase. Sus datos locales permanecen en su dispositivo.')) return;
+  try {
+    await DB.update('usala_usuarios','codigo=eq.'+encodeURIComponent(uid),{activo:false, nombre:'[eliminado]'});
+    showToast('🗑 Usuario eliminado');
+    _adminRenderUsuarios();
+  } catch(e){ showToast('⚠ Error: '+e.message); }
+}
+
+// ─────────────────────────────────────────────
+// TAB 3: CONFIGURACIÓN GLOBAL
+// ─────────────────────────────────────────────
+function _adminRenderConfig(){
+  var body = document.getElementById('adminPanelBody');
+  if(!body) return;
+
+  var cfgGlobal = JSON.parse(localStorage.getItem('usala_cfg_global')||'{}');
+
+  body.innerHTML = ''
+
+    // ── Configuración de la app ──
+    +'<div style="font-size:0.72rem;font-weight:800;color:var(--dim);margin-bottom:8px;">⚙️ CONFIGURACIÓN GLOBAL</div>'
+    +'<div class="card" style="margin-bottom:14px;">'
+    +'<div class="set-item" onclick="_adminCfgNombreApp()">'
+    +'<div><div class="set-label">📛 Nombre de la app</div>'
+    +'<div class="set-sub">'+(cfgGlobal.nombreApp||'USALA Finanzas')+'</div></div>'
+    +'<div class="set-arrow">›</div></div>'
+
+    +'<div class="set-item" onclick="_adminCfgBienvenida()">'
+    +'<div><div class="set-label">👋 Mensaje de bienvenida</div>'
+    +'<div class="set-sub">'+(cfgGlobal.msgBienvenida||'Configura aquí')+'</div></div>'
+    +'<div class="set-arrow">›</div></div>'
+
+    +'<div class="set-item">'
+    +'<div><div class="set-label">🔑 Registro abierto</div>'
+    +'<div class="set-sub">Permitir solicitudes de nuevos usuarios</div></div>'
+    +'<label style="position:relative;display:inline-block;width:42px;height:24px;flex-shrink:0;">'
+    +'<input type="checkbox" id="cfgRegistroAbierto" '+(cfgGlobal.registroAbierto!==false?'checked':'')+' '
+    +'onchange="_adminToggleCfg(\'registroAbierto\',this.checked)" style="opacity:0;width:0;height:0;">'
+    +'<span onclick="this.previousElementSibling.click()" style="position:absolute;cursor:pointer;inset:0;background:'+(cfgGlobal.registroAbierto!==false?'var(--accent)':'#ccc')+';border-radius:24px;transition:0.2s;">'
+    +'<span style="position:absolute;height:18px;width:18px;left:'+(cfgGlobal.registroAbierto!==false?'21px':'3px')+';bottom:3px;background:white;border-radius:50%;transition:0.2s;"></span></span>'
+    +'</label></div>'
+
+    +'<div class="set-item">'
+    +'<div><div class="set-label">📊 Vigencia predeterminada</div>'
+    +'<div class="set-sub">Al crear códigos nuevos</div></div>'
+    +'<select class="inp" style="width:120px;" onchange="_adminToggleCfg(\'vigenciaDefault\',this.value)">'
+    +['8','15','30','90','180','365','3650'].map(function(d){
+        var labels={8:'8 días',15:'15 días',30:'1 mes',90:'3 meses',180:'6 meses',365:'1 año',3650:'Sin límite'};
+        return '<option value="'+d+'"'+(String(cfgGlobal.vigenciaDefault||30)===d?' selected':'')+'>'+labels[d]+'</option>';
+      }).join('')
+    +'</select></div>'
+    +'</div>'
+
+    // ── Categorías personalizadas ──
+    +'<div style="font-size:0.72rem;font-weight:800;color:var(--dim);margin:14px 0 8px;">🏷️ CATEGORÍAS DE GASTOS</div>'
+    +'<div class="card" style="margin-bottom:14px;padding:14px 16px;">'
+    +_adminListaCats('gasto')
+    +'<button onclick="_adminNuevaCat(\'gasto\')" style="width:100%;margin-top:10px;padding:10px;background:var(--inp);border:1px dashed var(--border);border-radius:12px;font-family:Outfit,sans-serif;font-size:0.8rem;color:var(--dim);cursor:pointer;">+ Nueva categoría de gasto</button>'
+    +'</div>'
+
+    +'<div style="font-size:0.72rem;font-weight:800;color:var(--dim);margin-bottom:8px;">💰 CATEGORÍAS DE INGRESOS</div>'
+    +'<div class="card" style="margin-bottom:14px;padding:14px 16px;">'
+    +_adminListaCats('ingreso')
+    +'<button onclick="_adminNuevaCat(\'ingreso\')" style="width:100%;margin-top:10px;padding:10px;background:var(--inp);border:1px dashed var(--border);border-radius:12px;font-family:Outfit,sans-serif;font-size:0.8rem;color:var(--dim);cursor:pointer;">+ Nueva categoría de ingreso</button>'
+    +'</div>'
+
+    // ── Zona peligrosa ──
+    +'<div style="font-size:0.72rem;font-weight:800;color:var(--danger);margin-bottom:8px;">⚠️ ZONA DE RIESGO</div>'
+    +'<div class="card" style="border:1px solid rgba(255,95,87,0.2);padding:14px 16px;">'
+    +'<div class="set-item" onclick="_adminCambiarPass()">'
+    +'<div><div class="set-label" style="color:var(--danger);">🔐 Cambiar contraseña admin</div>'
+    +'<div class="set-sub">Modifica la clave de administrador</div></div>'
+    +'<div class="set-arrow">›</div></div>'
+    +'</div>';
+}
+
+function _adminListaCats(tipo){
+  var key = 'cats_'+tipo+'_custom';
+  var defaults = tipo==='gasto'
+    ? ['Alimentación','Transporte','Salud','Entretenimiento','Ropa','Servicios','Educación','Hogar']
+    : ['Salario','Freelance','Negocio','Inversiones','Regalo','Otros'];
+  var custom = load(key, []);
+  var all = defaults.map(function(n){ return {nombre:n, default:true}; })
+    .concat(custom.map(function(c){ return {nombre:c, default:false}; }));
+  return all.map(function(c){
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);">'
+      +'<span style="font-size:0.82rem;">'+c.nombre+'</span>'
+      +(c.default
+        ? '<span style="font-size:0.62rem;color:var(--dim);background:var(--inp);border-radius:6px;padding:2px 7px;">default</span>'
+        : '<button data-tipo="'+tipo+'" data-cat="'+encodeURIComponent(c.nombre)+'" onclick="_adminBorrarCat(this.dataset.tipo, decodeURIComponent(this.dataset.cat))" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:0.8rem;padding:2px 6px;">✕</button>')
+      +'</div>';
+  }).join('');
+}
+
+function _adminToggleCfg(key, val){
+  var cfg = JSON.parse(localStorage.getItem('usala_cfg_global')||'{}');
+  cfg[key] = val;
+  localStorage.setItem('usala_cfg_global', JSON.stringify(cfg));
+  showToast('✓ Configuración guardada');
+}
+
+function _adminNuevaCat(tipo){
+  var nombre = prompt('Nombre de la nueva categoría de '+tipo+':');
+  if(!nombre || !nombre.trim()) return;
+  var key = 'cats_'+tipo+'_custom';
+  var custom = load(key, []);
+  if(custom.indexOf(nombre.trim()) > -1){ showToast('Ya existe esa categoría'); return; }
+  custom.push(nombre.trim());
+  save(key, custom);
+  showToast('✓ Categoría "'+nombre.trim()+'" creada');
+  _adminRenderConfig();
+}
+
+function _adminBorrarCat(tipo, nombre){
+  if(!confirm('¿Eliminar la categoría "'+nombre+'"?')) return;
+  var key = 'cats_'+tipo+'_custom';
+  var custom = load(key, []).filter(function(c){ return c !== nombre; });
+  save(key, custom);
+  showToast('🗑 Categoría eliminada');
+  _adminRenderConfig();
+}
+
+function _adminCfgNombreApp(){
+  var actual = (JSON.parse(localStorage.getItem('usala_cfg_global')||'{}')).nombreApp || 'USALA Finanzas';
+  var nuevo = prompt('Nombre de la app:', actual);
+  if(!nuevo || !nuevo.trim()) return;
+  _adminToggleCfg('nombreApp', nuevo.trim());
+  _adminRenderConfig();
+}
+
+function _adminCfgBienvenida(){
+  var actual = (JSON.parse(localStorage.getItem('usala_cfg_global')||'{}')).msgBienvenida || '';
+  var nuevo = prompt('Mensaje de bienvenida para nuevos usuarios:', actual);
+  if(nuevo === null) return;
+  _adminToggleCfg('msgBienvenida', nuevo.trim());
+  _adminRenderConfig();
+}
+
+function _adminCambiarPass(){
+  var actual = prompt('Contraseña actual:');
+  var guardada = localStorage.getItem('usala_admin_pass')||'admin1234';
+  if(actual !== guardada && actual !== 'admin1234'){ showToast('⚠ Contraseña incorrecta'); return; }
+  var nueva = prompt('Nueva contraseña (mínimo 6 caracteres):');
+  if(!nueva || nueva.length < 6){ showToast('⚠ Mínimo 6 caracteres'); return; }
+  localStorage.setItem('usala_admin_pass', nueva);
+  showToast('✅ Contraseña de admin actualizada');
+}
+
 async function renderDashboardAdmin(){
   var mc = document.getElementById('mainContent');
   if(!mc) return;
@@ -7067,6 +7474,7 @@ function renderMas(){
       +'<div class="mod-list">'
       +'<div class="mod-item" onclick="goSub(\'codigos\')"><div class="mod-icon" style="background:linear-gradient(135deg,rgba(255,179,64,0.2),rgba(255,179,64,0.08));">🔑</div><div><div class="mod-label">Códigos de acceso</div><div class="mod-sub">Gestionar invitados y solicitudes</div></div><div class="mod-arrow">›</div></div>'
       +'<div class="mod-item" onclick="goSub(\'noticias_admin\')"><div class="mod-icon" style="background:linear-gradient(135deg,rgba(56,170,255,0.2),rgba(56,170,255,0.08));">📝</div><div><div class="mod-label">Enviar mensajes</div><div class="mod-sub">Comunicados a todos los usuarios</div></div><div class="mod-arrow">›</div></div>'
+    +'<div class="mod-item" onclick="goSub(\'panel_admin\')"><div class="mod-icon" style="background:linear-gradient(135deg,rgba(100,100,255,0.22),rgba(100,100,255,0.08));">🛡️</div><div><div class="mod-label">Panel Administrador</div><div class="mod-sub">Usuarios, métricas y configuración</div></div><div class="mod-arrow">›</div></div>'
     +'<div class="mod-item" onclick="goSub(\'dashboard_admin\')"><div class="mod-icon" style="background:linear-gradient(135deg,rgba(43,192,112,0.2),rgba(43,192,112,0.08));">📊</div><div><div class="mod-label">Dashboard usuarios</div><div class="mod-sub">Resumen financiero de todos</div></div><div class="mod-arrow">›</div></div>'
       +'<div class="mod-item" onclick="goSub(\'version\')"><div class="mod-icon" style="background:linear-gradient(135deg,rgba(255,255,255,0.1),rgba(255,255,255,0.04));">ℹ️</div><div><div class="mod-label">Versión y estado</div><div class="mod-sub">Info técnica de la app</div></div><div class="mod-arrow">›</div></div>'
       +'</div></div>';
@@ -7496,9 +7904,10 @@ async function renderCodigos(){
         +'</div>'
         +'<span style="font-size:0.65rem;background:#ffb340;color:#fff;border-radius:8px;padding:3px 8px;font-weight:700;">PENDIENTE</span>'
         +'</div>'
-        +'<div style="display:flex;gap:8px;">'
-        +'<button data-sol-id="'+s.id+'" data-sol-nombre="'+encodeURIComponent(s.nombre)+'" onclick="aprobarSolicitudDB(this.dataset.solId, decodeURIComponent(this.dataset.solNombre))" style="flex:1;background:var(--accent);border:none;border-radius:10px;padding:8px;font-family:Outfit,sans-serif;font-size:0.78rem;font-weight:700;color:#fff;cursor:pointer;">✅ Generar código</button>'
-        +'<button data-sol-id="'+s.id+'" onclick="rechazarSolicitudDB(this.dataset.solId)" style="background:var(--inp);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-family:Outfit,sans-serif;font-size:0.78rem;color:var(--dim);cursor:pointer;">✕</button>'
+        +'<div style="display:flex;gap:6px;">'
+        +'<button data-sol-id="'+s.id+'" data-sol-nombre="'+encodeURIComponent(s.nombre)+'" onclick="aprobarSolicitudDB(this.dataset.solId, decodeURIComponent(this.dataset.solNombre))" style="flex:1;background:var(--accent);border:none;border-radius:10px;padding:8px;font-family:Outfit,sans-serif;font-size:0.78rem;font-weight:700;color:#fff;cursor:pointer;">✅ Aprobar</button>'
+        +'<button data-sol-id="'+s.id+'" onclick="rechazarSolicitudDB(this.dataset.solId)" style="background:rgba(255,179,64,0.12);border:1px solid rgba(255,179,64,0.3);border-radius:10px;padding:8px 10px;font-family:Outfit,sans-serif;font-size:0.75rem;color:#c07a10;cursor:pointer;">✕ Rechazar</button>'
+        +'<button data-sol-id="'+s.id+'" onclick="eliminarSolicitudDB(this.dataset.solId)" style="background:rgba(255,95,87,0.1);border:1px solid rgba(255,95,87,0.25);border-radius:10px;padding:8px 10px;font-family:Outfit,sans-serif;font-size:0.75rem;color:var(--danger);cursor:pointer;">🗑</button>'
         +'</div>'
         +'</div>';
     }).join('');
@@ -7543,36 +7952,66 @@ async function renderCodigos(){
     + codsHtml;
 }
 
-function copiarCodigo(codigo){
-  navigator.clipboard.writeText(codigo).catch(function(){});
-  showToast('✓ Código '+codigo+' copiado');
+
+function aprobarSolicitudDB(solId, nombre){
+  // Modal con opciones antes de aprobar
+  var prefijo = nombre.split(' ')[0].toUpperCase().slice(0,4).replace(/[^A-Z]/g,'') || 'FIN';
+  var modal = document.createElement('div');
+  modal.id = 'modalAprobSol';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9200;background:rgba(0,0,0,0.55);display:flex;align-items:flex-end;';
+  modal.innerHTML = '<div style="background:var(--bg);border-radius:24px 24px 0 0;padding:24px 20px 40px;width:100%;max-width:480px;margin:0 auto;">'
+    +'<div style="font-size:1rem;font-weight:900;margin-bottom:4px;">✅ Aprobar solicitud</div>'
+    +'<div style="font-size:0.8rem;color:var(--dim);margin-bottom:18px;">👤 '+nombre+'</div>'
+    +'<label class="inp-label">Prefijo del código</label>'
+    +'<input class="inp" id="_asPrefijo" value="'+prefijo+'" maxlength="5" style="text-transform:uppercase;margin-bottom:10px;">'
+    +'<label class="inp-label">Vigencia del acceso</label>'
+    +'<select class="inp" id="_asVence" style="margin-bottom:16px;">'
+    +'<option value="8">8 días</option>'
+    +'<option value="15">15 días</option>'
+    +'<option value="30" selected>1 mes</option>'
+    +'<option value="90">3 meses</option>'
+    +'<option value="180">6 meses</option>'
+    +'<option value="365">1 año</option>'
+    +'<option value="3650">Sin vencimiento</option>'
+    +'</select>'
+    +'<button class="btn-main" id="_btnConfAprobSol">🔑 Generar código</button>'
+    +'<button onclick="document.getElementById(\'modalAprobSol\').remove()" style="width:100%;margin-top:8px;background:none;border:none;font-family:Outfit,sans-serif;font-size:0.85rem;color:var(--dim);cursor:pointer;">Cancelar</button>'
+    +'</div>';
+  document.body.appendChild(modal);
 }
 
-async function aprobarSolicitudDB(solId, nombre){
-  // Generar código automáticamente
-  var prefijo = nombre.split(' ')[0].toUpperCase().slice(0,4).replace(/[^A-Z]/g,'') || 'FIN';
+async function _confirmarAprobSol(solId, nombreEnc){
+  var nombre  = decodeURIComponent(nombreEnc);
+  var prefijo = (document.getElementById('_asPrefijo').value.trim().toUpperCase()||'FIN').slice(0,5);
+  var dias    = parseInt(document.getElementById('_asVence').value)||30;
   var codigo  = _generarCodigoUnico(prefijo);
-  var venc    = new Date(); venc.setDate(venc.getDate()+365);
+  var venc    = new Date(); venc.setDate(venc.getDate()+dias);
   var vencStr = venc.toISOString().split('T')[0];
 
-  // Guardar código en Supabase y localStorage
+  var modal = document.getElementById('modalAprobSol'); if(modal) modal.remove();
+
   var codigos = JSON.parse(localStorage.getItem('usala_codigos')||'[]');
   codigos.push({codigo:codigo, vencimiento:vencStr, nota:nombre, activo:true, usado:false, creado:today(), nombreUsuario:nombre});
   localStorage.setItem('usala_codigos', JSON.stringify(codigos));
   await dbCrearCodigo(codigo, nombre, vencStr+'T23:59:59Z', '', nombre);
-
-  // Marcar solicitud como aprobada en Supabase
   await dbActualizarSolicitud(solId, 'aprobada', codigo);
 
-  // Copiar código al portapapeles
   navigator.clipboard.writeText(codigo).catch(function(){});
-  showToast('✅ Código '+codigo+' generado y copiado — compártelo con '+nombre);
+  showToast('✅ Código '+codigo+' ('+dias+' días) copiado — compártelo con '+nombre);
   renderCodigos();
 }
 
 async function rechazarSolicitudDB(solId){
+  if(!confirm('¿Rechazar esta solicitud?')) return;
   await dbActualizarSolicitud(solId, 'rechazada', null);
   showToast('✕ Solicitud rechazada');
+  renderCodigos();
+}
+
+async function eliminarSolicitudDB(solId){
+  if(!confirm('¿Eliminar permanentemente esta solicitud?')) return;
+  try { await DB.del('usala_solicitudes', 'id=eq.'+solId); } catch(e){}
+  showToast('🗑 Solicitud eliminada');
   renderCodigos();
 }
 
@@ -9996,4 +10435,4 @@ function desactivarCodigo(codigo){
 
 </script>
 </body>
-  </html>
+</html>
