@@ -722,7 +722,7 @@ textarea.inp{resize:vertical;}
 .hero-pill-ico{font-size:0.9rem;}
 
 /* ═══ QUICK ACTIONS ═══ */
-.quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+.quick-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px;}
 .quick-item{
   display:flex;flex-direction:column;align-items:center;gap:7px;
   cursor:pointer;transition:transform 0.15s;
@@ -4340,6 +4340,9 @@ function renderInicio(){
     +'<div class="quick-item" onclick="goTab(\'creditos\',document.querySelectorAll(\'.nb\')[2])">'
     +'<div class="quick-ico">🤝</div>'
     +'<div class="quick-lbl">Créditos</div></div>'
+    +'<div class="quick-item" onclick="goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[1]);setTimeout(function(){goSub(\'carrito\');},80)">'
+    +'<div class="quick-ico">🛒</div>'
+    +'<div class="quick-lbl">Lista del súper</div></div>'
     +'</div>';
 
   // ── Noticias invitado ──
@@ -9924,4 +9927,4 @@ function desactivarCodigo(codigo){
 
 </script>
 </body>
-  </html>
+</html>
