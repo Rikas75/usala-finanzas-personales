@@ -162,13 +162,22 @@ body.login-active{overflow:hidden;}
 /* ── ACCESS SCREEN ── */
 /* ══ LOGIN APPLE-STYLE ══ */
 #accessScreen{
-  align-items:flex-start;justify-content:center;
+  align-items:stretch;justify-content:center;
   background: linear-gradient(145deg,#0a1628 0%,#0d2137 40%,#0a2818 70%,#071a10 100%) !important;
-  overflow-y:auto;overflow-x:hidden;
+  overflow:hidden;
   position:fixed;inset:0;
-  -webkit-overflow-scrolling:touch;
 }
-#accessScreen::-webkit-scrollbar{display:none;}
+/* El scroll real va en .lg-scroll-outer — hijo directo scrolleable */
+.lg-scroll-outer{
+  position:relative;z-index:1;
+  flex:1;width:100%;
+  overflow-y:auto;
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  display:flex;flex-direction:column;align-items:center;
+}
+.lg-scroll-outer::-webkit-scrollbar{display:none;}
+.lg-scroll-outer{-ms-overflow-style:none;scrollbar-width:none;}
 /* Orbs de fondo animados */
 #accessScreen::before{
   content:'';position:absolute;inset:0;pointer-events:none;
@@ -1178,6 +1187,7 @@ textarea.inp{resize:vertical;}
 
 <!-- ══ ACCESS SCREEN ══ -->
 <div class="screen active" id="accessScreen">
+<div class="lg-scroll-outer">
 <div class="lg-wrap">
 
   <!-- Logo -->
@@ -1319,6 +1329,7 @@ textarea.inp{resize:vertical;}
     <button onclick="recuperarAdmin()" style="width:100%;margin-top:8px;padding:10px;background:none;border:none;font-family:Outfit,sans-serif;font-size:0.7rem;color:rgba(255,255,255,0.3);text-decoration:underline;cursor:pointer;">¿Olvidaste tu contraseña? Restablecer</button>
   </div>
 </div>
+</div><!-- /lg-scroll-outer -->
 
 <!-- ══ DASHBOARD ══ -->
 <div class="screen" id="dashboard">
@@ -7370,4 +7381,4 @@ function desactivarCodigo(codigo){
 
 </script>
 </body>
-    </html>
+      </html>
