@@ -6843,9 +6843,15 @@ async function rechazarSolicitudDB(solId){
 }
 async function eliminarSolicitudDB(solId){
   if(!confirm('¿Eliminar permanentemente esta solicitud?')) return;
-  try { await DB.del('usala_solicitudes', 'id=eq.'+solId); } catch(e){}
+  try {
+    await DB.update('usala_solicitudes', 'id=eq.'+solId, { estado: 'eliminada' });
+  } catch(e){
+    var sols = JSON.parse(localStorage.getItem('usala_solicitudes')||'[]');
+    sols = sols.filter(function(s){ return String(s.id) !== String(solId); });
+    localStorage.setItem('usala_solicitudes', JSON.stringify(sols));
+  }
   showToast('🗑 Solicitud eliminada');
-  renderCodigos();
+  await renderCodigos();
 }
 function _toggleImportPanel(){
   var p=document.getElementById('importSolPanel');
@@ -8974,4 +8980,4 @@ function desactivarCodigo(codigo){
   goSub('codigos');
 }</script>
 </body>
-  </html>
+                                      </html>
