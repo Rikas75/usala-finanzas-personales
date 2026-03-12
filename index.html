@@ -1330,6 +1330,32 @@ textarea.inp{resize:vertical;}
       oninput="this.value=this.value.toUpperCase();accCodigoLookup(this.value)"
       onkeydown="if(event.key==='Enter')verificarCodigo()">
 
+    <!-- Contraseña personal (aparece si el usuario ya tiene una) -->
+    <div id="accPassRow" style="display:none;">
+      <div class="lg-section-title">Tu contraseña</div>
+      <div style="position:relative;">
+        <input class="lg-inp" id="accPassword" type="password" placeholder="Tu contraseña personal"
+          autocomplete="current-password"
+          onkeydown="if(event.key==='Enter')verificarCodigo()">
+        <button onclick="toggleAccPass()" type="button"
+          style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:rgba(255,255,255,0.4);"
+          id="accPassEye">👁</button>
+      </div>
+      <div id="accPassOlvide" style="font-size:0.7rem;color:rgba(255,255,255,0.3);text-decoration:underline;cursor:pointer;margin-top:6px;text-align:right;" onclick="olvidarContraseña()">¿Olvidaste tu contraseña?</div>
+    </div>
+
+    <!-- Crear contraseña (primera vez) -->
+    <div id="accCrearPassRow" style="display:none;">
+      <div class="lg-section-title" style="color:rgba(43,192,112,0.9);">🔐 Crea tu contraseña personal</div>
+      <div style="font-size:0.72rem;color:rgba(255,255,255,0.35);margin-bottom:10px;">Opcional — te permitirá entrar desde cualquier dispositivo de forma segura</div>
+      <div style="position:relative;">
+        <input class="lg-inp" id="accNuevaPass" type="password" placeholder="Crear contraseña (mínimo 4 caracteres)">
+        <button onclick="toggleAccNuevaPass()" type="button"
+          style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:rgba(255,255,255,0.4);">👁</button>
+      </div>
+      <button class="lg-btn-ghost" onclick="saltarCrearPass()" style="margin-top:8px;font-size:0.82rem;">Por ahora no →</button>
+    </div>
+
     <button class="lg-btn" onclick="verificarCodigo()">Entrar →</button>
 
     <div class="lg-divider"><span>¿Sin código?</span></div>
@@ -1411,6 +1437,16 @@ textarea.inp{resize:vertical;}
       <button id="uFabBtn" class="top-icon" onclick="toggleUMenu()" title="Mis cuentas" style="display:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:900;font-size:0.95rem;letter-spacing:-0.5px;box-shadow:0 2px 10px var(--glow);">U</button>
       <button class="top-icon" id="btnVoz" onclick="toggleVoz()" title="Comando de voz" style="display:none;">🎙️</button>
       <button class="top-icon" onclick="abrirCalc()" title="Calculadora">🔢</button>
+      <div id="syncDot" title="Sincronizado" style="display:none;width:8px;height:8px;border-radius:50%;background:#2bc070;margin-left:2px;transition:background 0.3s;flex-shrink:0;"></div>
+    </div>
+  </div>
+  <!-- Pantalla de carga al sincronizar -->
+  <div id="syncLoadingOverlay" style="display:none;position:fixed;inset:0;z-index:9999;background:var(--bg);flex-direction:column;align-items:center;justify-content:center;gap:16px;">
+    <div style="font-size:2.5rem;animation:consejeroFloat 1.5s ease-in-out infinite;">&#x2601;&#xFE0F;</div>
+    <div style="font-size:1rem;font-weight:800;color:var(--text);">Cargando tus datos...</div>
+    <div id="syncLoadingMsg" style="font-size:0.8rem;color:var(--dim);">Conectando con la nube</div>
+    <div style="width:200px;height:4px;background:var(--card2);border-radius:2px;overflow:hidden;margin-top:4px;">
+      <div id="syncLoadingBar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;transition:width 0.4s ease;"></div>
     </div>
   </div>
   <div class="content" id="mainContent"></div>
@@ -2005,16 +2041,49 @@ async function _flushSync(){
   if(!S.user || _syncQueue.length === 0) return;
   var uc = getUCod();
   var batch = _syncQueue.splice(0, _syncQueue.length);
-
-  // Agrupar por tabla/key — tomar solo el último valor de cada key
   var latest = {};
   batch.forEach(function(op){ latest[op.key] = op; });
 
+  // Mostrar indicador de sync
+  _setSyncIndicator('syncing');
+
+  var ok = 0, fail = 0;
   for(var key in latest){
     var op = latest[key];
     try {
-      await DB.upsert('usala_kv', { user_codigo: uc, key: key, value: JSON.stringify(op.value), updated_at: new Date().toISOString() }, 'user_codigo,key');
-    } catch(e) { /* silencioso */ }
+      await DB.upsert('usala_kv', {
+        user_codigo: uc,
+        key: key,
+        value: JSON.stringify(op.value),
+        updated_at: new Date().toISOString()
+      }, 'user_codigo,key');
+      ok++;
+    } catch(e) {
+      // Reintentar en 10s
+      _syncQueue.push(op);
+      fail++;
+    }
+  }
+  _setSyncIndicator(fail > 0 ? 'error' : 'ok');
+}
+
+// Indicador visual de sync en topbar
+var _syncIndicatorTimer = null;
+function _setSyncIndicator(estado){
+  var el = document.getElementById('syncDot');
+  if(!el) return;
+  el.style.display = 'block';
+  if(estado === 'syncing'){
+    el.style.background = '#ffb340';
+    el.title = 'Guardando...';
+  } else if(estado === 'ok'){
+    el.style.background = '#2bc070';
+    el.title = 'Guardado en la nube ✓';
+    if(_syncIndicatorTimer) clearTimeout(_syncIndicatorTimer);
+    _syncIndicatorTimer = setTimeout(function(){ el.style.display='none'; }, 3000);
+  } else {
+    el.style.background = '#ff5f57';
+    el.title = 'Sin conexión — datos guardados localmente';
   }
 }
 
@@ -2044,6 +2113,118 @@ async function dbKVSet(key, value){
 }
 
 // ── SINCRONIZAR todos los datos locales → Supabase al iniciar ──
+
+// ═══════════════════════════════════════════════════════
+// RESPALDO AUTOMÁTICO — Restaurar datos desde Supabase
+// ═══════════════════════════════════════════════════════
+var _SYNC_KEYS = [
+  'txs','cuentas','creditos','cxc','metas','pagos_mensuales',
+  'activos_personales','presupuesto','alertas',
+  'cats_gasto_custom','cats_ingreso_custom',
+  'cats_activos_custom','cats_pagos_custom'
+];
+
+function _syncSetProgress(msg, pct){
+  var m = document.getElementById('syncLoadingMsg');
+  var b = document.getElementById('syncLoadingBar');
+  if(m) m.textContent = msg;
+  if(b) b.style.width = pct + '%';
+}
+
+function _syncShowOverlay(show){
+  var el = document.getElementById('syncLoadingOverlay');
+  if(!el) return;
+  el.style.display = show ? 'flex' : 'none';
+}
+
+// Llamar ANTES de initDashboard — descarga nube → localStorage
+async function dbRestaurarDatos(){
+  var uc = getUCod();
+  if(!uc){ console.warn('dbRestaurarDatos: sin usuario'); return; }
+
+  _syncShowOverlay(true);
+  _syncSetProgress('Conectando con la nube...', 10);
+
+  try {
+    // 1. Descargar TODO el KV del usuario desde Supabase
+    var remote = await DB.get('usala_kv',
+      'user_codigo=eq.' + encodeURIComponent(uc) + '&order=updated_at.desc');
+
+    _syncSetProgress('Datos recibidos, aplicando...', 50);
+
+    if(remote && remote.length > 0){
+      var hayDatosRemoto = false;
+      remote.forEach(function(row){
+        try {
+          var localKey = 'usala_' + uc + '_' + row.key;
+          var localRaw = localStorage.getItem(localKey);
+          var remoteVal = JSON.parse(row.value);
+
+          // Remoto tiene datos y local está vacío/ausente → usar remoto
+          var localVacio = !localRaw ||
+            (function(v){ try{ var p=JSON.parse(v);
+              return (Array.isArray(p)&&p.length===0)||(typeof p==='object'&&!Array.isArray(p)&&Object.keys(p||{}).length===0);
+            }catch(e){ return true; } })(localRaw);
+
+          if(localVacio){
+            localStorage.setItem(localKey, row.value);
+            _cacheInvalid(uc + '_kv_' + row.key);
+            hayDatosRemoto = true;
+          } else {
+            // Local tiene datos: comparar cuál es más reciente
+            // Si remoto tiene updated_at más nuevo que la sesión, usar remoto
+            // Por ahora: confiar en remoto si tiene más items que local
+            try {
+              var localVal = JSON.parse(localRaw);
+              var remoteArr = Array.isArray(remoteVal) ? remoteVal : null;
+              var localArr  = Array.isArray(localVal)  ? localVal  : null;
+              if(remoteArr && localArr && remoteArr.length > localArr.length){
+                localStorage.setItem(localKey, row.value);
+                _cacheInvalid(uc + '_kv_' + row.key);
+                hayDatosRemoto = true;
+              }
+            } catch(e){}
+          }
+        } catch(e){ console.warn('Error aplicando key:', row.key, e); }
+      });
+      _syncSetProgress(hayDatosRemoto ? 'Datos restaurados ✓' : 'Datos locales al día ✓', 80);
+    } else {
+      // No hay nada en la nube — subir local si existe
+      _syncSetProgress('Subiendo datos locales...', 60);
+      _SYNC_KEYS.forEach(function(key){
+        var raw = localStorage.getItem('usala_' + uc + '_' + key);
+        if(raw){ try{
+          var v = JSON.parse(raw);
+          var noVacio = (Array.isArray(v)&&v.length>0)||(typeof v==='object'&&!Array.isArray(v)&&Object.keys(v||{}).length>0);
+          if(noVacio) _syncQueue.push({key:key, value:v});
+        }catch(e){} }
+      });
+      if(_syncQueue.length > 0) _flushSync();
+      _syncSetProgress('Datos guardados en nube ✓', 80);
+    }
+
+    // 2. Restaurar cuentas (tabla separada en localStorage con key especial)
+    var cuentasKey = 'usala_cuentas_' + (S.user.isAdmin ? 'admin' : 'u_' + uc);
+    if(!localStorage.getItem(cuentasKey)){
+      var remCuentas = remote ? remote.find(function(r){ return r.key === 'cuentas'; }) : null;
+      if(remCuentas){
+        localStorage.setItem(cuentasKey, remCuentas.value);
+      }
+    }
+
+    _syncSetProgress('Listo', 100);
+    await new Promise(function(r){ setTimeout(r, 400); }); // pequeña pausa visual
+
+  } catch(e){
+    // Sin internet — usar datos locales
+    _syncSetProgress('Sin conexión — usando datos locales', 100);
+    console.warn('dbRestaurarDatos offline:', e.message);
+    await new Promise(function(r){ setTimeout(r, 600); });
+  }
+
+  _syncShowOverlay(false);
+}
+
 async function dbSyncFromLocal(){
   var uc = getUCod(); if(!uc) return;
   var keys = ['txs','cuentas','creditos','metas','pagos_mensuales','activos_personales',
@@ -2412,50 +2593,173 @@ function _accMostrarNombreRow(mostrar,nombre){
   }
 }
 
+
+// ═══════════════════════════════════════════════════════
+// LOGIN REAL — Contraseña por usuario
+// ═══════════════════════════════════════════════════════
+
+// Hash simple (SHA-256 via Web Crypto) — no enviar contraseña en texto plano
+async function _hashPass(pass){
+  var enc = new TextEncoder();
+  var buf = await crypto.subtle.digest('SHA-256', enc.encode(pass));
+  return Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
+}
+
+// Guardar contraseña del usuario en Supabase
+async function dbGuardarPass(codigo, pass){
+  var hash = await _hashPass(pass);
+  try {
+    await DB.update('usala_usuarios', 'codigo=eq.' + encodeURIComponent(codigo), { password_hash: hash });
+    return true;
+  } catch(e){ return false; }
+}
+
+// Verificar contraseña
+async function dbVerificarPass(codigo, pass){
+  var hash = await _hashPass(pass);
+  try {
+    var rows = await DB.get('usala_usuarios',
+      'codigo=eq.' + encodeURIComponent(codigo) +
+      '&password_hash=eq.' + encodeURIComponent(hash));
+    return rows && rows.length > 0;
+  } catch(e){ return false; }
+}
+
+// UI helpers
+function toggleAccPass(){
+  var inp = document.getElementById('accPassword');
+  if(!inp) return;
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+function toggleAccNuevaPass(){
+  var inp = document.getElementById('accNuevaPass');
+  if(!inp) return;
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+// Lookup automático al escribir código — muestra si tiene contraseña
+var _accLookupTimer = null;
+function accCodigoLookup(val){
+  if(_accLookupTimer) clearTimeout(_accLookupTimer);
+  var passRow    = document.getElementById('accPassRow');
+  var crearRow   = document.getElementById('accCrearPassRow');
+  var nombreRow  = document.getElementById('accNombreRow');
+  if(passRow)  passRow.style.display  = 'none';
+  if(crearRow) crearRow.style.display = 'none';
+
+  if(!val || val.length < 4) return;
+  _accLookupTimer = setTimeout(function(){
+    dbVerificarCodigo(val).then(function(u){
+      if(!u) return;
+      if(u.password_hash){
+        // Usuario tiene contraseña — pedir contraseña, ocultar nombre
+        if(passRow) passRow.style.display = 'block';
+        if(nombreRow) nombreRow.style.display = 'none';
+      } else {
+        // Primera vez — ofrecer crear contraseña
+        if(crearRow) crearRow.style.display = 'block';
+        if(nombreRow && !u.nombre) nombreRow.style.display = 'block';
+      }
+    }).catch(function(){});
+  }, 600);
+}
+
+var _saltarPass = false;
+function saltarCrearPass(){
+  _saltarPass = true;
+  var crearRow = document.getElementById('accCrearPassRow');
+  if(crearRow) crearRow.style.display = 'none';
+  verificarCodigo();
+}
+
+function olvidarContraseña(){
+  var codigo = (document.getElementById('accCodigo').value||'').trim().toUpperCase();
+  showToast('📩 Pídele al administrador que te genere un nuevo código para '+codigo);
+}
+
+// Estado interno para saber si ya verificamos contraseña
+var _accPassVerificada = false;
+
 function verificarCodigo(){
-  var codigo  = (document.getElementById('accCodigo').value||'').trim().toUpperCase();
-  var err     = document.getElementById('accessErr');
-  if(err) err.style.display='none';
+  var codigo   = (document.getElementById('accCodigo').value||'').trim().toUpperCase();
+  var err      = document.getElementById('accessErr');
+  if(err) err.style.display = 'none';
   if(!codigo){ if(err){err.textContent='Ingresa el código';err.style.display='block';} return; }
 
   var btn = document.querySelector('#panelCodigo .lg-btn');
   if(btn){ btn.textContent='Verificando...'; btn.disabled=true; }
 
-  // Buscar primero en Supabase, luego fallback a localStorage
-  dbVerificarCodigo(codigo).then(function(userRemoto){
+  dbVerificarCodigo(codigo).then(async function(userRemoto){
     var nombre = '';
     var hoy = new Date();
 
     if(userRemoto){
-      // Código válido en Supabase
       nombre = userRemoto.nombre || '';
       var nombreInp = (document.getElementById('accNombre').value||'').trim();
       if(nombreInp) nombre = nombreInp;
+
+      // ── Verificar contraseña si el usuario ya tiene una ──
+      if(userRemoto.password_hash && !_accPassVerificada){
+        var passInp = (document.getElementById('accPassword').value||'');
+        if(!passInp){
+          // No ingresó contraseña — mostrar el campo y pedir
+          var passRow = document.getElementById('accPassRow');
+          if(passRow) passRow.style.display = 'block';
+          if(err){err.textContent='Ingresa tu contraseña';err.style.display='block';}
+          if(btn){ btn.textContent='Entrar →'; btn.disabled=false; }
+          document.getElementById('accPassword').focus();
+          return;
+        }
+        var passOk = await dbVerificarPass(codigo, passInp);
+        if(!passOk){
+          if(err){err.textContent='Contraseña incorrecta';err.style.display='block';}
+          if(btn){ btn.textContent='Entrar →'; btn.disabled=false; }
+          return;
+        }
+        _accPassVerificada = true;
+      }
+
+      // ── Primera vez — crear contraseña si quiere ──
+      if(!userRemoto.password_hash && !_saltarPass){
+        var nuevaPass = (document.getElementById('accNuevaPass') ? document.getElementById('accNuevaPass').value : '');
+        if(nuevaPass && nuevaPass.length >= 4){
+          await dbGuardarPass(codigo, nuevaPass);
+          showToast('🔐 Contraseña creada — la usarás la próxima vez');
+        }
+      }
+      _saltarPass = false;
+      _accPassVerificada = false;
+
       if(!nombre){
         if(err){err.textContent='Ingresa tu nombre';err.style.display='block';}
         var nr=document.getElementById('accNombreRow'); if(nr) nr.style.display='block';
         if(btn){ btn.textContent='Entrar →'; btn.disabled=false; }
         return;
       }
-      // Actualizar nombre en BD si cambió
+
+      // Actualizar nombre y último acceso
       if(nombre !== userRemoto.nombre){
         DB.update('usala_usuarios','codigo=eq.'+encodeURIComponent(codigo),{nombre:nombre,ultimo_acceso:new Date().toISOString()});
+      } else {
+        DB.update('usala_usuarios','codigo=eq.'+encodeURIComponent(codigo),{ultimo_acceso:new Date().toISOString()});
       }
-      // Sincronizar al localStorage también para modo offline
+
+      // Sync localStorage para modo offline
       var codigos = JSON.parse(localStorage.getItem('usala_codigos')||'[]');
       var existing = codigos.find(function(c){ return c.codigo===codigo; });
       if(!existing){ codigos.push({codigo:codigo,nombre:nombre,activo:true,vencimiento:userRemoto.vencimiento||'2099-12-31',nombreUsuario:nombre}); }
       else { existing.nombreUsuario=nombre; existing.activo=true; }
       localStorage.setItem('usala_codigos', JSON.stringify(codigos));
       localStorage.setItem('usala_session', JSON.stringify({nombre:nombre,codigo:codigo}));
-      var nip=localStorage.getItem('usala_nip_u_'+codigo);
+
       if(btn){ btn.textContent='Entrar →'; btn.disabled=false; }
+      var nip=localStorage.getItem('usala_nip_u_'+codigo);
       if(nip){ _sesionPendiente={nombre:nombre,codigo:codigo,isAdmin:false}; mostrarPanelConNip(nombre.split(' ')[0]); }
-      else { S.user={nombre:nombre,codigo:codigo,isAdmin:false}; initDashboard(); dbSyncFromLocal(); }
+      else { S.user={nombre:nombre,codigo:codigo,isAdmin:false}; initDashboard(); }
       return;
     }
 
-    // Fallback: buscar en localStorage
+    // Fallback offline — buscar en localStorage
     var codigos = JSON.parse(localStorage.getItem('usala_codigos')||'[]');
     var cod = codigos.find(function(c){ return c.codigo===codigo && c.activo; });
     if(!cod){
@@ -2465,14 +2769,14 @@ function verificarCodigo(){
     }
     var venc = new Date((cod.vencimiento||'2099-12-31').split('-').join('/'));
     if(venc<hoy){ if(err){err.textContent='Este código ha vencido';err.style.display='block';} if(btn){ btn.textContent='Entrar →'; btn.disabled=false; } return; }
-    var nombreInp = (document.getElementById('accNombre').value||'').trim();
-    nombre = nombreInp || cod.nombreUsuario || '';
+    var nombreInp2 = (document.getElementById('accNombre').value||'').trim();
+    nombre = nombreInp2 || cod.nombreUsuario || '';
     if(!nombre){ if(err){err.textContent='Ingresa tu nombre';err.style.display='block';} var nr2=document.getElementById('accNombreRow'); if(nr2) nr2.style.display='block'; if(btn){ btn.textContent='Entrar →'; btn.disabled=false; } return; }
     cod.usado=true; cod.nombreUsuario=nombre; cod.fechaUso=today();
     localStorage.setItem('usala_codigos',JSON.stringify(codigos));
     localStorage.setItem('usala_session',JSON.stringify({nombre:nombre,codigo:codigo}));
-    var nip2=localStorage.getItem('usala_nip_u_'+codigo);
     if(btn){ btn.textContent='Entrar →'; btn.disabled=false; }
+    var nip2=localStorage.getItem('usala_nip_u_'+codigo);
     if(nip2){ _sesionPendiente={nombre:nombre,codigo:codigo,isAdmin:false}; mostrarPanelConNip(nombre.split(' ')[0]); }
     else { S.user={nombre:nombre,codigo:codigo,isAdmin:false}; initDashboard(); }
   }).catch(function(e){
@@ -2481,6 +2785,7 @@ function verificarCodigo(){
     if(btn){ btn.textContent='Entrar →'; btn.disabled=false; }
   });
 }
+
 
 function mostrarPanelConNip(nombre){
   // Ocultar todos los paneles y mostrar el de sesión con NIP
@@ -2593,8 +2898,10 @@ function initDashboard(){
   showScreen('dashboard');
   _lockIniciarEscuchas();
   _lockReiniciar();
-  // Sincronizar datos con Supabase en background
-  setTimeout(function(){ dbSyncFromLocal(); }, 500);
+  // Restaurar datos desde Supabase PRIMERO, luego mostrar app
+  dbRestaurarDatos().then(function(){
+    renderTab(S.tab || 'inicio');
+  });
   // Mostrar botón U flotante
   var ub = document.getElementById('uFabBtn');
   if(ub) ub.style.display = 'flex';
@@ -3522,120 +3829,128 @@ function irProgreso(){
 // CONSEJERO FINANCIERO — Análisis inteligente con personaje
 // ═══════════════════════════════════════════════════════════
 function renderConsejero(ing, gas, debo, totalDisp, pn){
-  // ── Calcular salud financiera (0-100) ──
-  var balance   = ing - gas;
-  var tasaAhorro = ing > 0 ? ((ing - gas) / ing) * 100 : 0;
-  var cargaDeuda = ing > 0 ? (debo / ing) * 100 : (debo > 0 ? 100 : 0);
-  var liquidez   = totalDisp > 0 ? Math.min(100, (totalDisp / Math.max(gas, 1)) * 30) : 0;
+  var nombre = S && S.user ? S.user.nombre.split(' ')[0] : 'tú';
 
-  // Puntuación ponderada (0-100)
+  // ── BALANCE REAL: solo flujo de dinero (sin patrimonio neto) ──
+  // Ingresos - Gastos - Deudas pendientes = qué tan libre estás HOY
+  var balance      = ing - gas;           // flujo neto del periodo
+  var balanceLibre = ing - gas - debo;    // flujo descontando deudas
+
+  // Tasa de ahorro real (sin activos ni patrimonio)
+  var tasaAhorro = ing > 0 ? (balance / ing) * 100 : (balance > 0 ? 100 : -100);
+
+  // Carga de deuda sobre ingresos
+  var cargaDeuda = ing > 0 ? (debo / ing) * 100 : (debo > 0 ? 999 : 0);
+
+  // Cobertura de gastos con saldo disponible (cuántos meses aguantas sin ingresos)
+  var cobertura = gas > 0 ? (totalDisp / gas) : (totalDisp > 0 ? 3 : 0);
+
+  // ── Puntuación SOLO basada en flujo real (0-100) ──
   var puntos = 0;
-  if(tasaAhorro >= 20) puntos += 40;
-  else if(tasaAhorro >= 10) puntos += 28;
-  else if(tasaAhorro >= 0)  puntos += 14;
-  else puntos += 0; // gastas más de lo que ganas
 
-  if(cargaDeuda === 0)       puntos += 30;
-  else if(cargaDeuda < 30)   puntos += 22;
-  else if(cargaDeuda < 60)   puntos += 12;
-  else if(cargaDeuda < 100)  puntos += 5;
+  // 1. Tasa de ahorro (peso 45) — lo más importante
+  if(tasaAhorro >= 20)       puntos += 45;
+  else if(tasaAhorro >= 10)  puntos += 32;
+  else if(tasaAhorro >= 1)   puntos += 18;
+  else if(tasaAhorro >= -10) puntos += 8;
+  else                       puntos += 0;  // gasta mucho más de lo que gana
 
-  if(liquidez >= 60)  puntos += 30;
-  else if(liquidez >= 30) puntos += 20;
-  else if(liquidez >= 10) puntos += 10;
+  // 2. Carga de deuda vs ingresos (peso 35)
+  if(cargaDeuda === 0)       puntos += 35;
+  else if(cargaDeuda < 20)   puntos += 28;
+  else if(cargaDeuda < 50)   puntos += 18;
+  else if(cargaDeuda < 100)  puntos += 8;
+  else                       puntos += 0;  // debe más de lo que gana
+
+  // 3. Cobertura de emergencia en meses (peso 20)
+  if(cobertura >= 3)         puntos += 20;
+  else if(cobertura >= 1)    puntos += 13;
+  else if(cobertura >= 0.5)  puntos += 6;
+  else                       puntos += 0;
 
   puntos = Math.min(100, Math.round(puntos));
 
-  // ── Nivel y expresión ──
-  var nivel, expresion, colorBarra, tituloCard, mensaje, chips;
+  // ── Nivel, expresión y mensaje ──
+  var expresion, colorBarra, tituloCard, mensaje, chips;
 
-  if(puntos >= 80){
-    nivel      = 'Excelente 🏆';
+  if(puntos >= 78){
     expresion  = 'feliz';
     colorBarra = 'linear-gradient(90deg,#2bc070,#52d48e)';
-    tituloCard = '¡Finanzas en forma!';
-    mensaje    = '¡Vas increíble, ' + (window.S&&S.user?S.user.nombre.split(' ')[0]:'campeón') + '! '
-      + 'Tienes un ahorro del ' + Math.round(tasaAhorro) + '% de tus ingresos. '
-      + (debo===0 ? 'Sin deudas activas — eso es libertad financiera. ' : 'Tu carga de deuda es manejable. ')
-      + 'Podrías considerar invertir el excedente para hacerlo crecer. 🚀';
+    tituloCard = '¡Flujo de dinero sano! 🏆';
+    mensaje    = '¡Excelente manejo, '+nombre+'! '
+      + 'Tus ingresos superan tus gastos por '+fmt(balance)+' '
+      + 'y tu carga de deuda es '+(cargaDeuda===0?'cero':'del '+Math.round(cargaDeuda)+'% de tus ingresos')+'. '
+      + (cobertura >= 2 ? 'Tienes cobertura para ~'+Math.round(cobertura)+' meses sin ingresos. ' : '')
+      + (balanceLibre > 0 ? '¡Con '+fmt(balanceLibre)+' libres podrías considerar invertir! 🚀' : '');
     chips = [
-      {label:'Ahorro '+Math.round(tasaAhorro)+'%', cls:'chip-verde'},
-      {label:'Inversión posible', cls:'chip-azul'},
-      debo>0 ? {label:'Deuda: '+fmt(debo), cls:'chip-gold'} : null,
+      {label:'Ahorro '+Math.round(Math.max(0,tasaAhorro))+'%', cls:'chip-verde'},
+      debo===0 ? {label:'Sin deudas 🎉', cls:'chip-verde'} : {label:'Deuda manejable', cls:'chip-gold'},
+      balanceLibre > 0 ? {label:'Invertir posible', cls:'chip-azul'} : null,
     ];
-  } else if(puntos >= 60){
-    nivel      = 'Bien encaminado 👍';
+  } else if(puntos >= 55){
     expresion  = 'contento';
     colorBarra = 'linear-gradient(90deg,#3dbf7a,#ffb340)';
-    tituloCard = 'Buen control';
-    mensaje    = '¡Bien! Tus ingresos superan tus gastos. '
-      + (tasaAhorro > 0 ? 'Estás ahorrando el ' + Math.round(tasaAhorro) + '%. ' : '')
-      + (debo > 0 ? 'Tienes deudas por ' + fmt(debo) + ' — reduce una antes de gastar más. ' : '')
-      + 'Sigue así y podrás acumular un fondo de emergencia. 💪';
+    tituloCard = 'Buen camino 👍';
+    mensaje    = '¡Vas bien, '+nombre+'! '
+      + (balance >= 0 ? 'Tu flujo es positivo: ingresas '+fmt(ing)+' y gastas '+fmt(gas)+'. '
+                      : 'Tus gastos ('+fmt(gas)+') superan ligeramente tus ingresos ('+fmt(ing)+'). ')
+      + (debo > 0 ? 'Tienes deudas por '+fmt(debo)+' — abónalas antes de gastar en extras. ' : '')
+      + 'Con disciplina puedes llegar a una tasa de ahorro del 20%. 💪';
     chips = [
       {label:'Balance '+fmt(balance), cls: balance>=0?'chip-verde':'chip-rojo'},
-      debo>0 ? {label:'Prioriza deuda', cls:'chip-gold'} : {label:'Sin deudas 🎉', cls:'chip-verde'},
+      debo>0 ? {label:'Reduce deuda: '+fmt(debo), cls:'chip-gold'} : {label:'Sin deudas 🎉', cls:'chip-verde'},
+      {label:'Meta: ahorro 20%', cls:'chip-azul'},
     ];
-  } else if(puntos >= 35){
-    nivel      = 'Hay que ajustar ⚠️';
+  } else if(puntos >= 28){
     expresion  = 'preocupado';
     colorBarra = 'linear-gradient(90deg,#ffb340,#ff6057)';
-    tituloCard = 'Cuidado con los gastos';
-    mensaje    = 'Tus gastos están apretando tus finanzas. '
-      + (balance < 0 ? 'Este mes gastaste ' + fmt(Math.abs(balance)) + ' más de lo que ingresaste. ' : '')
-      + (debo > 0 ? 'Además debes ' + fmt(debo) + '. ' : '')
-      + 'Pausa gastos no esenciales y enfócate en saldar lo pendiente. 🛑';
+    tituloCard = 'Hay que ajustar ⚠️';
+    mensaje    = (balance < 0
+      ? '¡Cuidado, '+nombre+'! Gastaste '+fmt(Math.abs(balance))+' más de lo que ingresaste. '
+      : 'Tu flujo es ajustado, '+nombre+'. Apenas queda '+fmt(balance)+' de margen. ')
+      + (debo > 0 ? 'Más tus deudas de '+fmt(debo)+' — eso pesa fuerte. ' : '')
+      + 'Detén gastos no esenciales esta semana y haz una lista de lo que debes. 🛑';
     chips = [
-      balance < 0 ? {label:'Déficit '+fmt(Math.abs(balance)), cls:'chip-rojo'} : {label:'Balance '+fmt(balance), cls:'chip-gold'},
-      debo>0 ? {label:'Deuda: '+fmt(debo), cls:'chip-rojo'} : null,
-      {label:'Reduce gastos', cls:'chip-gold'},
+      balance < 0 ? {label:'Déficit '+fmt(Math.abs(balance)), cls:'chip-rojo'} : {label:'Margen ajustado', cls:'chip-gold'},
+      debo > 0 ? {label:'Deuda: '+fmt(debo), cls:'chip-rojo'} : null,
+      {label:'Cortar gastos ya', cls:'chip-gold'},
     ];
   } else {
-    nivel      = 'Alerta 🚨';
     expresion  = 'triste';
-    colorBarra = 'linear-gradient(90deg,#ff6057,#ff3020)';
-    tituloCard = 'Necesitas un plan ya';
-    mensaje    = '¡Atención! Tus gastos superan tus ingresos'
-      + (debo > 0 ? ' y tienes deudas de ' + fmt(debo) : '')
-      + '. No hay margen para nuevos gastos. '
-      + 'El primer paso es listar todo lo que debes y cortar gastos hormiga. Tú puedes salir de esto. ❤️';
+    colorBarra = 'linear-gradient(90deg,#ff6057,#ff2010)';
+    tituloCard = 'Flujo en rojo 🚨';
+    mensaje    = '¡Necesitas actuar hoy, '+nombre+'! '
+      + 'Gastas '+fmt(gas)+' pero solo ingresas '+fmt(ing)
+      + (debo > 0 ? ', y además debes '+fmt(debo) : '')
+      + '. Cada día que pasa el hoyo crece. '
+      + 'Prioridad #1: detener el sangrado de gastos. Prioridad #2: generar un ingreso extra, aunque sea pequeño. ❤️';
     chips = [
-      {label:'Gastos > Ingresos', cls:'chip-rojo'},
-      debo>0 ? {label:'Deuda urgente: '+fmt(debo), cls:'chip-rojo'} : null,
-      {label:'Crear plan', cls:'chip-azul'},
+      {label:'Déficit '+fmt(Math.abs(balance)), cls:'chip-rojo'},
+      debo > 0 ? {label:'Deuda urgente: '+fmt(debo), cls:'chip-rojo'} : null,
+      {label:'Plan de emergencia', cls:'chip-azul'},
     ];
   }
 
-  // ── SVG del personaje según expresión ──
   var svg = _consejeroSVG(expresion);
 
-  // ── Chips HTML ──
   var chipsHtml = (chips||[]).filter(Boolean).map(function(c){
     return '<span class="consejero-chip '+c.cls+'">'+c.label+'</span>';
   }).join('');
 
-  // ── Barra de salud ──
   var barId = 'saludBar_' + Date.now();
   setTimeout(function(){
     var el = document.getElementById(barId);
     if(el) el.style.width = puntos + '%';
   }, 300);
 
-  return '<div class="consejero-card" onclick="renderConsejeroDetalle()">'
-    +'<div class="consejero-avatar">'+svg+'</div>'
-    +'<div class="consejero-body">'
-    +'<div class="consejero-titulo">💡 Consejero Financiero</div>'
-    +'<div class="consejero-estado">'+tituloCard+'</div>'
-    +'<div class="consejero-msg">'+mensaje+'</div>'
-    +'<div class="consejero-chips">'+chipsHtml+'</div>'
-    +'<div style="margin-top:8px;">'
-    +'<div style="display:flex;justify-content:space-between;font-size:0.68rem;color:var(--dim);margin-bottom:4px;">'
-    +'<span>Salud financiera</span><span style="font-weight:700;color:var(--text);">'+puntos+'/100</span>'
-    +'</div>'
-    +'<div class="salud-bar-wrap"><div class="salud-bar-fill" id="'+barId+'" style="width:0%;background:'+colorBarra+';"></div></div>'
-    +'</div>'
-    +'</div>'
+  // Nota aclaratoria
+  var nota = '<div style="font-size:0.68rem;color:var(--dim);margin-top:8px;padding:6px 10px;'
+    +'background:rgba(0,0,0,0.05);border-radius:8px;border-left:2px solid var(--accent);">'
+    +'ℹ️ Este análisis usa solo tu <b>flujo de dinero real</b> (ingresos, gastos y deudas). '
+    +'El Patrimonio Neto <b>no se considera</b> para darte una lectura más honesta.'
     +'</div>';
+
+  return '<div class="consejero-card" onclick="renderConsejeroDetalle()">'    +'<div class="consejero-avatar">'+svg+'</div>'    +'<div class="consejero-body">'    +'<div class="consejero-titulo">💡 Consejero Financiero</div>'    +'<div class="consejero-estado">'+tituloCard+'</div>'    +'<div class="consejero-msg">'+mensaje+'</div>'    +'<div class="consejero-chips">'+chipsHtml+'</div>'    +'<div style="margin-top:8px;">'    +'<div style="display:flex;justify-content:space-between;font-size:0.68rem;color:var(--dim);margin-bottom:4px;">'    +'<span>Salud de flujo (sin patrimonio)</span>'    +'<span style="font-weight:700;color:var(--text);">'+puntos+'/100</span>'    +'</div>'    +'<div class="salud-bar-wrap"><div class="salud-bar-fill" id="'+barId+'" style="width:0%;background:'+colorBarra+';"></div></div>'    +'</div>'    +nota    +'</div>'    +'</div>';
 }
 
 // ── SVG del personaje según estado ──
@@ -8440,4 +8755,4 @@ function desactivarCodigo(codigo){
 
 </script>
 </body>
-    </html>
+          </html>
