@@ -2421,12 +2421,13 @@ function enviarSolicitud(){
 }
 async function dbGetSolicitudes(){
   try {
+    // Traer pendientes Y aprobadas (para poder revocar códigos al eliminar)
     var rows = await DB.get('usala_solicitudes',
-      'estado=eq.pendiente&order=fecha.desc');
+      'estado=in.(pendiente,aprobada)&order=fecha.desc');
     return rows || [];
   } catch(e){
     return JSON.parse(localStorage.getItem('usala_solicitudes')||'[]')
-      .filter(function(s){ return s.estado==='pendiente'; });
+      .filter(function(s){ return s.estado==='pendiente' || s.estado==='aprobada'; });
   }
 }
 async function dbActualizarSolicitud(id, estado, codigoGenerado){
@@ -6752,7 +6753,7 @@ async function renderCodigos(){
         +'<div style="display:flex;gap:6px;">'
         +'<button data-sol-id="'+s.id+'" data-sol-nombre="'+encodeURIComponent(s.nombre)+'" onclick="aprobarSolicitudDB(this.dataset.solId, decodeURIComponent(this.dataset.solNombre))" style="flex:1;background:var(--accent);border:none;border-radius:10px;padding:8px;font-family:Outfit,sans-serif;font-size:0.78rem;font-weight:700;color:#fff;cursor:pointer;">✅ Aprobar</button>'
         +'<button data-sol-id="'+s.id+'" onclick="rechazarSolicitudDB(this.dataset.solId)" style="background:rgba(255,179,64,0.12);border:1px solid rgba(255,179,64,0.3);border-radius:10px;padding:8px 10px;font-family:Outfit,sans-serif;font-size:0.75rem;color:#c07a10;cursor:pointer;">✕ Rechazar</button>'
-        +'<button data-sol-id="'+s.id+'" onclick="eliminarSolicitudDB(this.dataset.solId)" style="background:rgba(255,95,87,0.1);border:1px solid rgba(255,95,87,0.25);border-radius:10px;padding:8px 10px;font-family:Outfit,sans-serif;font-size:0.75rem;color:var(--danger);cursor:pointer;">🗑</button>'
+        +'<button data-sol-id="'+s.id+'" data-sol-codigo="'+(s.codigo_generado||'')+'" onclick="eliminarSolicitudDB(this.dataset.solId, this.dataset.solCodigo)" style="background:rgba(255,95,87,0.1);border:1px solid rgba(255,95,87,0.25);border-radius:10px;padding:8px 10px;font-family:Outfit,sans-serif;font-size:0.75rem;color:var(--danger);cursor:pointer;">🗑</button>'
         +'</div>'
         +'</div>';
     }).join('');
@@ -6841,8 +6842,14 @@ async function rechazarSolicitudDB(solId){
   showToast('✕ Solicitud rechazada');
   renderCodigos();
 }
-async function eliminarSolicitudDB(solId){
-  if(!confirm('¿Eliminar permanentemente esta solicitud?')) return;
+async function eliminarSolicitudDB(solId, codigoGenerado){
+  var tieneCode = codigoGenerado && codigoGenerado.trim() !== '';
+  var msg = tieneCode
+    ? ('Eliminar esta solicitud y REVOCAR el codigo ' + codigoGenerado + '? El usuario perdera el acceso.')
+    : 'Eliminar permanentemente esta solicitud?';
+  if(!confirm(msg)) return;
+
+  // 1. Marcar solicitud como eliminada en Supabase
   try {
     await DB.update('usala_solicitudes', 'id=eq.'+solId, { estado: 'eliminada' });
   } catch(e){
@@ -6850,7 +6857,26 @@ async function eliminarSolicitudDB(solId){
     sols = sols.filter(function(s){ return String(s.id) !== String(solId); });
     localStorage.setItem('usala_solicitudes', JSON.stringify(sols));
   }
-  showToast('🗑 Solicitud eliminada');
+
+  // 2. Si había código generado → desactivarlo
+  if(tieneCode){
+    try {
+      await DB.update('usala_usuarios',
+        'codigo=eq.'+encodeURIComponent(codigoGenerado),
+        { activo: false }
+      );
+    } catch(e){}
+    // También en localStorage
+    var codigos = JSON.parse(localStorage.getItem('usala_codigos')||'[]');
+    codigos = codigos.map(function(c){
+      if(c.codigo === codigoGenerado) c.activo = false;
+      return c;
+    });
+    localStorage.setItem('usala_codigos', JSON.stringify(codigos));
+    showToast('Solicitud eliminada y codigo ' + codigoGenerado + ' revocado');
+  } else {
+    showToast('Solicitud eliminada');
+  }
   await renderCodigos();
 }
 function _toggleImportPanel(){
@@ -8980,4 +9006,4 @@ function desactivarCodigo(codigo){
   goSub('codigos');
 }</script>
 </body>
-                                      </html>
+  </html>
