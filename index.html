@@ -2046,38 +2046,71 @@ async function dbKVSet(key, value){
 // ── SINCRONIZAR todos los datos locales → Supabase al iniciar ──
 async function dbSyncFromLocal(){
   var uc = getUCod(); if(!uc) return;
-  var keys = ['txs','cuentas','creditos','metas','pagos_mensuales','activos_personales','presupuesto','alertas','cats_gasto_custom','cats_ingreso_custom','cats_activos_custom','cats_pagos_custom'];
+  var keys = ['txs','cuentas','creditos','metas','pagos_mensuales','activos_personales',
+              'presupuesto','alertas','cats_gasto_custom','cats_ingreso_custom',
+              'cats_activos_custom','cats_pagos_custom','cxc'];
 
-  // Traer datos remotos primero
+  console.log('🔄 Sincronizando con Supabase...');
+
   try {
-    var remote = await DB.get('usala_kv', 'user_codigo=eq.'+encodeURIComponent(uc));
-    if(remote && remote.length > 0){
-      remote.forEach(function(row){
-        var localKey = 'usala_' + uc + '_' + row.key;
-        var localRaw = localStorage.getItem(localKey);
-        // Si remoto es más nuevo o local vacío → usar remoto
-        if(!localRaw){
-          localStorage.setItem(localKey, row.value);
-          _cacheSet(uc + '_kv_' + row.key, JSON.parse(row.value));
-        }
-      });
-    }
-  } catch(e) { console.warn('dbSyncFromLocal:', e); }
+    // 1. Bajar TODO lo que hay en remoto para este usuario
+    var remote = await DB.get('usala_kv',
+      'user_codigo=eq.'+encodeURIComponent(uc)+'&order=updated_at.desc');
 
-  // Subir datos locales que no están en remoto
-  keys.forEach(function(key){
-    var localKey = 'usala_' + uc + '_' + key;
-    var localRaw = localStorage.getItem(localKey);
-    if(localRaw){
-      try {
-        var val = JSON.parse(localRaw);
-        if((Array.isArray(val) && val.length > 0) || (typeof val === 'object' && Object.keys(val||{}).length > 0)){
-          _syncQueue.push({ key: key, value: val });
-        }
-      } catch(e){}
+    var remoteMap = {};
+    if(remote && remote.length > 0){
+      remote.forEach(function(row){ remoteMap[row.key] = row; });
     }
-  });
-  if(_syncQueue.length > 0) _flushSync();
+
+    // 2. Para cada key — decidir qué versión usar (la más reciente gana)
+    keys.forEach(function(key){
+      var localKey = 'usala_' + uc + '_' + key;
+      var localRaw = localStorage.getItem(localKey);
+      var remoteRow = remoteMap[key];
+
+      if(remoteRow && localRaw){
+        // Ambos existen — usar remoto (más confiable, viene de la BD)
+        // Solo sobreescribir local si remoto tiene datos y local está vacío/es por defecto
+        try{
+          var localVal = JSON.parse(localRaw);
+          var remoteVal = JSON.parse(remoteRow.value);
+          var localVacio = (Array.isArray(localVal) && localVal.length===0) ||
+                           (typeof localVal==='object' && !Array.isArray(localVal) && Object.keys(localVal||{}).length===0);
+          if(localVacio && remoteVal){
+            localStorage.setItem(localKey, remoteRow.value);
+            _cacheInvalid(uc+'_kv_'+key);
+            console.log('  ⬇️ Descargado desde nube:', key);
+          } else {
+            // Local tiene datos — subir local a remoto (el usuario trabajó offline)
+            _syncQueue.push({key:key, value:localVal});
+          }
+        } catch(e){}
+      } else if(remoteRow && !localRaw){
+        // Solo en remoto — descargar
+        localStorage.setItem(localKey, remoteRow.value);
+        _cacheInvalid(uc+'_kv_'+key);
+        console.log('  ⬇️ Descargado desde nube:', key);
+      } else if(!remoteRow && localRaw){
+        // Solo en local — subir
+        try{
+          var v = JSON.parse(localRaw);
+          var noVacio = (Array.isArray(v)&&v.length>0)||(typeof v==='object'&&!Array.isArray(v)&&Object.keys(v||{}).length>0);
+          if(noVacio){ _syncQueue.push({key:key, value:v}); console.log('  ⬆️ Subiendo a nube:', key); }
+        } catch(e){}
+      }
+    });
+
+    if(_syncQueue.length > 0){ await _flushSync(); }
+
+    // 3. Refrescar la pantalla si cambió algo
+    if(remote && remote.length > 0 && S.tab){
+      setTimeout(function(){ renderTab(S.tab); }, 100);
+    }
+
+    console.log('✅ Sync completo');
+  } catch(e) {
+    console.warn('⚠️ Sync falló (modo offline):', e.message);
+  }
 }
 
 // ── ESTADO CONEXIÓN ──
@@ -2114,8 +2147,13 @@ function ukey(k){
   var uid = S.user ? (S.user.isAdmin ? 'admin' : 'u_' + S.user.codigo) : 'anon';
   return 'usala_' + uid + '_' + k;
 }
-function load(k, def){ try{ var v=localStorage.getItem(ukey(k)); return v!==null?JSON.parse(v):def; }catch(e){ return def; } }
-function save(k, v){ try{ localStorage.setItem(ukey(k), JSON.stringify(v)); }catch(e){} }
+function load(k, def){
+  try{ var v=localStorage.getItem(ukey(k)); return v!==null?JSON.parse(v):def; }catch(e){ return def; }
+}
+function save(k, v){
+  try{ localStorage.setItem(ukey(k), JSON.stringify(v)); }catch(e){}
+  if(S && S.user){ _syncQueue.push({key:k, value:v}); _schedulSync(); }
+}
 
 // ══════════════════════════════════════════
 // TEMA
@@ -2517,11 +2555,15 @@ function verificarAdmin(){
     cerrarAdminModal();
     var nip=localStorage.getItem('usala_nip_admin');
     if(nip){
-      _sesionPendiente={nombre:'Administrador',codigo:'ADMIN',isAdmin:true};
+      _sesionPendiente={nombre:'Administrador',codigo:'admin',isAdmin:true};
       mostrarPanelConNip('Admin');
     } else {
-      S.user={nombre:'Administrador',codigo:'ADMIN',isAdmin:true};
-      localStorage.setItem('usala_session',JSON.stringify({nombre:'Administrador',codigo:'ADMIN',isAdmin:true}));
+      S.user={nombre:'Administrador',codigo:'admin',isAdmin:true};
+      localStorage.setItem('usala_session',JSON.stringify({nombre:'Administrador',codigo:'admin',isAdmin:true}));
+      // Asegurar usuario admin en Supabase y sincronizar
+      dbEnsureUser('admin','Administrador',true).then(function(){
+        dbSyncFromLocal();
+      });
       initDashboard();
     }
   } else {
@@ -6082,13 +6124,20 @@ function generarCodigo(){
   var codigo=_generarCodigoUnico(prefijo);
   var venc=new Date(); venc.setDate(venc.getDate()+dias);
   var vencStr=venc.toISOString().split('T')[0];
+  // Guardar en localStorage
   var codigos=JSON.parse(localStorage.getItem('usala_codigos')||'[]');
-  codigos.push({codigo:codigo,vencimiento:vencStr,nota:nota,contacto:contacto,activo:true,usado:false,creado:today()});
+  codigos.push({codigo:codigo,vencimiento:vencStr,nota:nota,contacto:contacto,activo:true,usado:false,creado:today(),nombreUsuario:nota});
   localStorage.setItem('usala_codigos',JSON.stringify(codigos));
+  // Guardar en Supabase ← para que funcione desde cualquier dispositivo
+  dbCrearCodigo(codigo, nota, vencStr+'T23:59:59Z', contacto, nota).then(function(res){
+    if(res) console.log('✅ Código en Supabase:', codigo);
+    else console.warn('⚠️ Solo guardado local');
+  });
   navigator.clipboard.writeText(codigo).catch(function(){});
   showToast('✓ Código '+codigo+' copiado — compártelo con '+nota);
   goSub('codigos');
 }
+
 function resetearNipUsuario(arg){var codigo=(typeof arg==="string")?arg:(arg&&arg.closest?arg.closest("[data-cod]").dataset.cod:"");
   var cods = JSON.parse(localStorage.getItem('usala_codigos')||'[]');
   var c = cods.find(function(x){ return x.codigo===codigo; });
@@ -8391,4 +8440,4 @@ function desactivarCodigo(codigo){
 
 </script>
 </body>
-        </html>
+    </html>
