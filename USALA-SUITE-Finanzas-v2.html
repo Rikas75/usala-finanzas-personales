@@ -4676,7 +4676,7 @@ function _renderCarritoLista(actual, cats){
   }
 
   // Barra de total + botón finalizar
-  var totalBar = items.length > 0 ? '<div class="carrito-total-bar" id="carritoTotalBar">'
+  var totalBar = items.length > 0 ? '<div class="carrito-total-bar" id="carritoTotalBar" style="touch-action:none;">'
     + '<button onclick="_carritoColapsarBarra()" style="background:none;border:none;font-size:0.75rem;color:var(--dim);cursor:pointer;padding:0 6px 0 0;flex-shrink:0;" title="Minimizar">✕</button>'
     + '<div class="ctb-detalle" style="display:flex;flex:1;justify-content:space-between;align-items:center;gap:8px;">'
     + '<div>'
@@ -5092,6 +5092,47 @@ function _carritoExpandirBarra(){
   bar.style.opacity = '1';
 }
 
+
+// ── Barra arrastrable ──
+function _initCarritoDrag(){
+  var bar = document.getElementById('carritoTotalBar');
+  if(!bar) return;
+  var isDragging = false, startY = 0, startBottom = 72;
+
+  function getBottom(){ return parseInt(bar.style.bottom)||72; }
+
+  function onStart(e){
+    // Solo si toca el borde/handle (no los botones)
+    var target = e.target || e.srcElement;
+    if(target.tagName==='BUTTON'||target.tagName==='A') return;
+    isDragging = true;
+    startY = e.touches ? e.touches[0].clientY : e.clientY;
+    startBottom = getBottom();
+    bar.style.transition = 'none';
+    e.preventDefault();
+  }
+  function onMove(e){
+    if(!isDragging) return;
+    var y = e.touches ? e.touches[0].clientY : e.clientY;
+    var delta = startY - y; // mover hacia arriba = delta positivo
+    var newBottom = Math.max(8, Math.min(window.innerHeight - 80, startBottom + delta));
+    bar.style.bottom = newBottom + 'px';
+    e.preventDefault();
+  }
+  function onEnd(){
+    if(!isDragging) return;
+    isDragging = false;
+    bar.style.transition = 'all 0.25s';
+  }
+
+  bar.addEventListener('touchstart', onStart, {passive:false});
+  bar.addEventListener('touchmove',  onMove,  {passive:false});
+  bar.addEventListener('touchend',   onEnd);
+  bar.addEventListener('mousedown',  onStart);
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup',   onEnd);
+}
+
 function carritoCompartir(){
   var actual = getCarritoActual();
   if(!actual.items || actual.items.length === 0){ showToast('⚠ Lista vacía'); return; }
@@ -5150,9 +5191,10 @@ function carritoFinalizar(){
     + '</select>'
     + '</div>'
 
-    + '<button class="btn-main" onclick="carritoConfirmarFin(this.parentElement.parentElement)">✅ Confirmar y guardar</button>'
-    + '<button onclick="this.parentElement.parentElement.remove()" style="width:100%;margin-top:8px;background:none;border:none;font-family:Outfit,sans-serif;font-size:0.85rem;color:var(--dim);cursor:pointer;">Cancelar</button>'
+    + '<button class="btn-main" onclick="carritoConfirmarFin()">✅ Confirmar y guardar</button>'
+    + '<button onclick="document.getElementById(\'modalFinCarrito\').remove()" style="width:100%;margin-top:8px;background:none;border:none;font-family:Outfit,sans-serif;font-size:0.85rem;color:var(--dim);cursor:pointer;">Cancelar</button>'
     + '</div>';
+  modal.id = 'modalFinCarrito';
   document.body.appendChild(modal);
 }
 
@@ -5169,7 +5211,8 @@ function _carritoOpsCuentas(){
   return ops;
 }
 
-function carritoConfirmarFin(modal){
+function carritoConfirmarFin(){
+  var modal = document.getElementById('modalFinCarrito');
   var actual   = getCarritoActual();
   var comprados= actual.items.filter(function(i){ return i.comprado; });
   var total    = comprados.reduce(function(s,i){ return s+(i.precio||0)*(i.qty||1); },0);
@@ -5218,7 +5261,7 @@ function carritoConfirmarFin(modal){
   // 4. Limpiar lista actual
   saveCarritoActual({nombre:'',catId:'super',items:[],fecha:'',tienda:''});
 
-  if(modal) modal.remove();
+  var _m = document.getElementById('modalFinCarrito'); if(_m) _m.remove();
   showToast('✅ Compra guardada'+(regGasto?' y registrada como gasto':''));
   S._carritoTab = 'historial';
   goSub('carrito');
