@@ -6818,6 +6818,11 @@ function aprobarSolicitudDB(solId, nombre){
     +'<button onclick="document.getElementById(\'modalAprobSol\').remove()" style="width:100%;margin-top:8px;background:none;border:none;font-family:Outfit,sans-serif;font-size:0.85rem;color:var(--dim);cursor:pointer;">Cancelar</button>'
     +'</div>';
   document.body.appendChild(modal);
+  // Asignar handler al botón DESPUÉS de insertar en DOM
+  var _sid = solId, _snm = nombre;
+  document.getElementById('_btnConfAprobSol').onclick = function(){
+    _confirmarAprobSol(_sid, encodeURIComponent(_snm));
+  };
 }
 async function _confirmarAprobSol(solId, nombreEnc){
   var nombre  = decodeURIComponent(nombreEnc);
@@ -9005,5 +9010,4 @@ function desactivarCodigo(codigo){
   localStorage.setItem('usala_codigos',JSON.stringify(cods));
   goSub('codigos');
 }</script>
-</body>
-  </html>
+</body>                                                                                                                                                                                </html>
