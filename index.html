@@ -2757,10 +2757,10 @@ function renderInicio(){
 
   // ── Quick Actions ──
   var quickActions = '<div class="quick-grid">'
-    +'<div class="quick-item" onclick="abrirModalTx(\'gasto\',\'efectivo\')">'
+    +'<div class="quick-item" onclick="abrirTxModal(\'gasto\')">'
     +'<div class="quick-ico">➖</div>'
     +'<div class="quick-lbl">Nuevo gasto</div></div>'
-    +'<div class="quick-item" onclick="abrirModalTx(\'ingreso\',\'efectivo\')">'
+    +'<div class="quick-item" onclick="abrirTxModal(\'ingreso\')">'
     +'<div class="quick-ico">➕</div>'
     +'<div class="quick-lbl">Ingreso</div></div>'
     +'<div class="quick-item" onclick="abrirPP()">'
@@ -6329,8 +6329,8 @@ function renderCuentas(){
     +'<div class="cuenta-label">Dinero físico disponible</div>'
     +'<div class="cuenta-actions">'
     +'<button class="cuenta-btn primary" onclick="goSub(\'efectivo\')">📊 Ver movimientos</button>'
-    +'<button class="cuenta-btn" onclick="abrirModalTx(\'ingreso\',\'efectivo\')">➕</button>'
-    +'<button class="cuenta-btn" onclick="abrirModalTx(\'gasto\',\'efectivo\')">➖</button>'
+    +'<button class="cuenta-btn" onclick="abrirTxModal(\'ingreso\')">➕</button>'
+    +'<button class="cuenta-btn" onclick="abrirTxModal(\'gasto\')">➖</button>'
     +'</div></div>'
     // Banco
     +'<div class="sec-title">🏧 Banco</div>'
@@ -6344,7 +6344,7 @@ function renderCuentas(){
     +'<div style="margin-top:14px;">'+bancosHTML+'</div>'
     +'<div class="cuenta-actions">'
     +'<button class="cuenta-btn primary" onclick="goSub(\'cheques\')">📊 Ver movimientos</button>'
-    +'<button class="cuenta-btn" onclick="abrirModalTx(\'ingreso\',\'banco\')">➕</button>'
+    +'<button class="cuenta-btn" onclick="abrirTxModal(\'ingreso\')">➕</button>'
     +'</div></div>'
     // Tarjetas
     +'<div class="sec-title">💳 Tarjetas de crédito</div>'
@@ -7381,4 +7381,4 @@ function desactivarCodigo(codigo){
 
 </script>
 </body>
-</html>
+      </html>
