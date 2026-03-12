@@ -1298,8 +1298,12 @@ textarea.inp{resize:vertical;}
   padding:12px 16px;margin:10px 0;
   display:flex;justify-content:space-between;align-items:center;
   box-shadow:0 4px 20px rgba(0,0,0,0.15);
-  z-index:10;
+  z-index:10;transition:all 0.25s;
 }
+.carrito-total-bar.collapsed{
+  padding:7px 14px;opacity:0.75;
+}
+.carrito-total-bar.collapsed .ctb-detalle{display:none;}
 .hist-precio-row{
   display:flex;justify-content:space-between;align-items:center;
   padding:8px 0;border-bottom:1px solid var(--border);font-size:0.8rem;
@@ -4672,19 +4676,23 @@ function _renderCarritoLista(actual, cats){
   }
 
   // Barra de total + botón finalizar
-  var totalBar = items.length > 0 ? '<div class="carrito-total-bar">'
+  var totalBar = items.length > 0 ? '<div class="carrito-total-bar" id="carritoTotalBar">'
+    + '<button onclick="_carritoColapsarBarra()" style="background:none;border:none;font-size:0.75rem;color:var(--dim);cursor:pointer;padding:0 6px 0 0;flex-shrink:0;" title="Minimizar">✕</button>'
+    + '<div class="ctb-detalle" style="display:flex;flex:1;justify-content:space-between;align-items:center;gap:8px;">'
     + '<div>'
-    + '<div style="font-size:0.65rem;color:var(--dim);">Estimado total</div>'
-    + '<div style="font-size:1.1rem;font-weight:900;color:var(--text);">'+fmt(totalEst)+'</div>'
+    + '<div style="font-size:0.65rem;color:var(--dim);">Estimado</div>'
+    + '<div style="font-size:1rem;font-weight:900;color:var(--text);">'+fmt(totalEst)+'</div>'
     + '</div>'
     + '<div style="text-align:right;">'
-    + '<div style="font-size:0.65rem;color:var(--accent);">Ya comprado</div>'
-    + '<div style="font-size:1.1rem;font-weight:900;color:var(--accent);">'+fmt(total)+'</div>'
+    + '<div style="font-size:0.65rem;color:var(--accent);">Comprado</div>'
+    + '<div style="font-size:1rem;font-weight:900;color:var(--accent);">'+fmt(total)+'</div>'
     + '</div>'
     + '<div style="display:flex;gap:6px;">'
-    + '<button onclick="carritoCompartir()" style="background:var(--inp);border:1px solid var(--border);border-radius:14px;padding:10px 12px;font-family:Outfit,sans-serif;font-size:1rem;cursor:pointer;" title="Compartir">&#x1F4E4;</button>'
-    + '<button onclick="carritoFinalizar()" style="background:var(--accent);border:none;border-radius:14px;padding:10px 16px;font-family:Outfit,sans-serif;font-size:0.8rem;font-weight:800;color:#fff;cursor:pointer;box-shadow:0 4px 14px rgba(43,192,112,0.3);">✅ Finalizar</button>'
+    + '<button onclick="carritoCompartir()" style="background:var(--inp);border:1px solid var(--border);border-radius:14px;padding:9px 11px;font-family:Outfit,sans-serif;font-size:0.95rem;cursor:pointer;">&#x1F4E4;</button>'
+    + '<button onclick="carritoFinalizar()" style="background:var(--accent);border:none;border-radius:14px;padding:9px 14px;font-family:Outfit,sans-serif;font-size:0.78rem;font-weight:800;color:#fff;cursor:pointer;box-shadow:0 4px 14px rgba(43,192,112,0.3);">✅ Finalizar</button>'
     + '</div>'
+    + '</div>'
+    + '<div class="ctb-mini" style="display:none;font-size:0.78rem;font-weight:800;color:var(--accent);cursor:pointer;" onclick="_carritoExpandirBarra()">'+fmt(totalEst)+' — ver ›</div>'
     + '</div>' : '';
 
   return headerLista + formAdd + listaItems + totalBar;
@@ -5066,6 +5074,24 @@ function _carritoShareNativo(){
 }
 
 // Compartir lista ACTUAL
+
+function _carritoColapsarBarra(){
+  var bar = document.getElementById('carritoTotalBar');
+  if(!bar) return;
+  bar.querySelector('.ctb-detalle').style.display = 'none';
+  bar.querySelector('.ctb-mini').style.display = 'block';
+  bar.style.padding = '6px 14px';
+  bar.style.opacity = '0.8';
+}
+function _carritoExpandirBarra(){
+  var bar = document.getElementById('carritoTotalBar');
+  if(!bar) return;
+  bar.querySelector('.ctb-detalle').style.display = 'flex';
+  bar.querySelector('.ctb-mini').style.display = 'none';
+  bar.style.padding = '12px 16px';
+  bar.style.opacity = '1';
+}
+
 function carritoCompartir(){
   var actual = getCarritoActual();
   if(!actual.items || actual.items.length === 0){ showToast('⚠ Lista vacía'); return; }
@@ -9927,4 +9953,4 @@ function desactivarCodigo(codigo){
 
 </script>
 </body>
-</html>
+  </html>
