@@ -2281,33 +2281,26 @@ function confirmarTema(){
           }
           return;
         }
-        var codigos = JSON.parse(localStorage.getItem('usala_codigos')||'[]');
-        var hoy = new Date();
-        var cod = codigos.find(function(c){ return c.codigo===ses.codigo && c.activo; });
-        if(cod){
-          var venc = new Date(cod.vencimiento.split('-').join('/'));
-          if(venc >= hoy){
-            showScreen('accessScreen');
-            var nipKey = 'usala_nip_u_' + ses.codigo;
-            var nip = localStorage.getItem(nipKey);
-            if(nip){
-              _sesionPendiente = ses;
-              mostrarPanelConNip(ses.nombre.split(' ')[0]);
-            } else {
-              document.getElementById('panelSesion').style.display = 'block';
-              document.getElementById('panelCodigo').style.display  = 'none';
-              document.getElementById('nipZona').style.display = 'none';
-              document.getElementById('sinNipZona').style.display = 'block';
-              var elNom = document.getElementById('sesionNombre');
-              if(elNom) elNom.textContent = ses.nombre;
-              var elAv = document.getElementById('sesionAvatar');
-              if(elAv) elAv.textContent = ses.nombre.charAt(0).toUpperCase();
-              _sesionPendiente = ses;
-            }
-            return;
-          }
+        // Sesión de usuario invitado — confiar en la sesión guardada
+        // (la validación real de vencimiento ocurre en Supabase al entrar)
+        showScreen('accessScreen');
+        var nipKey2 = 'usala_nip_u_' + ses.codigo;
+        var nip2 = localStorage.getItem(nipKey2);
+        if(nip2){
+          _sesionPendiente = ses;
+          mostrarPanelConNip(ses.nombre ? ses.nombre.split(' ')[0] : 'Hola');
+        } else {
+          document.getElementById('panelSesion').style.display = 'block';
+          document.getElementById('panelCodigo').style.display  = 'none';
+          document.getElementById('nipZona').style.display = 'none';
+          document.getElementById('sinNipZona').style.display = 'block';
+          var elNom = document.getElementById('sesionNombre');
+          if(elNom) elNom.textContent = ses.nombre || 'Bienvenido';
+          var elAv = document.getElementById('sesionAvatar');
+          if(elAv) elAv.textContent = ses.nombre ? ses.nombre.charAt(0).toUpperCase() : '👤';
+          _sesionPendiente = ses;
         }
-        localStorage.removeItem('usala_session');
+        return;
       }catch(e){ localStorage.removeItem('usala_session'); }
     }
     showScreen('accessScreen');
@@ -2558,80 +2551,133 @@ function olvidarContraseña(){
 }
 var _accPassVerificada = false;
 function verificarCodigo(){
-  var codigo = (document.getElementById('accCodigo').value||'').trim().toUpperCase();
-  var err    = document.getElementById('accessErr');
-  var btn    = document.querySelector('#panelCodigo .lg-btn');
-  function showErr(msg){ if(err){err.textContent=msg;err.style.display='block';} if(btn){btn.textContent='Entrar →';btn.disabled=false;} }
-  if(err) err.style.display='none';
-  if(!codigo){ showErr('Ingresa el código'); return; }
+  var codigo   = (document.getElementById('accCodigo').value||'').trim().toUpperCase();
+  var errEl    = document.getElementById('accessErr');
+  var btn      = document.querySelector('#panelCodigo .lg-btn');
+  var nombreInp= document.getElementById('accNombre');
+  var passEl   = document.getElementById('accPassword');
+  var passRow  = document.getElementById('accPassRow');
+  var nombreRow= document.getElementById('accNombreRow');
+
+  function showErr(msg){
+    if(errEl){ errEl.textContent=msg; errEl.style.display='block'; }
+    if(btn){ btn.textContent='Entrar →'; btn.disabled=false; }
+  }
+  function clearErr(){
+    if(errEl) errEl.style.display='none';
+  }
+
+  clearErr();
+  if(!codigo){ showErr('Ingresa tu código de acceso'); return; }
   if(btn){ btn.textContent='Verificando...'; btn.disabled=true; }
+
   dbVerificarCodigo(codigo).then(async function(u){
-    if(!u){
-      var cods = JSON.parse(localStorage.getItem('usala_codigos')||'[]');
-      var cod  = cods.find(function(c){ return c.codigo===codigo && c.activo!==false; });
-      if(!cod){ showErr('Código incorrecto o no existe'); return; }
-      var venc = new Date((cod.vencimiento||'2099-12-31').replace(/-/g,'/'));
-      if(venc < new Date()){ showErr('Este código ha vencido'); return; }
-      var nombre = cod.nombreUsuario || cod.nombre || '';
-      var nombreInp = (document.getElementById('accNombre')?document.getElementById('accNombre').value:'').trim();
-      if(nombreInp) nombre = nombreInp;
+    // ── CASO A: usuario encontrado en Supabase ──
+    if(u){
+      // Verificar si está bloqueado
+      if(u.activo === false){ showErr('Tu acceso ha sido suspendido. Contacta al administrador.'); return; }
+
+      // Verificar vencimiento
+      if(u.vencimiento){
+        var venc = new Date(u.vencimiento);
+        if(!isNaN(venc.getTime()) && venc < new Date()){ showErr('Tu acceso ha vencido. Pide al admin que lo renueve.'); return; }
+      }
+
+      // Nombre: de Supabase o del input
+      var nombre = (nombreInp ? nombreInp.value.trim() : '') || u.nombre || '';
+
+      // Contraseña: si tiene, verificar
+      if(u.password_hash && !_accPassVerificada){
+        if(!passEl || !passEl.value.trim()){
+          if(passRow) passRow.style.display = 'block';
+          if(nombreRow) nombreRow.style.display = 'none';
+          showErr('Ingresa tu contraseña');
+          if(passEl) passEl.focus();
+          return;
+        }
+        var ok = await dbVerificarPass(codigo, passEl.value);
+        if(!ok){ showErr('Contraseña incorrecta'); _accPassVerificada=false; return; }
+        _accPassVerificada = true;
+      }
+
+      // Contraseña nueva opcional
+      if(!u.password_hash && !_saltarPass){
+        var npEl = document.getElementById('accNuevaPass');
+        if(npEl && npEl.value && npEl.value.length >= 4){
+          await dbGuardarPass(codigo, npEl.value);
+          showToast('Contrasena guardada');
+        }
+      }
+
+      // Nombre obligatorio si no se tiene
       if(!nombre){
-        showErr('Ingresa tu nombre');
-        var nr=document.getElementById('accNombreRow'); if(nr) nr.style.display='block';
+        if(nombreRow) nombreRow.style.display='block';
+        showErr('Escribe tu nombre para continuar');
         return;
       }
+
+      // Actualizar registros
+      _saltarPass=false; _accPassVerificada=false;
+      DB.update('usala_usuarios','codigo=eq.'+encodeURIComponent(codigo),
+        {nombre:nombre, ultimo_acceso:new Date().toISOString()}).catch(function(){});
+      _guardarCodigoLocal(codigo, nombre, u.vencimiento||'2099-12-31');
+      if(btn){ btn.textContent='Entrar →'; btn.disabled=false; }
       _entrarComoUsuario(nombre, codigo);
       return;
     }
-    var nombre = u.nombre || '';
-    var nombreInp = (document.getElementById('accNombre')?document.getElementById('accNombre').value:'').trim();
-    if(nombreInp) nombre = nombreInp;
-    if(u.password_hash && !_accPassVerificada){
-      var passEl = document.getElementById('accPassword');
-      var passRow = document.getElementById('accPassRow');
-      if(!passEl || !passEl.value){
-        if(passRow) passRow.style.display = 'block';
-        showErr('Ingresa tu contraseña');
-        if(passEl) passEl.focus();
-        return;
-      }
-      var ok = await dbVerificarPass(codigo, passEl.value);
-      if(!ok){ showErr('Contraseña incorrecta'); return; }
-      _accPassVerificada = true;
-    }
-    if(!u.password_hash && !_saltarPass){
-      var npEl = document.getElementById('accNuevaPass');
-      if(npEl && npEl.value && npEl.value.length >= 4){
-        await dbGuardarPass(codigo, npEl.value);
-        showToast('🔐 Contraseña creada');
-      }
-    }
-    _saltarPass = false;
-    _accPassVerificada = false;
-    if(!nombre){
-      showErr('Ingresa tu nombre');
-      var nr2=document.getElementById('accNombreRow'); if(nr2) nr2.style.display='block';
+
+    // ── CASO B: no está en Supabase — buscar en localStorage ──
+    var cods = JSON.parse(localStorage.getItem('usala_codigos')||'[]');
+    var cod  = cods.find(function(c){ return c.codigo===codigo && c.activo!==false; });
+
+    if(!cod){
+      showErr('Código incorrecto o no existe');
       return;
     }
-    DB.update('usala_usuarios','codigo=eq.'+encodeURIComponent(codigo),
-      {nombre:nombre, ultimo_acceso:new Date().toISOString()}).catch(function(){});
-    var cods = JSON.parse(localStorage.getItem('usala_codigos')||'[]');
-    var ex   = cods.find(function(c){ return c.codigo===codigo; });
-    if(!ex){ cods.push({codigo:codigo,nombre:nombre,activo:true,vencimiento:u.vencimiento||'2099-12-31',nombreUsuario:nombre}); }
-    else   { ex.nombreUsuario=nombre; ex.activo=true; }
-    localStorage.setItem('usala_codigos', JSON.stringify(cods));
+
+    // Verificar vencimiento local
+    if(cod.vencimiento && cod.vencimiento !== '3650'){
+      var vencL = new Date((cod.vencimiento||'2099-12-31').replace(/-/g,'/'));
+      if(vencL < new Date()){ showErr('Este código ha vencido. Pide al admin que lo renueve.'); return; }
+    }
+
+    // Nombre
+    var nombreLocal = (nombreInp ? nombreInp.value.trim() : '') || cod.nombreUsuario || cod.nombre || '';
+    if(!nombreLocal){
+      if(nombreRow) nombreRow.style.display='block';
+      showErr('Escribe tu nombre para continuar');
+      return;
+    }
+
     if(btn){ btn.textContent='Entrar →'; btn.disabled=false; }
-    _entrarComoUsuario(nombre, codigo);
+    _entrarComoUsuario(nombreLocal, codigo);
+
   }).catch(function(e){
-    console.warn('verificarCodigo:', e);
+    // ── CASO C: sin conexión — usar localStorage ──
+    console.warn('verificarCodigo sin conexion:', e);
     var cods = JSON.parse(localStorage.getItem('usala_codigos')||'[]');
     var cod  = cods.find(function(c){ return c.codigo===codigo && c.activo!==false; });
     if(cod){
-      var nombre = cod.nombreUsuario || cod.nombre || '';
-      if(nombre){ _entrarComoUsuario(nombre, codigo); return; }
+      var nombre = (nombreInp ? nombreInp.value.trim() : '') || cod.nombreUsuario || cod.nombre || '';
+      if(!nombre){
+        if(nombreRow) nombreRow.style.display='block';
+        showErr('Escribe tu nombre para continuar');
+        return;
+      }
+      showToast('Sin conexion — entrando con datos locales');
+      _entrarComoUsuario(nombre, codigo);
+    } else {
+      showErr('Sin conexion y codigo no encontrado localmente');
     }
-    showErr('Sin conexión — verifica el código con el admin');
   });
+}
+
+function _guardarCodigoLocal(codigo, nombre, vencimiento){
+  var cods = JSON.parse(localStorage.getItem('usala_codigos')||'[]');
+  var ex = cods.find(function(c){ return c.codigo===codigo; });
+  if(!ex){ cods.push({codigo:codigo, nombre:nombre, nombreUsuario:nombre, activo:true, vencimiento:vencimiento}); }
+  else   { ex.nombreUsuario=nombre; ex.nombre=nombre; ex.activo=true; if(vencimiento) ex.vencimiento=vencimiento; }
+  localStorage.setItem('usala_codigos', JSON.stringify(cods));
 }
 function _entrarComoUsuario(nombre, codigo){
   var btn = document.querySelector('#panelCodigo .lg-btn');
@@ -9010,4 +9056,5 @@ function desactivarCodigo(codigo){
   localStorage.setItem('usala_codigos',JSON.stringify(cods));
   goSub('codigos');
 }</script>
-</body>                                                                                                                                                                                </html>
+</body>
+  </html>
