@@ -19,7 +19,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
 
   <!-- Estilos -->
-
 <style>
 :root {
   --bg:      #eef6f0;
@@ -1802,20 +1801,9 @@ textarea.inp {resize:vertical;}
 <!-- ══ SCRIPTS — orden de carga ══ -->
 
 <!-- PWA Service Worker -->
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function () {
-    navigator.serviceWorker.register('service-worker.js')
-      .then(function (r) { console.log('[SW] registrado:', r.scope); })
-      .catch(function (e) { console.warn('[SW] error:', e); });
-  });
-}
-</script>
 
 
 <script>
-// ── supabase.js ──
-
 // ─────────────────────────────────────────────
 //  USALA Suite — Base de Datos & Configuración
 //  config/supabase.js  ·  carga PRIMERO
@@ -1867,8 +1855,6 @@ var DB = {
   }
 };
 
-
-// ── globals.js ──
 
 // USALA Suite - Variables globales & Arranque
 // js/globals.js
@@ -2107,8 +2093,6 @@ var FAQS = [
     if(typeof arrancarApp === 'function') arrancarApp();
   }
 })();
-
-// ── app.js ──
 
 // ─────────────────────────────────────────────
 //  USALA Suite — App Core
@@ -5931,8 +5915,6 @@ function usalaPrompt2(msg, fields, onOk){
 }
 
 
-// ── creditos-tarjetas.js ──
-
 // ═════════════════════════════════════════════════════════════
 //  USALA Suite — Créditos & Tarjetas de Crédito
 //  js/creditos-tarjetas.js
@@ -7007,8 +6989,6 @@ function _abrirModalCobrarCxC(){
   document.body.appendChild(m);
 }
 
-
-// ── auth.js ──
 
 
 // ── Validación de contraseña (6 reglas) ──────────
@@ -8705,8 +8685,6 @@ function irAlLogin(){
 }
 
 
-// ── transacciones.js ──
-
 // ─────────────────────────────────────────────
 //  USALA Suite — Transacciones
 //  js/transacciones.js
@@ -9107,8 +9085,6 @@ function carritoConfirmarFin(){
 }
 
 
-
-// ── dashboard.js ──
 
 // ─────────────────────────────────────────────
 //  USALA Suite — Dashboard & UI
