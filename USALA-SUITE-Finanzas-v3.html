@@ -1802,7 +1802,6 @@ textarea.inp {resize:vertical;}
 
 <!-- PWA Service Worker -->
 
-
 <script>
 // ─────────────────────────────────────────────
 //  USALA Suite — Base de Datos & Configuración
@@ -1958,6 +1957,9 @@ var _CAT_KEYS = {
   activos: 'cats_activos_custom',
   pagos:   'cats_pagos_custom'
 };
+var PAGOS_CATS = ['💳 Tarjetas','💡 Servicios','🏠 Renta / Hipoteca','🏛 Impuestos','🚗 Auto','📱 Telefonía','🌐 Internet / Cable','🏥 Salud / Seguros','🎓 Educación','📦 Suscripciones','🔧 Otros'];
+var ACTIVOS_CATS = ['🏠 Inmueble','🚗 Vehículo','💼 Negocio','📈 Inversión','💰 Ahorro / Efectivo','🌐 Criptomonedas','🏭 Maquinaria / Equipo','💍 Joyas / Arte','📦 Otros'];
+
 var _CAT_BASE = {
   gasto:   GASTO_CATS_BASE.map(function(c){ return c.id; }),
   ingreso: INGRESO_CATS_BASE.map(function(c){ return c.id; }),
@@ -1970,8 +1972,6 @@ var _CAT_TITLES = {
   activos: { title:'🏦 Tipos de Activo',        sub:'Añade tipos de activo personalizados' },
   pagos:   { title:'📅 Tipos de Pago Fijo',     sub:'Añade categorías de pagos recurrentes' }
 };
-var PAGOS_CATS = ['💳 Tarjetas','💡 Servicios','🏠 Renta / Hipoteca','🏛 Impuestos','🚗 Auto','📱 Telefonía','🌐 Internet / Cable','🏥 Salud / Seguros','🎓 Educación','📦 Suscripciones','🔧 Otros'];
-var ACTIVOS_CATS = ['🏠 Inmueble','🚗 Vehículo','💼 Negocio','📈 Inversión','💰 Ahorro / Efectivo','🌐 Criptomonedas','🏭 Maquinaria / Equipo','💍 Joyas / Arte','📦 Otros'];
 var _tipoInteresActual = 'total';
 var _catModalTipo = null, _catSelectId = null, _catSelectVal = null;
 var _ppTab = 'hoy';
@@ -7170,7 +7170,7 @@ function arrancarApp(){
     document.getElementById('panelCodigo').style.display  = 'block';
   }
 
-function verificarCodigo(){
+async function verificarCodigo(){
   var codigo   = (document.getElementById('accCodigo').value||'').trim().toUpperCase();
   var errEl    = document.getElementById('accessErr');
   var btn      = document.querySelector('#panelCodigo .lg-btn');
