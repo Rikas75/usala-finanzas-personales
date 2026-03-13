@@ -1,378 +1,156 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 
-<title>USALA Finanzas</title>
+<title>Exxito Finanzas</title>
 
-<link rel="manifest" href="manifest.json">
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 
 body{
-margin:0;
-font-family:system-ui;
-background:#0f1115;
+font-family:Arial;
+background:#0f172a;
 color:white;
+margin:0;
 }
 
 header{
-padding:14px;
-background:#171a20;
-border-bottom:1px solid #2a2e35;
-font-weight:800;
-display:flex;
-justify-content:space-between;
+padding:20px;
+font-size:22px;
+font-weight:bold;
+background:#1e293b;
 }
 
-#main{
-padding:16px;
-padding-bottom:80px;
+.container{
+padding:20px;
 }
 
 .card{
-background:#1a1e25;
-border-radius:14px;
-padding:14px;
-margin-bottom:12px;
-border:1px solid #2b3038;
+background:#1e293b;
+padding:20px;
+border-radius:10px;
+margin-bottom:20px;
 }
 
-.btn{
-background:#2bc070;
+button{
+background:#22c55e;
 border:none;
 padding:10px;
-border-radius:10px;
+border-radius:6px;
 color:white;
-font-weight:700;
 cursor:pointer;
 }
 
 input{
 width:100%;
-padding:10px;
-border-radius:8px;
-border:none;
-margin-top:6px;
-background:#222630;
-color:white;
-}
-
-nav{
-position:fixed;
-bottom:0;
-left:0;
-right:0;
-background:#171a20;
-display:flex;
-justify-content:space-around;
-padding:10px;
-border-top:1px solid #2a2e35;
-}
-
-nav button{
-background:none;
-border:none;
-color:white;
-font-size:20px;
-}
-
-.metric{
-font-size:22px;
-font-weight:900;
+padding:8px;
+margin-top:5px;
+margin-bottom:10px;
 }
 
 </style>
-
 </head>
 
 <body>
 
 <header>
-
-<div>💰 USALA Finanzas</div>
-
-<div id="userLabel"></div>
-
+Exxito Finanzas
 </header>
 
-<div id="main"></div>
+<div class="container">
 
-<nav>
+<div class="card">
 
-<button onclick="home()">🏠</button>
-<button onclick="tx()">💳</button>
-<button onclick="metas()">🎯</button>
-<button onclick="mas()">⚙️</button>
+<h3>Agregar Transacción</h3>
 
-</nav>
+<input id="descripcion" placeholder="Descripción">
+
+<input id="monto" type="number" placeholder="Monto">
+
+<select id="tipo">
+<option value="gasto">Gasto</option>
+<option value="ingreso">Ingreso</option>
+</select>
+
+<button onclick="guardar()">Guardar</button>
+
+</div>
+
+<div class="card">
+
+<h3>Dashboard</h3>
+
+<canvas id="grafica"></canvas>
+
+</div>
+
+</div>
 
 <script>
 
-const SUPABASE_URL="TU_URL_SUPABASE"
-const SUPABASE_KEY="TU_KEY_SUPABASE"
+const SUPABASE_URL="https://aphccdnydowrkbzjmqsw.supabase.co"
+const SUPABASE_KEY="sb_publishable_vYgkon6qP3ZymsfrGhpAvw_ynUaEGnV"
 
-function fmt(n){
-return "$"+Number(n||0).toLocaleString("es-MX")
+const supabaseClient = supabase.createClient(SUPABASE_URL,SUPABASE_KEY)
+
+async function guardar(){
+
+const descripcion=document.getElementById("descripcion").value
+const monto=document.getElementById("monto").value
+const tipo=document.getElementById("tipo").value
+
+await supabaseClient
+.from("transacciones")
+.insert([{descripcion,monto,tipo,fecha:new Date()}])
+
+alert("Guardado")
+
+cargar()
+
 }
 
-function save(k,v){
-localStorage.setItem(k,JSON.stringify(v))
-}
+async function cargar(){
 
-function load(k,d){
-try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}
-}
+const {data}=await supabaseClient
+.from("transacciones")
+.select("*")
 
-function toast(t){
-alert(t)
-}
+let gastos=0
+let ingresos=0
 
-function home(){
+data.forEach(t=>{
 
-var txs=load("txs",[])
+if(t.tipo=="gasto")gastos+=Number(t.monto)
+else ingresos+=Number(t.monto)
 
-var ing=0
-var gas=0
-
-txs.forEach(t=>{
-if(t.tipo==="ingreso")ing+=Number(t.monto)
-if(t.tipo==="gasto")gas+=Number(t.monto)
 })
 
-var balance=ing-gas
-
-document.getElementById("main").innerHTML=`
-
-<div class="card">
-
-<div>Balance</div>
-<div class="metric">${fmt(balance)}</div>
-
-</div>
-
-<canvas id="chart"></canvas>
-
-`
-
-setTimeout(drawChart,200)
+dibujar(gastos,ingresos)
 
 }
 
-function drawChart(){
+function dibujar(gastos,ingresos){
 
-var txs=load("txs",[])
+new Chart(document.getElementById("grafica"),{
 
-var ing=0
-var gas=0
-
-txs.forEach(t=>{
-if(t.tipo==="ingreso")ing+=Number(t.monto)
-if(t.tipo==="gasto")gas+=Number(t.monto)
-})
-
-new Chart(document.getElementById("chart"),{
 type:"doughnut",
+
 data:{
-labels:["Ingresos","Gastos"],
+labels:["Gastos","Ingresos"],
 datasets:[{
-data:[ing,gas]
+data:[gastos,ingresos]
 }]
 }
-})
-
-}
-
-function tx(){
-
-document.getElementById("main").innerHTML=`
-
-<div class="card">
-
-<label>Monto</label>
-<input id="monto" type="number">
-
-<label>Tipo</label>
-
-<select id="tipo">
-<option value="ingreso">Ingreso</option>
-<option value="gasto">Gasto</option>
-</select>
-
-<button class="btn" onclick="addTx()">Guardar</button>
-
-</div>
-
-<div id="lista"></div>
-
-`
-
-renderTx()
-
-}
-
-function addTx(){
-
-var monto=document.getElementById("monto").value
-var tipo=document.getElementById("tipo").value
-
-if(!monto)return toast("Monto requerido")
-
-var txs=load("txs",[])
-
-txs.push({
-monto:monto,
-tipo:tipo,
-fecha:new Date().toISOString()
-})
-
-save("txs",txs)
-
-tx()
-
-}
-
-function renderTx(){
-
-var txs=load("txs",[])
-
-var html=""
-
-txs.reverse().forEach(t=>{
-
-html+=`
-
-<div class="card">
-
-<div>${t.tipo}</div>
-<div>${fmt(t.monto)}</div>
-
-</div>
-
-`
 
 })
 
-document.getElementById("lista").innerHTML=html
-
 }
 
-function metas(){
-
-var metas=load("metas",[])
-
-var html=`
-
-<div class="card">
-
-<input id="metaNombre" placeholder="Meta">
-<input id="metaMonto" type="number" placeholder="Monto">
-
-<button class="btn" onclick="addMeta()">Agregar</button>
-
-</div>
-
-`
-
-metas.forEach(m=>{
-
-var pct=Math.min(100,Math.round((m.actual/m.meta)*100))
-
-html+=`
-
-<div class="card">
-
-<div>${m.nombre}</div>
-<div>${pct}%</div>
-
-</div>
-
-`
-
-})
-
-document.getElementById("main").innerHTML=html
-
-}
-
-function addMeta(){
-
-var n=document.getElementById("metaNombre").value
-var m=document.getElementById("metaMonto").value
-
-var metas=load("metas",[])
-
-metas.push({
-nombre:n,
-meta:m,
-actual:0
-})
-
-save("metas",metas)
-
-metas()
-
-}
-
-function mas(){
-
-document.getElementById("main").innerHTML=`
-
-<div class="card">
-<button class="btn" onclick="backup()">Exportar datos</button>
-</div>
-
-<div class="card">
-<input type="file" onchange="restore(event)">
-</div>
-
-`
-
-}
-
-function backup(){
-
-var data=JSON.stringify(localStorage)
-
-var blob=new Blob([data])
-
-var a=document.createElement("a")
-
-a.href=URL.createObjectURL(blob)
-
-a.download="backup_usala.json"
-
-a.click()
-
-}
-
-function restore(e){
-
-var f=e.target.files[0]
-
-var r=new FileReader()
-
-r.onload=function(){
-
-var data=JSON.parse(r.result)
-
-for(var k in data){
-localStorage.setItem(k,data[k])
-}
-
-toast("Datos restaurados")
-
-}
-
-r.readAsText(f)
-
-}
-
-home()
+cargar()
 
 </script>
 
