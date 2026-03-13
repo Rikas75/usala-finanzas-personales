@@ -2870,6 +2870,17 @@ function goTab(tab, btn){
     });
   });
 }
+
+function _renderMainContent(htmlStr){
+  var mc = document.getElementById('mainContent');
+  if(!mc) return;
+  mc.style.cssText += ';opacity:0;transform:translateY(6px);transition:none;';
+  mc.innerHTML = htmlStr;
+  requestAnimationFrame(function(){ requestAnimationFrame(function(){
+    mc.style.transition = 'opacity 0.22s ease,transform 0.22s cubic-bezier(0.16,1,0.3,1)';
+    mc.style.opacity = '1'; mc.style.transform = 'translateY(0)';
+  }); });
+}
 function goSub(sub){
   S.subtab = sub;
   if(sub && sub.indexOf('banco_')===0){
@@ -2880,12 +2891,14 @@ function goSub(sub){
   var renders = {
     efectivo: renderEfectivo, cheques: renderCheques,
     tarjetas_credito: renderTarjetasCredito,
-    nueva_tc: function(){ return renderFormTC(null); },
-    creditos_debo: null, creditos_cobrar: null,
-    pagos_mes: null,
-    nueva_deuda: function(){ return renderFormCredito('deuda', null); },
-    nuevo_prestamo: function(){ return renderFormCredito('prestamo', null); },
-    activos: null, progreso: null,
+    nueva_tc:        function(){ return renderFormTC(null); },
+    creditos_debo:   renderCreditosDebo,
+    creditos_cobrar: renderCreditosCobrar,
+    pagos_mes:       renderPagosMes,
+    nueva_deuda:     function(){ return renderFormCredito('deuda', null); },
+    nuevo_prestamo:  function(){ return renderFormCredito('prestamo', null); },
+    activos:         renderActivos,
+    progreso:        renderProgreso,
     ingresos_activos: renderIngresosActivos,
     metas: renderMetas, alertas: renderAlertas,
     historial: renderHistorial, conversor: renderConversor,
@@ -2894,18 +2907,22 @@ function goSub(sub){
     version: renderVersion, noticias: renderNoticias,
     carrito: renderCarrito
   };
-  if(sub==='creditos_debo'){ renderCreditosDebo(); return; }
-  if(sub==='creditos_cobrar'){ renderCreditosCobrar(); return; }
-  if(sub==='pagos_mes'){ renderPagosMes(); return; }
-  if(sub==='activos'){ renderActivos(); return; }
   if(sub==='ingresos_activos'){ document.getElementById('mainContent').innerHTML=renderIngresosActivos(); return; }
-  if(sub==='progreso'){ renderProgreso(); return; }
   if(sub==='presupuesto'){ renderPresupuesto(); return; }
   if(sub==='dashboard_admin'){ renderDashboardAdmin(); return; }
-  if(sub==='panel_admin'){ renderAdminPanel(); return; }
-  if(sub==='codigos'){ renderCodigos(); return; }
-  if(sub==='autolock'){ abrirConfigAutolock(); return; }
-  if(sub==='config_nip'){ goTab('mas',document.querySelectorAll('.nb')[4]); setTimeout(function(){ goSub('config'); setTimeout(abrirConfigNip,120); },80); return; }
+  if(sub==='panel_admin')     { renderAdminPanel(); return; }
+  if(sub==='codigos')         { renderCodigos(); return; }
+  if(sub==='autolock')        { abrirConfigAutolock(); return; }
+  if(sub==='config_nip')      { goTab('mas',document.querySelectorAll('.nb')[4]); setTimeout(function(){ goSub('config'); setTimeout(abrirConfigNip,120); },80); return; }
+  // ── Rutas adicionales ──
+  if(sub==='gastos')          { _renderMainContent(renderGastos()); return; }
+  if(sub==='compras')         { _renderMainContent(renderCompras()); return; }
+  if(sub==='pagos')           { _renderMainContent(renderPagos()); return; }
+  if(sub==='servicios')       { _renderMainContent(renderServicios()); return; }
+  if(sub==='ingresos')        { _renderMainContent(renderIngresos()); return; }
+  if(sub==='tarjetas')        { _renderMainContent(renderTarjetasCredito()); return; }
+  if(sub==='cxc')             { _renderMainContent(renderCxC()); return; }
+  if(sub==='noticias_admin')  { _renderMainContent(renderNoticiasAdmin()); return; }
   var fn = renders[sub];
   if(fn){
     var _mc = document.getElementById('mainContent');
@@ -5252,6 +5269,26 @@ function renderProgreso(){
   };
   mc.appendChild(bSnap);
 }
+function pmSetTab(tab){
+  ['pend','pag','hist'].forEach(function(t){
+    var el=document.getElementById('pmTab_'+t);
+    if(el){ el.classList.remove('active'); el.classList.remove('pp-tab-active'); }
+  });
+  var mapId={pendientes:'pend', pagados:'pag', historial:'hist'};
+  var activeEl = document.getElementById('pmTab_'+(mapId[tab]||tab));
+  if(activeEl){ activeEl.classList.add('active'); activeEl.classList.add('pp-tab-active'); }
+  var cont = document.getElementById('pmListaCont');
+  if(!cont) return;
+  if(tab==='pendientes'){
+    var pendientes = loadPagosBase().filter(function(p){ return !_estaPagado(p.nombre); });
+    cont.innerHTML = renderPendientes(pendientes);
+  } else if(tab==='pagados'){
+    var pagados = loadPagosBase().filter(function(p){ return _estaPagado(p.nombre); });
+    cont.innerHTML = renderPagadosMes(pagados);
+  } else {
+    cont.innerHTML = renderHistorialPagos();
+  }
+}
 function renderPagosMes(){
   var mc = document.getElementById('mainContent');
   mc.innerHTML = '';
@@ -5523,18 +5560,7 @@ function renderPagosMes(){
     card.appendChild(inner);
     return card;
   }
-  window.pmSetTab = function(tab){
-    ['pend','pag','hist'].forEach(function(t){
-      var el=document.getElementById('pmTab_'+t);
-      if(el) el.classList.remove('active');
-    });
-    var map={pendientes:'pend',pagados:'pag',historial:'hist'};
-    var el=document.getElementById('pmTab_'+map[tab]);
-    if(el) el.classList.add('active');
-    if(tab==='pendientes')  renderPendientes();
-    else if(tab==='pagados') renderPagadosMes();
-    else                     renderHistorialPagos();
-  };
+  // pmSetTab es función global
   renderPendientes();
 }
 function renderPagarPago(pid, montoEst){
@@ -7916,28 +7942,7 @@ function guardarVersion(){
   goSub('version');
 }
 function abrirAyuda(){ goTab('mas',document.querySelectorAll('.nb')[4]); setTimeout(function(){ goSub('ayuda'); },10); }
-function abrirMenu(){
-  var u = S.user;
-  document.getElementById('menuNombre').textContent = u.isAdmin ? '⚙️ Administrador' : '👤 ' + u.nombre;
-  var opciones = [
-    {ico:'🎨', label:'Cambiar tema', accion:'tema'},
-    {ico:'⚙️', label:'Configuración', accion:'config'},
-    {ico:'🔑', label:'Códigos de acceso', accion:'codigos', soloAdmin:true},
-    {ico:'🚪', label:'Cerrar sesión', accion:'salir', rojo:true}
-  ];
-  var cont = document.getElementById('menuItems');
-  cont.innerHTML = '';
-  opciones.forEach(function(op){
-    if(op.soloAdmin && !S.user.isAdmin) return;
-    var div = document.createElement('div');
-    div.className = 'set-item';
-    div.style.cursor = 'pointer';
-    div.innerHTML = '<div class="set-label"'+(op.rojo?' style="color:var(--danger);"':'')+'>'+op.ico+' '+op.label+'</div><div class="set-arrow">›</div>';
-    div.addEventListener('click', function(){ menuAccion(op.accion); });
-    cont.appendChild(div);
-  });
-  document.getElementById('menuModal').classList.add('open');
-}
+function abrirMenu(){ toggleUMenu(); }
 function getNoticias(){ return JSON.parse(localStorage.getItem('usala_noticias')||'[]'); }
 function saveNoticias(n){ localStorage.setItem('usala_noticias', JSON.stringify(n)); }
 function renderNoticias(){
@@ -9061,6 +9066,124 @@ function desactivarCodigo(codigo){
   if(ci) ci.activo=false;
   localStorage.setItem('usala_codigos',JSON.stringify(cods));
   goSub('codigos');
-}</script>
+}
+function abrirConfigNip(){
+  var mc = document.getElementById('mainContent');
+  if(!mc) return;
+  var isAdmin = S.user && S.user.isAdmin;
+  var nipKey  = isAdmin ? 'usala_nip_admin' : 'usala_nip_u_'+(S.user&&S.user.codigo);
+  var tiene   = !!localStorage.getItem(nipKey);
+  var modal   = document.createElement('div');
+  modal.id    = 'nipConfigModal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9300;background:rgba(0,0,0,0.55);display:flex;align-items:flex-end;';
+  modal.innerHTML = '<div style="background:var(--bg);border-radius:24px 24px 0 0;padding:24px 20px 40px;width:100%;max-width:480px;margin:0 auto;">'
+    +'<div style="font-weight:900;font-size:1rem;margin-bottom:4px;">🔒 NIP de seguridad</div>'
+    +'<div style="font-size:0.78rem;color:var(--dim);margin-bottom:18px;">'+(tiene?'Ya tienes un NIP configurado':'Protege tu acceso con un NIP de 4 dígitos')+'</div>'
+    +(tiene
+      ? '<button onclick="_nipCambiar()" class="btn-main" style="margin-bottom:8px;">🔄 Cambiar NIP</button>'
+        +'<button onclick="_nipEliminar()" style="width:100%;padding:12px;background:rgba(255,95,87,0.08);border:1px solid rgba(255,95,87,0.2);border-radius:14px;font-family:Outfit,sans-serif;font-size:0.85rem;color:var(--danger);cursor:pointer;margin-bottom:8px;">🗑 Eliminar NIP</button>'
+      : '<button onclick="_nipCrear()" class="btn-main" style="margin-bottom:8px;">✅ Crear NIP</button>')
+    +'<button onclick="_cerrarNipModal()" style="width:100%;padding:12px;background:none;border:none;font-family:Outfit,sans-serif;font-size:0.85rem;color:var(--dim);cursor:pointer;">Cancelar</button>'
+    +'</div>';
+  document.body.appendChild(modal);
+}
+function _nipCrear(){
+  var m = document.getElementById('nipConfigModal'); if(m) m.remove();
+  var nip1 = prompt('Elige tu NIP (4 dígitos):');
+  if(!nip1 || nip1.length!==4 || !/^\d{4}$/.test(nip1)){ showToast('NIP debe ser exactamente 4 dígitos'); return; }
+  var nip2 = prompt('Confirma tu NIP:');
+  if(nip1 !== nip2){ showToast('Los NIPs no coinciden'); return; }
+  var isAdmin = S.user && S.user.isAdmin;
+  var nipKey  = isAdmin ? 'usala_nip_admin' : 'usala_nip_u_'+(S.user&&S.user.codigo);
+  localStorage.setItem(nipKey, nip1);
+  showToast('✅ NIP creado correctamente');
+  goSub('config');
+}
+function _nipCambiar(){
+  var m = document.getElementById('nipConfigModal'); if(m) m.remove();
+  var isAdmin = S.user && S.user.isAdmin;
+  var nipKey  = isAdmin ? 'usala_nip_admin' : 'usala_nip_u_'+(S.user&&S.user.codigo);
+  var actual  = prompt('Ingresa tu NIP actual:');
+  if(actual !== localStorage.getItem(nipKey)){ showToast('NIP incorrecto'); return; }
+  var nuevo   = prompt('Nuevo NIP (4 dígitos):');
+  if(!nuevo || nuevo.length!==4 || !/^\d{4}$/.test(nuevo)){ showToast('NIP debe ser exactamente 4 dígitos'); return; }
+  localStorage.setItem(nipKey, nuevo);
+  showToast('✅ NIP actualizado');
+  goSub('config');
+}
+function _nipEliminar(){
+  var m = document.getElementById('nipConfigModal'); if(m) m.remove();
+  if(!confirm('¿Eliminar tu NIP? Podrás entrar sin NIP.')) return;
+  var isAdmin = S.user && S.user.isAdmin;
+  var nipKey  = isAdmin ? 'usala_nip_admin' : 'usala_nip_u_'+(S.user&&S.user.codigo);
+  localStorage.removeItem(nipKey);
+  showToast('NIP eliminado');
+  goSub('config');
+}
+
+function _cerrarNipModal(){ var m=document.getElementById("nipConfigModal"); if(m) m.remove(); }
+
+function renderNoticiasAdmin(){
+  var noticias = JSON.parse(localStorage.getItem('usala_noticias')||'[]');
+  var html = '<div class="page-header">'+backSubBtn()+'<div class="page-title">📢 Noticias (Admin)</div></div>'
+    +'<div class="card" style="margin-bottom:14px;">'
+    +'<div class="card-title">📝 Publicar noticia</div>'
+    +'<label class="inp-label">Título</label>'
+    +'<input class="inp" id="noticiasTitulo" placeholder="Título de la noticia" autocomplete="off">'
+    +'<label class="inp-label">Mensaje</label>'
+    +'<textarea class="inp" id="noticiasMsg" rows="3" placeholder="Contenido de la noticia..." style="resize:vertical;"></textarea>'
+    +'<div class="form-row" style="margin-top:4px;">'
+    +'<div><label class="inp-label">Tipo</label>'
+    +'<select class="inp" id="noticiasTipo">'
+    +'<option value="info">ℹ️ Info</option>'
+    +'<option value="aviso">⚠️ Aviso</option>'
+    +'<option value="promo">🎉 Promo</option>'
+    +'<option value="update">🆕 Update</option>'
+    +'</select></div>'
+    +'<div style="display:flex;align-items:flex-end;">'
+    +'<button class="btn-main" style="margin-bottom:0;" onclick="publicarNoticia()">📢 Publicar</button>'
+    +'</div></div></div>'
+    +'<div class="card"><div class="card-title">📋 Publicadas ('+noticias.length+')</div>';
+  if(noticias.length===0){
+    html += '<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin noticias publicadas</div>';
+  } else {
+    noticias.slice().reverse().forEach(function(n,i){
+      var ri = noticias.length-1-i;
+      html += '<div class="tx-item" style="align-items:flex-start;gap:10px;">'
+        +'<div style="font-size:1.1rem;margin-top:2px;">'+(n.tipo==='aviso'?'⚠️':n.tipo==='promo'?'🎉':n.tipo==='update'?'🆕':'ℹ️')+'</div>'
+        +'<div style="flex:1;">'
+        +'<div style="font-weight:700;font-size:0.88rem;">'+n.titulo+'</div>'
+        +'<div style="font-size:0.78rem;color:var(--dim);margin-top:2px;">'+n.msg+'</div>'
+        +'<div style="font-size:0.68rem;color:var(--dim);margin-top:4px;">'+n.fecha+'</div>'
+        +'</div>'
+        +'<button class="ic-btn" onclick="borrarNoticia('+ri+')" style="color:var(--danger);">🗑️</button>'
+        +'</div>';
+    });
+  }
+  html += '</div>';
+  return html;
+}
+
+function publicarNoticia(){
+  var titulo = (document.getElementById('noticiasTitulo')||{}).value||'';
+  var msg    = (document.getElementById('noticiasMsg')||{}).value||'';
+  var tipo   = (document.getElementById('noticiasTipo')||{}).value||'info';
+  titulo = titulo.trim(); msg = msg.trim();
+  if(!titulo || !msg){ showToast('Escribe titulo y mensaje'); return; }
+  var noticias = JSON.parse(localStorage.getItem('usala_noticias')||'[]');
+  noticias.push({ titulo:titulo, msg:msg, tipo:tipo, fecha:today(), id:Date.now() });
+  localStorage.setItem('usala_noticias', JSON.stringify(noticias));
+  showToast('Noticia publicada');
+  goSub('noticias_admin');
+}
+
+function borrarNoticia(idx){
+  if(!confirm('Eliminar esta noticia?')) return;
+  var noticias = JSON.parse(localStorage.getItem('usala_noticias')||'[]');
+  noticias.splice(idx,1);
+  localStorage.setItem('usala_noticias', JSON.stringify(noticias));
+  goSub('noticias_admin');
+}
+</script>
 </body>
-        </html>
+      </html>
