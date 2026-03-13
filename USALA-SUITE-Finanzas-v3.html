@@ -2998,8 +2998,8 @@ function txItem(t, showEdit){
     +'</div>'
     +'<div class="tx-right">'
     +'<div class="tx-amt '+(isIng?'ing':'gas')+'">'+(isIng?'+':'-')+fmt(t.monto)+'</div>'
-    +(es?'<button class="ic-btn" onclick="editarTx('+t.id+')" style="font-size:0.8rem;">✏️</button>':'')
-    +(es?'<button class="ic-btn" onclick="borrarTx('+t.id+')" style="font-size:0.8rem;">🗑️</button>':'')
+    +(es?'<button class="ic-btn" onclick="editarTx(\"'+t.id+'\")" style="font-size:0.8rem;">✏️</button>':'')
+    +(es?'<button class="ic-btn" onclick="borrarTx(\"'+t.id+'\")" style="font-size:0.8rem;">🗑️</button>':'')
     +'</div></div>';
 }
 var _calcExpr = '', _calcResult = '0', _calcNewNum = true;
@@ -3466,9 +3466,10 @@ function selTipo(t){
 }
 function editarTx(id){
   var txs = getTxs();
-  var t = txs.find(function(x){ return x.id===id; });
+  var idStr = String(id);
+  var t = txs.find(function(x){ return String(x.id)===idStr; });
   if(!t) return;
-  S.editTxId = id;
+  S.editTxId = t.id; // usar el id tal como está guardado
   document.getElementById('txModalTitle').textContent = 'Editar Transacción';
   document.getElementById('tipoSelector').style.display = 'none';
   document.getElementById('txDesc').value = t.desc;
@@ -3535,7 +3536,7 @@ function guardarTx(){
   if(!monto || monto<=0){ showToast('⚠ Escribe un monto válido'); return; }
   var txs = getTxs();
   if(S.editTxId){
-    var ei = txs.findIndex(function(t){ return t.id===S.editTxId; });
+    var _eid=String(S.editTxId); var ei = txs.findIndex(function(t){ return String(t.id)===_eid; });
     if(ei>-1){
       var prev = txs[ei];
       if(prev.cuenta) revertirMovimientoCuenta(prev.cuenta, Number(prev.monto), prev.tipo);
@@ -3591,15 +3592,20 @@ function guardarTxInline(tipo, cat){
 }
 function borrarTx(id){
   var txs = getTxs();
-  var eli = txs.find(function(t){ return t.id===id; });
+  // Comparar como string para soportar IDs 'tx_123' y numéricos
+  var idStr = String(id);
+  var eli = txs.find(function(t){ return String(t.id)===idStr; });
   if(!eli) return;
   if(eli.cuenta) revertirMovimientoCuenta(eli.cuenta, Number(eli.monto), eli.tipo);
-  saveTxs(txs.filter(function(t){ return t.id!==id; }));
+  saveTxs(txs.filter(function(t){ return String(t.id)!==idStr; }));
   renderTab(S.tab);
-  mostrarUndo('Transacci\u00f3n eliminada', function(){
-    var t2=getTxs(); t2.push(eli); saveTxs(t2);
+  mostrarUndo('Transaccion eliminada', function(){
+    var t2=getTxs();
+    var eliId=String(eli.id);
+    if(!t2.find(function(x){ return String(x.id)===eliId; })) t2.push(eli);
+    saveTxs(t2);
     if(eli.cuenta) aplicarMovimientoCuenta(eli.cuenta, Number(eli.monto), eli.tipo, eli.desc, eli.fecha, eli.id);
-    showToast('\u2713 Restaurado'); renderTab(S.tab);
+    showToast('Restaurado'); renderTab(S.tab);
   });
 }
 function irPresupuesto(){
@@ -6736,8 +6742,8 @@ function renderHistorial(){
       +'<div class="tx-right" style="align-items:flex-end;gap:6px;">'
       +'<div class="tx-amt '+(t.tipo==='ingreso'?'ing':'gas')+'" style="font-size:0.95rem;">'+(t.tipo==='ingreso'?'+':'-')+fmt(t.monto)+'</div>'
       +'<div style="display:flex;gap:4px;">'
-      +'<button class="ic-btn" onclick="editarTx('+t.id+')" title="Editar">✏️</button>'
-      +'<button class="ic-btn" onclick="borrarTx('+t.id+')" title="Eliminar">🗑️</button>'
+      +'<button class="ic-btn" onclick="editarTx(\"'+t.id+'\")" title="Editar">✏️</button>'
+      +'<button class="ic-btn" onclick="borrarTx(\"'+t.id+'\")" title="Eliminar">🗑️</button>'
       +'</div></div></div>';
   }).join('') : '<div style="text-align:center;padding:30px;color:var(--dim);font-size:0.83rem;">Sin movimientos '+(filtro!=='todos'?'en esta categoría':'aún')+'</div>';
   function filtBtn(val, label){
@@ -8129,8 +8135,8 @@ function renderEfectivo(){
       +'<div class="tx-right"><div class="tx-amt '+(t.tipo==='ingreso'?'ing':'gas')+'">'
       +(t.tipo==='ingreso'?'+':'-')+fmt(t.monto)+'</div>'
       +'<div style="display:flex;gap:4px;">'
-      +'<button class="ic-btn" onclick="editarTx('+t.id+')">✏️</button>'
-      +'<button class="ic-btn" onclick="borrarTx('+t.id+')">🗑️</button>'
+      +'<button class="ic-btn" onclick="editarTx(\"'+t.id+'\")"  >✏️</button>'
+      +'<button class="ic-btn" onclick="borrarTx(\"'+t.id+'\")"  >🗑️</button>'
       +'</div></div></div>';
   }).join('')||'<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin movimientos</div>';
   var catEnt = getIngresoCats();
@@ -8255,7 +8261,7 @@ function renderBancoDetalle(idx){
       +'<div class="tx-date">'+t.fecha+' · '+t.cat+'</div></div>'
       +'<div class="tx-right"><div class="tx-amt '+(t.tipo==='ingreso'?'ing':'gas')+'">'
       +(t.tipo==='ingreso'?'+':'-')+fmt(t.monto)+'</div>'
-      +'<button class="ic-btn" onclick="borrarTxBanco('+t.id+','+idx+')">🗑️</button></div></div>';
+      +'<button class="ic-btn" onclick="borrarTxBanco(\"'+t.id+'\",'+idx+')">🗑️</button></div></div>';
   }).join('')||'<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin movimientos</div>';
   return '<div class="page-header">'+backBtn('cheques',1)+'<div class="page-title">🏧 '+ct.banco+'</div></div>'
     +'<div class="card" style="text-align:center;padding:18px;margin-bottom:14px;">'
@@ -9057,4 +9063,4 @@ function desactivarCodigo(codigo){
   goSub('codigos');
 }</script>
 </body>
-  </html>
+</html>
