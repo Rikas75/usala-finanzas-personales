@@ -1838,6 +1838,8 @@ textarea.inp {resize:vertical;}
 // ═══════════════════════════════════════════════════════════
 // SUPABASE — Cliente y capa de datos en la nube
 // ═══════════════════════════════════════════════════════════
+<script>
+
 var SUPA_URL = 'https://mdllmtuitgsqlpjmnllf.supabase.co';
 var SUPA_KEY = 'sb_publishable_I8RyoelqHZrsiM-4K6ypGg_5Ze5BSNG';
 
@@ -7147,7 +7149,7 @@ function _adminRenderConfig(){
     +'<div><div class="set-label">📊 Vigencia predeterminada</div>'
     +'<div class="set-sub">Al crear códigos nuevos</div></div>'
     +'<select class="inp" style="width:120px;" onchange="_adminToggleCfg(\'vigenciaDefault\',this.value)">'
-    +['8','15','30','90','180','365','3650'].map(function(d){
+    +['7','15','30','365','3650'].map(function(d){
         var labels={8:'8 días',15:'15 días',30:'1 mes',90:'3 meses',180:'6 meses',365:'1 año',3650:'Sin límite'};
         return '<option value="'+d+'"'+(String(cfgGlobal.vigenciaDefault||30)===d?' selected':'')+'>'+labels[d]+'</option>';
       }).join('')
@@ -7967,8 +7969,8 @@ async function renderCodigos(){
     + '<input class="inp" id="codNota" placeholder="Nombre del usuario *" style="margin-bottom:8px;">'
     + '<input class="inp" id="codContacto" placeholder="WhatsApp o email" style="margin-bottom:8px;">'
     + '<select class="inp" id="codVence" style="margin-bottom:12px;">'
-    + '<option value="30">30 días</option><option value="90">90 días</option>'
-    + '<option value="180">6 meses</option><option value="365">1 año</option>'
+    + '<option value="7">7 días</option><option value="15">15 días</option>'
+    + '<option value="30">1 mes</option><option value="365">1 año</option>'
     + '<option value="3650">Sin vencimiento</option>'
     + '</select>'
     + '<button class="btn-main" onclick="generarCodigo()">🔑 Generar código</button>'
@@ -10430,9 +10432,10 @@ function verFichaCodigo(codigo){
   var c=cods.find(function(x){ return x.codigo===codigo; });
   if(!c) return;
   var hoy=new Date(); hoy.setHours(0,0,0,0);
-  var vencDate=new Date(c.vencimiento.split('-').join('/'));
-  var estaVenc=vencDate<hoy;
-  var diffDias=Math.round((vencDate-hoy)/86400000);
+  var _sinVenc=(c.vencimiento==='3650'||c.vencimiento==='9999-12-31'||!c.vencimiento);
+  var vencDate=_sinVenc?new Date('2099-12-31'):new Date(c.vencimiento.split('-').join('/'));
+  var estaVenc=(!_sinVenc)&&vencDate<hoy;
+  var diffDias=_sinVenc?9999:Math.round((vencDate-hoy)/86400000);
   var tieneNip=!!localStorage.getItem('usala_nip_u_'+c.codigo);
   var nombre=c.nombreUsuario||c.nota||'Sin nombre';
   var contacto=c.contacto||'';
@@ -10481,7 +10484,7 @@ function verFichaCodigo(codigo){
       +'<div style="display:flex;flex-direction:column;gap:8px;">'
         +(estaVenc?'<button id="btnRenovarFicha" style="width:100%;padding:13px;background:rgba(45,158,95,0.1);color:var(--accent2);border:1.5px solid rgba(45,158,95,0.3);border-radius:14px;font-family:Outfit,sans-serif;font-weight:700;font-size:0.88rem;cursor:pointer;">🔄 Renovar acceso 30 días</button>':'')
         +(tieneNip?'<button id="btnNipFicha" style="width:100%;padding:13px;background:rgba(229,57,53,0.07);color:var(--danger);border:1.5px solid rgba(229,57,53,0.2);border-radius:14px;font-family:Outfit,sans-serif;font-weight:700;font-size:0.88rem;cursor:pointer;">🔓 Resetear NIP</button>':'')
-        +'<button id="btnBorrarFicha" style="width:100%;padding:13px;background:rgba(229,57,53,0.06);color:var(--danger);border:1.5px solid rgba(229,57,53,0.15);border-radius:14px;font-family:Outfit,sans-serif;font-weight:700;font-size:0.88rem;cursor:pointer;">🗑 Eliminar usuario</button>'
+        +(c.activo!==false?'<button id="btnDesactivarFicha" style="width:100%;padding:13px;background:rgba(245,124,0,0.08);color:#f57c00;border:1.5px solid rgba(245,124,0,0.25);border-radius:14px;font-family:Outfit,sans-serif;font-weight:700;font-size:0.88rem;cursor:pointer;">🚫 Desactivar acceso</button>':'<button id="btnReactivarFicha" style="width:100%;padding:13px;background:rgba(43,192,112,0.08);color:var(--accent2);border:1.5px solid rgba(43,192,112,0.25);border-radius:14px;font-family:Outfit,sans-serif;font-weight:700;font-size:0.88rem;cursor:pointer;">✅ Reactivar acceso</button>')+'<button id="btnBorrarFicha" style="width:100%;padding:13px;background:rgba(229,57,53,0.06);color:var(--danger);border:1.5px solid rgba(229,57,53,0.15);border-radius:14px;font-family:Outfit,sans-serif;font-weight:700;font-size:0.88rem;cursor:pointer;">🗑 Eliminar usuario</button>'
       +'</div>'
     +'</div>';
   // Eventos — sin problemas de comillas
@@ -10491,6 +10494,18 @@ function verFichaCodigo(codigo){
   if(btnR) btnR.onclick=function(){ renovarCodigo(codigo); };
   var btnN=document.getElementById('btnNipFicha');
   if(btnN) btnN.onclick=function(){ resetearNipUsuario(codigo); };
+  var btnDes=document.getElementById('btnDesactivarFicha');
+  if(btnDes) btnDes.onclick=function(){ desactivarCodigo(codigo); };
+  var btnReac=document.getElementById('btnReactivarFicha');
+  if(btnReac) btnReac.onclick=function(){
+    usalaConfirm('¿Reactivar el acceso de '+codigo+'?', function(){
+      var cods=JSON.parse(localStorage.getItem('usala_codigos')||'[]');
+      var ci=cods.find(function(x){ return x.codigo===codigo; });
+      if(ci){ ci.activo=true; }
+      localStorage.setItem('usala_codigos',JSON.stringify(cods));
+      showToast('✅ Acceso reactivado'); goSub('codigos');
+    });
+  };
   var btnD=document.getElementById('btnBorrarFicha');
   if(btnD) btnD.onclick=function(){ borrarCodigo(codigo); };
 }
@@ -11223,15 +11238,8 @@ function renderNuevaCxC(){
 }
 
 
-cepto" placeholder="Ej: Préstamo para renta">'
-    +'<label class="inp-label">Fecha límite (opcional)</label>'
-    +'<input class="inp" id="cxcFechaVence" type="date">'
-    +'<button class="btn-main" onclick="guardarCxC()">💾 Guardar</button>'
-    +'<button class="btn-sec" onclick="goSub(\'cxc\')">Cancelar</button>'
-    +'</div>';
-}
 
 
 </script>
 </body>
-</html>
+</html> 
