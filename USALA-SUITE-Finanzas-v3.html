@@ -3551,7 +3551,7 @@ function poblarCuentas(cuentaActual){
     +'<option value="efectivo"'+(cuentaActual==='efectivo'?' selected':'')+'>💵 Efectivo</option>';
   (c.cheques||[]).forEach(function(ch, i){
     var val = 'cheque_'+i;
-    ops += '<option value="'+val+'"'+(cuentaActual===val?' selected':'')+'>🏧 '+ch.banco+' ('+ch.tipo+')</option>';
+    ops += '<option value="'+val+'"'+(cuentaActual===val?' selected':'')+'>🏧 '+(ch.banco||'Cuenta')+' ('+(ch.tipo||'Débito')+')</option>';
   });
   sel.innerHTML = ops;
 }
@@ -3795,7 +3795,7 @@ function _abrirModalAbonoDeuda(){
       +'padding:14px 16px;border-radius:16px;border:1.5px solid var(--border);'
       +'background:var(--card);cursor:pointer;width:100%;color:var(--text);margin-bottom:10px;">'
       +'<div style="text-align:left;">'
-      +'<div style="font-weight:700;">'+c.persona+'</div>'
+      +'<div style="font-weight:700;">'+(c.persona||'Sin nombre')+'</div>'
       +'<div style="font-size:0.78rem;color:var(--dim);">'+(c.descripcion||'')+'</div>'
       +'</div>'
       +'<div style="text-align:right;">'
@@ -3823,7 +3823,7 @@ function _seleccionarDeudaAbono(ri){
   m.id = 'montoAbonoModal';
   m.setAttribute('data-ri', ri);
   m.innerHTML = '<div class="modal-box" style="position:relative;z-index:2;">'
-    +'<div class="modal-header"><div class="modal-title">💸 Abono a '+c.persona+'</div>'
+    +'<div class="modal-header"><div class="modal-title">💸 Abono a '+(c.persona||'Sin nombre')+'</div>'
     +'<button class="modal-close" onclick="document.getElementById(&quot;montoAbonoModal&quot;).remove()">✕</button></div>'
     +'<p style="color:var(--dim);font-size:0.82rem;margin-bottom:4px;">'+( c.descripcion||'')+'</p>'
     +'<p style="font-size:0.82rem;margin-bottom:14px;">Pendiente: <b style="color:#ff5f57;">'+fmt(pendiente)+'</b></p>'
@@ -3854,7 +3854,7 @@ function _guardarAbonoDeuda(ri){
   // Registrar como gasto en txs
   var txs = load('txs',[]);
   txs.push({ id:Date.now(), tipo:'gasto', monto:monto,
-    desc:'Abono: '+c.persona, cat:'Pagos / Deudas', fecha:today(), cuenta:cuenta });
+    desc:'Abono: '+(c.persona||'Sin nombre'), cat:'Pagos / Deudas', fecha:today(), cuenta:cuenta });
   save('txs', txs);
   document.getElementById('montoAbonoModal').remove();
   showToast(c.estado==='pagado' ? '🎉 ¡Deuda saldada!' : '✅ Abono registrado');
@@ -4322,12 +4322,12 @@ function renderInicio(){
     +'</div>'
     +'</div>'
     +'<div class="insight-row">'
-    +'<div class="insight-card" onclick="goSub(\'ingresos\');goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[1])">'
+    +'<div class="insight-card" onclick="goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[1]);setTimeout(function(){goSub(\'ingresos\');},80)">'
     +'<span class="insight-ico">💚</span>'
     +'<div class="insight-label">Ingresos</div>'
     +'<div class="insight-val" style="color:var(--accent2);">'+fmt(ing)+'</div>'
     +'</div>'
-    +'<div class="insight-card" onclick="goSub(\'gastos\');goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[1])">'
+    +'<div class="insight-card" onclick="goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[1]);setTimeout(function(){goSub(\'gastos\');},80)">'
     +'<span class="insight-ico">🔥</span>'
     +'<div class="insight-label">Gastos</div>'
     +'<div class="insight-val" style="color:var(--danger);">'+fmt(gas)+'</div>'
@@ -5124,7 +5124,7 @@ function _carritoOpsCuentas(){
   var ops = '<option value="">— Sin asignar —</option>'
     + '<option value="efectivo">💵 Efectivo</option>';
   (c.cheques||[]).forEach(function(ch,i){
-    ops += '<option value="cheque_'+i+'">🏧 '+ch.banco+'</option>';
+    ops += '<option value="cheque_'+i+'">🏧 '+(ch.banco||'Cuenta')+'</option>';
   });
   (c.tarjetas||[]).forEach(function(t,i){
     ops += '<option value="tc_'+i+'">💳 '+t.banco+'</option>';
@@ -5480,8 +5480,8 @@ function renderListaCreds(tipo){
     var pendiente=c.monto-(c.abonado||0);
     div.innerHTML=
       '<div class="cred-top"><div>'
-        +'<div class="cred-persona">'+c.persona+'</div>'
-        +'<div class="cred-desc">'+c.descripcion+descExtra+'</div>'
+        +'<div class="cred-persona">'+(c.persona||'Sin nombre')+'</div>'
+        +'<div class="cred-desc">'+(c.descripcion||'Sin descripcion')+descExtra+'</div>'
       +'</div><span class="cred-badge '+badgeCls+'">'+badgeTxt+'</span></div>'
       +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">'
         +'<span style="font-size:0.73rem;background:var(--inp);border-radius:6px;padding:3px 8px;">Capital: <b>'+fmt(totalCap)+'</b> / '+fmt(c.monto)+'</span>'
@@ -6199,8 +6199,8 @@ function renderPagosMes(){
         var pagadoOk = st&&st.pagado;
         row.innerHTML =
           '<div style="flex:1;">'
-            +'<div style="font-size:0.82rem;font-weight:600;'+(pagadoOk?'':'color:var(--dim);')+'">'+(pagadoOk?'✅ ':'⏳ ')+pag.nombre+'</div>'
-            +(pagadoOk&&st.fecha?'<div style="font-size:0.68rem;color:var(--dim);">Pagado el '+st.fecha+'</div>':'')
+            +'<div style="font-size:0.82rem;font-weight:600;'+(pagadoOk?'':'color:var(--dim);')+'">'+(pagadoOk?'✅ ':'⏳ ')+(pag.nombre||pag.desc||'Pago')+'</div>'
+            +(pagadoOk&&st.fecha?'<div style="font-size:0.68rem;color:var(--dim);">Pagado el '+(st.fecha||'')+'</div>':'')
           +'</div>'
           +'<div style="font-weight:800;font-size:0.85rem;color:'+(pagadoOk?'var(--accent2)':'var(--danger)')+';">'
             +fmt(pagadoOk?(st.montoPagado||pag.monto||0):(pag.monto||0))
@@ -6237,7 +6237,7 @@ function renderPagosMes(){
     var left = document.createElement('div'); left.style.flex='1';
     var nombre = document.createElement('div');
     nombre.style.cssText='font-weight:800;font-size:0.9rem;'+(esPagado?'color:var(--dim);text-decoration:line-through;':'');
-    nombre.textContent=p.nombre;
+    nombre.textContent=p.nombre||p.desc||"Pago";
     left.appendChild(nombre);
 
     // Badge fecha/urgencia
@@ -6250,7 +6250,7 @@ function renderPagosMes(){
     var fMeta = document.createElement('div');
     fMeta.style.cssText='font-size:0.68rem;color:var(--dim);margin-top:3px;';
     var fStr = f.toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'});
-    fMeta.textContent = (p.categoria||'')+' · '+fStr+(p.frecuencia&&p.frecuencia!=='mensual'?' · '+p.frecuencia:'');
+    fMeta.textContent = (p.categoria||'')+' · '+fStr+((p.frecuencia||'mensual')&&p.frecuencia!=='mensual'?' · '+(p.frecuencia||'mensual'):'');
     left.appendChild(fMeta);
 
     topRow.appendChild(left);
@@ -6364,11 +6364,11 @@ function renderFormPago(idx){
     +'<div><label class="inp-label">Frecuencia</label>'
     +'<select class="inp" id="fpFrec">'
     +'<option value="mensual"'+((!p.frecuencia||p.frecuencia==="mensual")?" selected":"")+'>Mensual</option>'
-    +'<option value="bimestral"'+(p.frecuencia==="bimestral"?" selected":"")+'>Bimestral (c/2 meses)</option>'
-    +'<option value="trimestral"'+(p.frecuencia==="trimestral"?" selected":"")+'>Trimestral (c/3 meses)</option>'
-    +'<option value="cuatrimestral"'+(p.frecuencia==="cuatrimestral"?" selected":"")+'>Cuatrimestral (c/4 meses)</option>'
-    +'<option value="semestral"'+(p.frecuencia==="semestral"?" selected":"")+'>Semestral (c/6 meses)</option>'
-    +'<option value="anual"'+(p.frecuencia==="anual"?" selected":"")+'>Anual</option>'
+    +'<option value="bimestral"'+((p.frecuencia||'mensual')==="bimestral"?" selected":"")+'>Bimestral (c/2 meses)</option>'
+    +'<option value="trimestral"'+((p.frecuencia||'mensual')==="trimestral"?" selected":"")+'>Trimestral (c/3 meses)</option>'
+    +'<option value="cuatrimestral"'+((p.frecuencia||'mensual')==="cuatrimestral"?" selected":"")+'>Cuatrimestral (c/4 meses)</option>'
+    +'<option value="semestral"'+((p.frecuencia||'mensual')==="semestral"?" selected":"")+'>Semestral (c/6 meses)</option>'
+    +'<option value="anual"'+((p.frecuencia||'mensual')==="anual"?" selected":"")+'>Anual</option>'
     +'</select></div>'
     +'<div><label class="inp-label">Próximo pago</label>'
     +'<input class="inp" id="fpProximo" type="date" value="'+(p.proximoPago||today())+'">'
@@ -8533,7 +8533,7 @@ function _ppGetPagos(){
     var diffDias = Math.round((fecha - hoy) / 86400000);
     var pendiente = (c.monto||0) - (c.abonado||0);
     lista.push({
-      nombre:   (c.tipo==='deuda'?'💳 Debo a ':'📥 Me debe ')+c.persona,
+      nombre:   (c.tipo==='deuda'?'💳 Debo a ':'📥 Me debe ')+(c.persona||'Sin nombre'),
       monto:    pendiente,
       fecha:    fecha,
       diffDias: diffDias,
@@ -8663,7 +8663,7 @@ function _ppMkItem(p){
 
   var info = document.createElement('div');
   info.className='pp-info';
-  var name = document.createElement('div'); name.className='pp-name'; name.textContent=p.nombre;
+  var name = document.createElement('div'); name.className='pp-name'; name.textContent=p.nombre||p.desc||"Pago";
   var when = document.createElement('div'); when.className='pp-when'; when.textContent=_ppFechaLabel(p);
 
   info.appendChild(name); info.appendChild(when);
@@ -9269,7 +9269,7 @@ function buildCuentaOpts(selVal){
     +'<option value="efectivo"'+(selVal==='efectivo'?' selected':'')+'>💵 Efectivo</option>';
   (c.cheques||[]).forEach(function(ch, i){
     var val='cheque_'+i;
-    ops+='<option value="'+val+'"'+(selVal===val?' selected':'')+'>🏧 '+ch.banco+' — '+ch.tipo+'</option>';
+    ops+='<option value="'+val+'"'+(selVal===val?' selected':'')+'>🏧 '+(ch.banco||'Cuenta')+' — '+(ch.tipo||'Débito')+'</option>';
   });
   return ops;
 }
@@ -9299,8 +9299,8 @@ function renderCuentas(){
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);">'
       +'<div style="display:flex;align-items:center;gap:10px;">'
       +'<div style="width:32px;height:32px;border-radius:10px;background:var(--inp);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:0.9rem;">🏧</div>'
-      +'<div><div style="font-weight:700;font-size:0.85rem;color:var(--text);">'+ch.banco+'</div>'
-      +'<div style="font-size:0.65rem;color:var(--dim);">'+ch.tipo+'</div></div>'
+      +'<div><div style="font-weight:700;font-size:0.85rem;color:var(--text);">'+(ch.banco||'Cuenta')+'</div>'
+      +'<div style="font-size:0.65rem;color:var(--dim);">'+(ch.tipo||'Débito')+'</div></div>'
       +'</div>'
       +'<div style="font-weight:800;font-size:0.92rem;color:var(--text);font-family:JetBrains Mono,monospace;">'+fmt(ch.saldo||0)+'</div>'
       +'</div>';
@@ -9422,7 +9422,7 @@ function renderEfectivo(){
     +'<div id="efDestRow" style="display:none;">'
     +'<label class="inp-label">¿A qué banco? (opcional)</label>'
     +'<select class="inp" id="efDestBanco"><option value="">— Solo registrar salida —</option>'
-    + (c.cheques||[]).map(function(ch,i){ return '<option value="cheque_'+i+'">🏦 '+ch.banco+'</option>'; }).join('')
+    + (c.cheques||[]).map(function(ch,i){ return '<option value="cheque_'+i+'">🏦 '+(ch.banco||'Cuenta')+'</option>'; }).join('')
     +'</select></div>'
     +'<button class="btn-main" onclick="guardarMovEfectivo()">💾 Guardar</button>'
     +'</div>'
