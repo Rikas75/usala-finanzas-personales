@@ -6443,7 +6443,7 @@ function renderPagosMes(){
         if(pagado_){ var e2=loadPagosEstado(); delete e2[pid]; savePagosEstado(e2); renderPagosMes(); }
         else{ renderPagarPago(pid,pmonto); }
       };
-    })(p.id,p.monto,esPagado);
+    })(p.id,Number(p.monto||0),esPagado);
     btns.appendChild(bPag);
 
     var bEd=document.createElement('button');
@@ -6483,13 +6483,13 @@ function renderPagosMes(){
   renderPendientes();
 }
 
-function renderPagarPago(pid, montoEst){
+function renderPagarPago(pid, montoEst){ montoEst = Number(montoEst||0);
   var mc = document.getElementById('mainContent');
   mc.innerHTML='';
   var d=document.createElement('div'); d.style.padding='20px 16px';
   d.innerHTML='<div style="font-size:1rem;font-weight:800;margin-bottom:14px;">✅ Registrar Pago</div>'
     +'<label class="inp-label">Monto pagado</label>'
-    +'<input class="inp" id="pmPagado" type="number" min="0" placeholder="'+montoEst+'" style="margin-bottom:16px;">';
+    +'<input class="inp" id="pmPagado" type="number" min="0" placeholder="'+Number(montoEst||0)+'" style="margin-bottom:16px;">';
   var bOk=document.createElement('button');
   bOk.className='btn-main'; bOk.textContent='Confirmar pago';
   bOk.onclick=function(){
