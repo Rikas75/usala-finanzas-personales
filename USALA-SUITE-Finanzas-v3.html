@@ -3335,7 +3335,10 @@ function goSub(sub){
     carrito: renderCarrito
   };
   if(sub==='ingresos_activos'){ document.getElementById('mainContent').innerHTML=renderIngresosActivos(); return; }
-  if(sub==='presupuesto'){ renderPresupuesto(); return; }
+  if(sub==='presupuesto'){ renderPresupuesto(); return; 
+  if(sub==='activos')   { renderActivos();  return; }
+  if(sub==='pagos_mes') { renderPagosMes(); return; }
+  if(sub==='progreso')  { renderProgreso(); return; }}
   if(sub==='dashboard_admin'){ renderDashboardAdmin(); return; }
   if(sub==='panel_admin')     { renderAdminPanel(); return; }
   if(sub==='codigos')         { renderCodigos(); return; }
