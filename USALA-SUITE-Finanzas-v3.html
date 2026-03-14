@@ -1284,7 +1284,10 @@ textarea.inp {resize:vertical;}
     <!-- Título cuando es primera vez -->
     <div id="accTituloZona" style="margin-bottom:20px;">
       <div style="font-size:1.15rem;font-weight:800;color:#fff;margin-bottom:4px;letter-spacing:-0.02em;" id="accTitulo">Ingresa tu código</div>
-      <div style="font-size:0.78rem;color:rgba(255,255,255,0.4);" id="accSubtitulo">El administrador te lo compartió</div>
+      <div style="font-size:0.78rem;color:rgba(255,255,255,0.4);" id="accSubtitulo">El administrador te lo compartirá por WhatsApp o correo</div>
+    </div>
+    <div style="background:rgba(56,170,255,0.08);border:1px solid rgba(56,170,255,0.2);border-radius:12px;padding:10px 14px;margin-bottom:16px;font-size:0.72rem;color:rgba(255,255,255,0.6);">
+      ℹ️ El administrador te enviará el código por WhatsApp, SMS o correo. USALA no lo manda automáticamente.
     </div>
 
     <div id="accessErr" class="lg-err"></div>
@@ -1830,13 +1833,7 @@ textarea.inp {resize:vertical;}
 </div>
 
 <!-- Burbuja minimizada -->
-<div id="calcBubble" style="display:none;position:fixed;z-index:999;bottom:100px;right:14px;width:68px;height:68px;border-radius:50%;background:linear-gradient(135deg,#1a1a2e,#16213e);box-shadow:0 8px 24px rgba(0,0,0,0.5);cursor:pointer;touch-action:none;flex-direction:column;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,0.1);" onclick="restaurarCalc()">
-  <div style="font-size:1.2rem;line-height:1;">🔢</div>
-  <div id="calcBubbleVal" style="font-size:0.55rem;font-weight:800;color:#ffd60a;margin-top:2px;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;">0</div>
-</div>
-
-
-<script>
+<div id="calcBubble" style="display:none;position:fixed;z-index:999;bottom:100px;right:14px;width:68px;height:68px;border-radius:50%;background:linear-gradient(135deg,#1a1a2e,#16213e);box-shadow:0 8px 24px rgba(0,0,0,0.5);cursor:pointer;touch-action:none;flex-direction:column;align-items:center;justify-content:center;b
 
 // ═══════════════════════════════════════════════════════════
 // SUPABASE — Cliente y capa de datos en la nube
@@ -2631,17 +2628,28 @@ function enviarSolicitud(){
     var cpBtn = document.getElementById('_solCopyBtn');
     if(cpBtn) cpBtn.onclick=function(){ navigator.clipboard.writeText(txt).catch(function(){}); showToast('✓ Copiado'); };
   }).catch(function(e){
-    console.warn('Supabase error:', e);
-    // Fallback: guardar local y mostrar instrucciones
-    var sols = JSON.parse(localStorage.getItem('usala_solicitudes')||'[]');
-    sols.push(Object.assign({id:Date.now()}, sol));
-    localStorage.setItem('usala_solicitudes', JSON.stringify(sols));
+    // Supabase no disponible — intentar segundo método
+    var txt = '🔑 Solicitud USALA\n👤 '+nombre+'\n📞 '+contacto+(motivo?'\n💬 '+motivo:'');
     if(btn){ btn.textContent='📩 Enviar solicitud'; btn.disabled=false; }
     ['panelSolicitud'].forEach(function(id){ var el=document.getElementById(id); if(el) el.style.display='none'; });
-    var pe = document.getElementById('panelEnviada'); if(pe) pe.style.display='block';
-    var txt = '🔑 Solicitud USALA\n👤 '+nombre+'\n📞 '+contacto+(motivo?'\n💬 '+motivo:'');
+    var pe = document.getElementById('panelEnviada'); if(pe){
+      pe.style.display='block';
+      // Mostrar aviso de que debe enviar manualmente
+      var avisoEl = document.getElementById('_solAvisoManual');
+      if(!avisoEl){
+        avisoEl = document.createElement('div');
+        avisoEl.id = '_solAvisoManual';
+        avisoEl.style.cssText='background:rgba(255,179,64,0.12);border:1px solid rgba(255,179,64,0.3);border-radius:14px;padding:14px;margin-top:12px;font-size:0.78rem;color:var(--text);';
+        avisoEl.innerHTML='<div style="font-weight:800;margin-bottom:6px;">⚠️ Sin conexión al servidor</div>'
+          +'<div style="color:var(--dim);margin-bottom:10px;">Copia el texto y mándalo al administrador por WhatsApp o correo:</div>'
+          +'<div style="background:var(--inp);border-radius:10px;padding:10px;font-family:monospace;font-size:0.72rem;word-break:break-all;">'+txt.replace(/\n/g,'<br>')+'</div>';
+        pe.appendChild(avisoEl);
+      }
+    }
     var waBtn = document.getElementById('_solWaBtn');
     if(waBtn) waBtn.href='https://wa.me/?text='+encodeURIComponent(txt);
+    var cpBtn = document.getElementById('_solCopyBtn');
+    if(cpBtn) cpBtn.onclick=function(){ navigator.clipboard.writeText(txt).catch(function(){}); showToast('✓ Copiado'); };
   });
 }
 
@@ -3136,7 +3144,8 @@ function initDashboard(){
       }, 700);
     }
   }
-}
+
+  _iniciarTimerMedianoche();}
 
 function cerrarWelcome(){
   var m = document.getElementById('welcomeModal');
@@ -11115,6 +11124,23 @@ function cobrarCxC(i){
   document.body.appendChild(m);
 }
 
+
+function _iniciarTimerMedianoche(){
+  // Calcular ms hasta el próximo 00:00:00
+  var ahora = new Date();
+  var manana = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate()+1);
+  var msHasta = manana - ahora;
+  setTimeout(function(){
+    // Si el usuario está en la pantalla de inicio, refrescarla
+    if(S.tab === 'inicio'){
+      renderTab('inicio');
+      showToast('¡Nuevo día! Gasto diario reiniciado a $0.00 🌅');
+    }
+    // Reprogramar para el siguiente día
+    _iniciarTimerMedianoche();
+  }, msHasta);
+}
+
 function dateParse(s){ return new Date(s.split('-').join('/')); }
 
 function pmSetTab(tab){
@@ -11189,6 +11215,15 @@ function renderNuevaCxC(){
     +'<input class="inp" id="cxcMonto" type="number" inputmode="decimal" placeholder="0.00">'
     +'<label class="inp-label">Concepto</label>'
     +'<input class="inp" id="cxcConcepto" placeholder="Ej: Préstamo para renta">'
+    +'<label class="inp-label">Fecha límite (opcional)</label>'
+    +'<input class="inp" id="cxcFechaVence" type="date">'
+    +'<button class="btn-main" onclick="guardarCxC()">💾 Guardar</button>'
+    +'<button class="btn-sec" onclick="goSub(\'cxc\')">Cancelar</button>'
+    +'</div>';
+}
+
+
+cepto" placeholder="Ej: Préstamo para renta">'
     +'<label class="inp-label">Fecha límite (opcional)</label>'
     +'<input class="inp" id="cxcFechaVence" type="date">'
     +'<button class="btn-main" onclick="guardarCxC()">💾 Guardar</button>'
