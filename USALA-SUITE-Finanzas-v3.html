@@ -9551,7 +9551,7 @@ function renderEfectivo(){
     return '<div class="tx-item">'
       +'<div class="tx-ico">'+(t.tipo==='ingreso'?'💵':'💸')+'</div>'
       +'<div class="tx-info"><div class="tx-name">'+t.desc+'</div>'
-      +'<div class="tx-date">'+t.fecha+' · '+t.cat+'</div></div>'
+      +'<div class="tx-date">'+(t.fecha||'')+' · '+(t.cat||'')+'</div></div>'
       +'<div class="tx-right"><div class="tx-amt '+(t.tipo==='ingreso'?'ing':'gas')+'">'
       +(t.tipo==='ingreso'?'+':'-')+fmt(t.monto)+'</div>'
       +'<div style="display:flex;gap:4px;">'
@@ -9647,7 +9647,7 @@ function renderCheques(){
     var cval='cheque_'+i;
     var txsCuenta=getTxs().filter(function(t){ return t.cuenta===cval; });
     var ultMov=txsCuenta.length ? txsCuenta[txsCuenta.length-1] : null;
-    return '<div class="cred-item" onclick="goSub(\'banco_\'+'+i+')" style="cursor:pointer;">'
+    return '<div class="cred-item" onclick="goSub(\'banco_'+i+'\')" style="cursor:pointer;">'
       +'<div class="cred-top"><div><div class="cred-persona">🏧 '+ct.banco+'</div>'
       +'<div class="cred-desc">'+ct.tipo+(ct.numCuenta?' · ***'+ct.numCuenta.slice(-4):'')+(ultMov?' · Último mov: '+ultMov.fecha:'')+'</div></div>'
       +'<div><div style="font-size:1.1rem;font-weight:900;color:var(--accent);">'+fmt(ct.saldo||0)+'</div>'
@@ -9697,11 +9697,11 @@ function renderBancoDetalle(idx){
       +'<button class="ic-btn" onclick="borrarTxBanco('+t.id+','+idx+')">🗑️</button></div></div>';
   }).join('')||'<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin movimientos</div>';
 
-  return '<div class="page-header">'+backBtn('cheques',1)+'<div class="page-title">🏧 '+ct.banco+'</div></div>'
+  return '<div class="page-header">'+backBtn('cheques',1)+'<div class="page-title">🏧 '+(ct.banco||'Banco')+'</div></div>'
     +'<div class="card" style="text-align:center;padding:18px;margin-bottom:14px;">'
     +'<div style="font-size:0.65rem;font-weight:700;color:var(--dim);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">Saldo</div>'
     +'<div style="font-size:2.2rem;font-weight:900;color:var(--accent);">'+fmt(ct.saldo||0)+'</div>'
-    +'<div style="font-size:0.7rem;color:var(--dim);margin-top:4px;">'+ct.tipo+(ct.numCuenta?' · ***'+ct.numCuenta:'')+'</div>'
+    +'<div style="font-size:0.7rem;color:var(--dim);margin-top:4px">'+(ct.tipo||'Débito')+(ct.numCuenta?' · ***'+ct.numCuenta:'')+'</div>'
     +'<div style="display:flex;gap:8px;justify-content:center;margin-top:10px;">'
     +'<button class="cred-btn" onclick="editarCuenta('+idx+');goSub(\'cheques\')">✏️ Editar</button>'
     +'<button class="cred-btn danger" onclick="borrarCuenta('+idx+')">🗑️ Eliminar</button>'
