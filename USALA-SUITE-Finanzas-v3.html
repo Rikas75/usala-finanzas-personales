@@ -1194,9 +1194,7 @@ textarea.inp {resize:vertical;}
   font-size:0.65rem;color:var(--dim);
   font-weight:700;text-transform:uppercase;letter-spacing:0.05em;
 }
-.stat-val {
-  font-size:1rem;font-weight:900;margin-top:2px;
-}
+/* stat-val helpers */
 .modal-cancel-btn {
   width:100%;margin-top:8px;background:none;border:none;
   font-family:Outfit,sans-serif;font-size:0.82rem;
@@ -3195,6 +3193,7 @@ function goSub(sub){
   }
   // ── Rutas que manejan su propio mc.innerHTML ──
   if(sub==='tarjetas_credito')  { renderTarjetasCredito(); return; }
+  if(sub==='tarjetas')          { renderTarjetasCredito(); return; }
   if(sub==='creditos_debo')     { renderCreditosDebo(); return; }
   if(sub==='creditos_cobrar')   { renderCreditosCobrar(); return; }
   if(sub==='cxc')               { renderCxC(); return; }
@@ -9311,7 +9310,7 @@ function renderCuentas(){
     return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);">'
       +'<div style="display:flex;align-items:center;gap:10px;">'
       +'<div style="width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,rgba(255,95,87,0.2),rgba(255,95,87,0.08));border:1px solid rgba(255,95,87,0.2);display:flex;align-items:center;justify-content:center;font-size:0.9rem;">💳</div>'
-      +'<div><div style="font-weight:700;font-size:0.85rem;color:var(--text);">'+t.nombre+'</div>'
+      +'<div><div style="font-weight:700;font-size:0.85rem;color:var(--text);">'+(t.banco||t.nombre||'Tarjeta')+'</div>'
       +'<div style="font-size:0.65rem;color:var(--dim);">Límite: '+fmt(t.limite||0)+'</div></div>'
       +'</div>'
       +'<div style="text-align:right;">'
@@ -9330,7 +9329,7 @@ function renderCuentas(){
     +'<div class="hero-pills">'
     +'<div class="hero-pill" onclick="goSub(\'efectivo\')"><span class="hero-pill-ico">💵</span>Efectivo '+fmt(saldoEfec)+'</div>'
     +'<div class="hero-pill" onclick="goSub(\'cheques\')"><span class="hero-pill-ico">🏧</span>Banco '+fmt(totalCheques)+'</div>'
-    +(totalTC>0?'<div class="hero-pill" style="background:rgba(255,95,87,0.25);border-color:rgba(255,95,87,0.3);" onclick="goSub(\'tarjetas\')"><span class="hero-pill-ico">💳</span>TC '+fmt(totalTC)+'</div>':'')
+    +(totalTC>0?'<div class="hero-pill" style="background:rgba(255,95,87,0.25);border-color:rgba(255,95,87,0.3);" onclick="goSub(\'tarjetas_credito\')"><span class="hero-pill-ico">💳</span>TC '+fmt(totalTC)+'</div>':'')
     +'</div>'
     +'</div></div>'
     // Efectivo
@@ -9372,7 +9371,7 @@ function renderCuentas(){
     +'<div class="cuenta-label">Deuda total en tarjetas</div>'
     +'<div style="margin-top:14px;">'+tcHTML+'</div>'
     +'<div class="cuenta-actions">'
-    +'<button class="cuenta-btn primary" onclick="goSub(\'tarjetas\')">💳 Ver tarjetas</button>'
+    +'<button class="cuenta-btn primary" onclick="goSub(\'tarjetas_credito\')">💳 Ver tarjetas</button>'
     +'</div></div>';
 }
 
