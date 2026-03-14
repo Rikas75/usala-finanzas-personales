@@ -3872,7 +3872,7 @@ function selTipo(t){
 
 function editarTx(id){
   var txs = getTxs();
-  var t = txs.find(function(x){ return x.id===id; });
+  var t = txs.find(function(x){ return String(x.id)===String(id); });
   if(!t) return;
   S.editTxId = id;
   document.getElementById('txModalTitle').textContent = 'Editar Transacción';
@@ -3946,7 +3946,7 @@ function guardarTx(){
   if(!monto || monto<=0){ showToast('⚠ Escribe un monto válido'); return; }
   var txs = getTxs();
   if(S.editTxId){
-    var ei = txs.findIndex(function(t){ return t.id===S.editTxId; });
+    var ei = txs.findIndex(function(t){ return String(t.id)===String(S.editTxId); });
     if(ei>-1){
       var prev = txs[ei];
       // Revertir cuenta anterior si tenía
@@ -4006,11 +4006,11 @@ function guardarTxInline(tipo, cat){
 
 function borrarTx(id){
   var txs = getTxs();
-  var eli = txs.find(function(t){ return t.id===id; });
+  var eli = txs.find(function(t){ return String(t.id)===String(id); });
   if(!eli) return;
   // Revertir saldo en cuenta
   if(eli.cuenta) revertirMovimientoCuenta(eli.cuenta, Number(eli.monto), eli.tipo);
-  saveTxs(txs.filter(function(t){ return t.id!==id; }));
+  saveTxs(txs.filter(function(t){ return String(t.id)!==String(id); }));
   renderTab(S.tab);
   mostrarUndo('Transacci\u00f3n eliminada', function(){
     var t2=getTxs(); t2.push(eli); saveTxs(t2);
@@ -4233,6 +4233,21 @@ function renderInicio(){
   var totalDisp = efec + banco;
   var actP = load('activos_personales',[]).reduce(function(s,a){ return s+(a.valor||0); },0);
   var pn = (efec+banco+actP)-(deudaTC+debo);
+
+  // ── Gasto diario acumulado (se reinicia cada día) ──
+  var _hoy = today();
+  var gastoHoy = txs.filter(function(t){
+    return t.tipo === 'gasto' && t.fecha === _hoy;
+  }).reduce(function(s,t){ return s + Number(t.monto||0); },0);
+
+  // Número de transacciones hoy
+  var txsHoy = txs.filter(function(t){ return t.fecha === _hoy; });
+  var nGastosHoy = txs.filter(function(t){ return t.tipo==='gasto' && t.fecha===_hoy; }).length;
+  var nIngresosHoy = txs.filter(function(t){ return t.tipo==='ingreso' && t.fecha===_hoy; }).length;
+
+  // Color según el gasto
+  var _gastoColor = gastoHoy === 0 ? 'var(--accent2)' : gastoHoy < 500 ? '#38aaff' : gastoHoy < 2000 ? 'var(--gold)' : 'var(--danger)';
+
   var nombre = (S.user.nombre||'').split(' ')[0] || 'tú';
   var hora = new Date().getHours();
   var saludo = hora<12 ? '☀️ Buenos días' : hora<19 ? '👋 Buenas tardes' : '🌙 Buenas noches';
@@ -4400,9 +4415,51 @@ function renderInicio(){
   var rec = txs.slice(-5).reverse().map(function(t){ return txItem(t,true); }).join('')
     || '<div class="empty-state">Sin transacciones aún<br><span style="font-size:0.7rem;">Toca ➕ para agregar la primera</span></div>';
   var consejeroCard = renderConsejero(ing, gas, debo, totalDisp, pn);
+
+  var gastoHoyCard = '<div style="'
+    +'background:var(--card);border:1px solid var(--border);'
+    +'border-radius:20px;padding:18px 20px;margin-bottom:12px;'
+    +'position:relative;overflow:hidden;">'
+    // Fondo decorativo
+    +'<div style="position:absolute;right:-10px;top:-10px;font-size:5rem;opacity:0.06;line-height:1;">💸</div>'
+    // Etiqueta
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">'
+      +'<div style="font-size:0.65rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:0.08em;">Gasto de hoy</div>'
+      +'<div style="font-size:0.62rem;color:var(--dim);">'
+        +( nGastosHoy > 0 ? nGastosHoy + ' movimiento'+(nGastosHoy>1?'s':'') : 'Sin gastos aún' )
+      +'</div>'
+    +'</div>'
+    // Monto grande
+    +'<div style="font-size:2.4rem;font-weight:900;color:'+_gastoColor+';'
+      +'font-family:\'JetBrains Mono\',\'Courier New\',monospace;'
+      +'letter-spacing:-1px;line-height:1;margin-bottom:8px;">'
+      +fmt(gastoHoy)
+    +'</div>'
+    // Barra visual (% del disponible total)
+    +( totalDisp > 0 && gastoHoy > 0 ?
+      '<div style="height:4px;background:rgba(255,255,255,0.08);border-radius:2px;margin-bottom:10px;overflow:hidden;">'
+        +'<div style="height:100%;border-radius:2px;background:'+_gastoColor+';'
+          +'width:'+Math.min(100,Math.round((gastoHoy/totalDisp)*100))+'%;'
+          +'transition:width 0.6s ease;"></div>'
+      +'</div>'
+    : '<div style="height:4px;margin-bottom:10px;"></div>' )
+    // Detalle por tipo de cuenta
+    +'<div style="display:flex;gap:10px;flex-wrap:wrap;">'
+      // Efectivo
+      +( txs.filter(function(t){ return t.tipo==='gasto'&&t.fecha===_hoy&&t.cuenta==='efectivo'; }).reduce(function(s,t){ return s+Number(t.monto||0); },0) > 0 ?
+        '<span style="font-size:0.7rem;background:rgba(255,255,255,0.06);border-radius:8px;padding:4px 8px;color:var(--dim);">💵 '+fmt(txs.filter(function(t){ return t.tipo==='gasto'&&t.fecha===_hoy&&t.cuenta==='efectivo'; }).reduce(function(s,t){ return s+Number(t.monto||0); },0))+'</span>'
+      : '' )
+      // Banco (cualquier cheque_N)
+      +( (function(){ var b=txs.filter(function(t){ return t.tipo==='gasto'&&t.fecha===_hoy&&(t.cuenta||'').indexOf('cheque_')===0; }).reduce(function(s,t){ return s+Number(t.monto||0); },0); return b>0?'<span style="font-size:0.7rem;background:rgba(255,255,255,0.06);border-radius:8px;padding:4px 8px;color:var(--dim);">🏧 '+fmt(b)+'</span>':''; })() )
+      // Tarjetas (cualquier tc_N)
+      +( (function(){ var tc=txs.filter(function(t){ return t.tipo==='gasto'&&t.fecha===_hoy&&(t.cuenta||'').indexOf('tc_')===0; }).reduce(function(s,t){ return s+Number(t.monto||0); },0); return tc>0?'<span style="font-size:0.7rem;background:rgba(255,95,87,0.1);border-radius:8px;padding:4px 8px;color:var(--danger);">💳 '+fmt(tc)+'</span>':''; })() )
+    +'</div>'
+    +'</div>';
+
   return ''
     + noticiasBanner
     + heroCard
+    + gastoHoyCard
     + quickActions
     + '<div class="sec-title">🤖 Mi Consejero</div>'
     + consejeroCard
@@ -9584,13 +9641,13 @@ function guardarMovBanco(idx){
   goSub('banco_'+idx);
 }
 function borrarTxBanco(id,idx){
-  var txs=getTxs(); var t=txs.find(function(x){ return x.id===id; });
+  var txs=getTxs(); var t=txs.find(function(x){ return String(x.id)===String(id); });
   if(!t) return;
   var _eliT=JSON.parse(JSON.stringify(t));
   var c=getCuentas();
   c.cheques[idx].saldo=(c.cheques[idx].saldo||0)-(t.tipo==='ingreso'?t.monto:-t.monto);
   saveCuentas(c);
-  saveTxs(txs.filter(function(x){ return x.id!==id; }));
+  saveTxs(txs.filter(function(x){ return String(x.id)!==String(id); }));
   goSub('banco_'+idx);
   mostrarUndo('🏧 Movimiento eliminado', function(){
     var c2=getCuentas();
