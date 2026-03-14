@@ -1197,6 +1197,37 @@ textarea.inp {resize:vertical;}
 .hist-precio-tienda {font-weight:700;color:var(--text);}
 .hist-precio-val {font-weight:800;color:var(--accent);}
 .hist-precio-fecha {font-size:0.65rem;color:var(--dim);}
+/* ── Helpers de UI reutilizables ── */
+.empty-state {
+  text-align:center;padding:28px 20px;
+  color:var(--dim);font-size:0.83rem;
+}
+.stat-label {
+  font-size:0.65rem;color:var(--dim);
+  font-weight:700;text-transform:uppercase;letter-spacing:0.05em;
+}
+.stat-val {
+  font-size:1rem;font-weight:900;margin-top:2px;
+}
+.modal-cancel-btn {
+  width:100%;margin-top:8px;background:none;border:none;
+  font-family:Outfit,sans-serif;font-size:0.82rem;
+  color:var(--dim);cursor:pointer;padding:8px;
+}
+.section-mini-label {
+  font-size:0.62rem;font-weight:700;color:var(--dim);
+  text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;
+}
+.flex-between {
+  display:flex;justify-content:space-between;align-items:center;
+}
+.grid-2 {
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;
+}
+.grid-3 {
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;
+}
+
 </style>
 </head>
 <body>
@@ -1825,11 +1856,8 @@ textarea.inp {resize:vertical;}
 <!-- PWA Service Worker -->
 
 <script>
-// ─────────────────────────────────────────────
 //  USALA Suite — Base de Datos & Configuración
 //  config/supabase.js  ·  carga PRIMERO
-// ─────────────────────────────────────────────
-
 var SUPA_URL = 'https://mdllmtuitgsqlpjmnllf.supabase.co';
 var SUPA_KEY = 'sb_publishable_I8RyoelqHZrsiM-4K6ypGg_5Ze5BSNG';
 
@@ -1878,8 +1906,6 @@ var DB = {
 
 
 // USALA Suite - Variables globales & Arranque
-// js/globals.js
-
 var _cache = {};
 var _cacheTs = {};
 var CACHE_TTL = 30000;
@@ -2116,26 +2142,21 @@ var FAQS = [
   }
 })();
 
-// ─────────────────────────────────────────────
 //  USALA Suite — App Core
-//  js/app.js
-// ─────────────────────────────────────────────
-
 // ── Variables globales ──
 
-
 // ── Sync Keys ──
-
 
 function fmt(n){ return getSimboloMoneda() + Number(n||0).toLocaleString('es-MX',{minimumFractionDigits:2}); }
 
 function today(){ return new Date().toISOString().split('T')[0]; }
+function dateParse(s){ return new Date(s.split('-').join('/')); }
+
 
 function getSimboloMoneda(){
   var key = 'usala_moneda_app_' + (S.user ? (S.user.isAdmin ? 'admin' : S.user.codigo) : 'anon');
   try{ var m = JSON.parse(localStorage.getItem(key)||'null'); return m ? m.simbolo : '$'; }catch(e){ return '$'; }
 }
-
 
 function ukey(k){
   var uid = S.user ? (S.user.isAdmin ? 'admin' : 'u_' + S.user.codigo) : 'anon';
@@ -2262,7 +2283,6 @@ async function dbRestaurarDatos(){
     await new Promise(function(r){ setTimeout(r, 400); }); // pequeña pausa visual
   } catch(e){
     _syncSetProgress('Sin conexión — usando datos locales', 100);
-    console.warn('dbRestaurarDatos offline:', e.message);
     await new Promise(function(r){ setTimeout(r, 600); });
   }
   _syncShowOverlay(false);
@@ -2273,7 +2293,6 @@ async function dbSyncFromLocal(){
   var keys = ['txs','cuentas','creditos','metas','pagos_mensuales','activos_personales',
               'presupuesto','alertas','cats_gasto_custom','cats_ingreso_custom',
               'cats_activos_custom','cats_pagos_custom','cxc'];
-  console.log('🔄 Sincronizando con Supabase...');
   try {
     // 1. Bajar TODO lo que hay en remoto para este usuario
     var remote = await DB.get('usala_kv',
@@ -2295,7 +2314,6 @@ async function dbSyncFromLocal(){
           if(localVacio && remoteVal){
             localStorage.setItem(localKey, remoteRow.value);
             _cacheInvalid(uc+'_kv_'+key);
-            console.log('  ⬇️ Descargado desde nube:', key);
           } else {
             _syncQueue.push({key:key, value:localVal});
           }
@@ -2303,7 +2321,6 @@ async function dbSyncFromLocal(){
       } else if(remoteRow && !localRaw){
         localStorage.setItem(localKey, remoteRow.value);
         _cacheInvalid(uc+'_kv_'+key);
-        console.log('  ⬇️ Descargado desde nube:', key);
       } else if(!remoteRow && localRaw){
         try{
           var v = JSON.parse(localRaw);
@@ -2316,9 +2333,7 @@ async function dbSyncFromLocal(){
     if(remote && remote.length > 0 && S.tab){
       setTimeout(function(){ renderTab(S.tab); }, 100);
     }
-    console.log('✅ Sync completo');
   } catch(e) {
-    console.warn('⚠️ Sync falló (modo offline):', e.message);
   }
 }
 
@@ -2328,7 +2343,6 @@ function iniciarRealtime(){
   _lastSyncTs = new Date().toISOString();
   _realtimeTick();
   _realtimeInterval = setInterval(_realtimeTick, 30000);
-  console.log('⚡ Realtime activo — sync cada 30s');
 }
 
 function _lockIniciarEscuchas(){
@@ -2457,7 +2471,7 @@ function renderEfectivo(){
       +'<button class="ic-btn" onclick="editarTx(\"'+t.id+'\")"  >✏️</button>'
       +'<button class="ic-btn" onclick="borrarTx(\"'+t.id+'\")"  >🗑️</button>'
       +'</div></div></div>';
-  }).join('')||'<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin movimientos</div>';
+  }).join('')||'<div class="empty-state">Sin movimientos</div>';
   var catEnt = getIngresoCats();
   var catSal = getGastoCats();
   return '<div class="page-header">'+backBtn('cuentas',1)+'<div class="page-title">💵 Efectivo</div></div>'
@@ -2507,7 +2521,7 @@ function renderCheques(){
       +'<div style="font-size:0.62rem;color:var(--dim);text-align:right;">'+txsCuenta.length+' mov.</div></div></div>'
       +(ct.nota?'<div style="font-size:0.72rem;color:var(--dim);margin-top:2px;">📝 '+ct.nota+'</div>':'')
       +'</div>';
-  }).join('') : '<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin cuentas bancarias. Agrega una abajo.</div>';
+  }).join('') : '<div class="empty-state">Sin cuentas bancarias. Agrega una abajo.</div>';
   return '<div class="page-header">'+backBtn('cuentas',1)+'<div class="page-title">🏧 Mis Bancos</div></div>'
     +'<div class="card" style="text-align:center;padding:18px;margin-bottom:14px;">'
     +'<div style="font-size:0.65rem;font-weight:700;color:var(--dim);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;">Total en bancos</div>'
@@ -2546,7 +2560,7 @@ function renderBancoDetalle(idx){
       +'<div class="tx-right"><div class="tx-amt '+(t.tipo==='ingreso'?'ing':'gas')+'">'
       +(t.tipo==='ingreso'?'+':'-')+fmt(t.monto)+'</div>'
       +'<button class="ic-btn" onclick="borrarTxBanco(\"'+t.id+'\",'+idx+')">🗑️</button></div></div>';
-  }).join('')||'<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin movimientos</div>';
+  }).join('')||'<div class="empty-state">Sin movimientos</div>';
   return '<div class="page-header">'+backBtn('cheques',1)+'<div class="page-title">🏧 '+ct.banco+'</div></div>'
     +'<div class="card" style="text-align:center;padding:18px;margin-bottom:14px;">'
     +'<div style="font-size:0.65rem;font-weight:700;color:var(--dim);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">Saldo</div>'
@@ -2732,7 +2746,7 @@ function renderPagosMes(){
     if(!cont) return;
     cont.innerHTML='';
     if(!pagos.length){
-      cont.innerHTML='<div style="text-align:center;padding:30px;color:var(--dim);font-size:0.83rem;">Sin pagos registrados. Agrega tus pagos fijos del mes.</div>';
+      cont.innerHTML='<div class="empty-state">Sin pagos registrados. Agrega tus pagos fijos del mes.</div>';
       return;
     }
     var pends = pagos.filter(function(p){ return !estado[p.id]||!estado[p.id].pagado; });
@@ -2761,7 +2775,7 @@ function renderPagosMes(){
       return fb.localeCompare(fa); // más reciente primero
     });
     if(!pags.length){
-      cont.innerHTML='<div style="text-align:center;padding:30px;color:var(--dim);font-size:0.83rem;">Aún no hay pagos marcados como pagados este mes.</div>';
+      cont.innerHTML='<div class="empty-state">Aún no hay pagos marcados como pagados este mes.</div>';
       return;
     }
     pags.forEach(function(p){
@@ -2789,7 +2803,7 @@ function renderPagosMes(){
     }
     mesesGuardados.sort().reverse(); // más reciente primero
     if(!mesesGuardados.length){
-      cont.innerHTML='<div style="text-align:center;padding:30px;color:var(--dim);font-size:0.83rem;">El historial se irá construyendo mes a mes conforme marques pagos.</div>';
+      cont.innerHTML='<div class="empty-state">El historial se irá construyendo mes a mes conforme marques pagos.</div>';
       return;
     }
     var _mesesNombres=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -3530,7 +3544,6 @@ function toggleVoz(){
   iniciarVoz();
 }
 
-
 // ── Funciones adicionales ──
 
 function nkPress(n){
@@ -3559,9 +3572,7 @@ function nipKey(){
   return _sesionPendiente.isAdmin ? 'usala_nip_admin' : 'usala_nip_u_' + _sesionPendiente.codigo;
 }
 
-
 function copiarCodigo(c){ navigator.clipboard.writeText(c).catch(function(){}); showToast('✓ Copiado: '+c); }
-
 
 // ── Funciones restantes ──
 
@@ -3656,7 +3667,6 @@ async function dbKVSet(key, value){
 function detenerRealtime(){
   if(_realtimeInterval) clearInterval(_realtimeInterval);
   _realtimeActivo = false;
-  console.log('⏹ Realtime detenido');
 }
 
 async function _realtimeTick(){
@@ -3678,7 +3688,6 @@ async function _realtimeTick(){
             localStorage.setItem(localKey, row.value);
             _cacheInvalid(uc + '_kv_' + row.key);
             cambio = true;
-            console.log('⚡ Actualizado desde nube:', row.key);
           }
         } catch(e){}
       });
@@ -3701,7 +3710,6 @@ async function _realtimeTick(){
     _lastSyncTs = new Date().toISOString();
   } catch(e){
     _setSyncIndicator('error');
-    console.warn('⚡ Realtime tick falló:', e.message);
   }
 }
 
@@ -3810,7 +3818,6 @@ function enviarSolicitud(){
     var cpBtn = document.getElementById('_solCopyBtn');
     if(cpBtn) cpBtn.onclick=function(){ navigator.clipboard.writeText(txt).catch(function(){}); showToast('✓ Copiado'); };
   }).catch(function(e){
-    console.warn('Supabase error:', e);
     var sols = JSON.parse(localStorage.getItem('usala_solicitudes')||'[]');
     sols.push(Object.assign({id:Date.now()}, sol));
     localStorage.setItem('usala_solicitudes', JSON.stringify(sols));
@@ -3935,7 +3942,6 @@ function iniciarDragCalc(){
   };
   document.onmouseup=function(){ dragging=false; };
 }
-
 
 function calcNum(n){
   if(_calcNewNum){ _calcResult=n; _calcNewNum=false; }
@@ -4761,7 +4767,6 @@ function _generarCodigoUnico(prefijo){
   }
   return codigo;
 }
-
 
 function aprobarSolicitud(idx){
   var solicitudes=JSON.parse(localStorage.getItem('usala_solicitudes')||'[]');
@@ -5732,7 +5737,7 @@ function verFichaCodigo(codigo){
   var c=cods.find(function(x){ return x.codigo===codigo; });
   if(!c) return;
   var hoy=new Date(); hoy.setHours(0,0,0,0);
-  var vencDate=new Date(c.vencimiento.split('-').join('/'));
+  var vencDate=dateParse(c.vencimiento);
   var estaVenc=vencDate<hoy;
   var diffDias=Math.round((vencDate-hoy)/86400000);
   var tieneNip=!!localStorage.getItem('usala_nip_u_'+c.codigo);
@@ -5836,12 +5841,7 @@ function desactivarCodigo(codigo){
       goSub('codigos');
   });
 }
-
-
-// ═══════════════════════════════════════════════════════
 //  SISTEMA DE MODALES — reemplaza confirm() y prompt()
-// ═══════════════════════════════════════════════════════
-
 // Modal de confirmación (reemplaza confirm)
 function usalaConfirm(msg, onOk, onCancel){
   var viejo = document.getElementById('_usalaConfirmModal');
@@ -5937,16 +5937,10 @@ function usalaPrompt2(msg, fields, onOk){
 }
 
 
-// ═════════════════════════════════════════════════════════════
 //  USALA Suite — Créditos & Tarjetas de Crédito
 //  js/creditos-tarjetas.js
 //  Módulo completo: TC, Deudas, Préstamos, CxC
-// ═════════════════════════════════════════════════════════════
-
-// ──────────────────────────────────────────────────────────────
 //  TARJETAS DE CRÉDITO
-// ──────────────────────────────────────────────────────────────
-
 function renderTarjetasCredito(){
   var c=getCuentas(); var tcs=c.tarjetas||[];
   var txs=getTxs();
@@ -5986,16 +5980,16 @@ function renderTarjetasCredito(){
       +'</div>'
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
       +'<div style="background:var(--inp);border-radius:10px;padding:10px;">'
-      +'<div style="font-size:0.6rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:0.05em;">Saldo usado</div>'
+      +'<div class="stat-label">Saldo usado</div>'
       +'<div style="font-size:1rem;font-weight:900;color:var(--danger);">'+fmt(t.balance||0)+'</div></div>'
       +'<div style="background:var(--inp);border-radius:10px;padding:10px;">'
-      +'<div style="font-size:0.6rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:0.05em;">Disponible</div>'
+      +'<div class="stat-label">Disponible</div>'
       +'<div style="font-size:1rem;font-weight:900;color:var(--accent);">'+fmt(disp)+'</div></div>'
       +'<div style="background:var(--inp);border-radius:10px;padding:10px;">'
-      +'<div style="font-size:0.6rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:0.05em;">Límite</div>'
+      +'<div class="stat-label">Límite</div>'
       +'<div style="font-size:1rem;font-weight:900;">'+fmt(t.limite||0)+'</div></div>'
       +'<div style="background:var(--inp);border-radius:10px;padding:10px;">'
-      +'<div style="font-size:0.6rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:0.05em;">Corte</div>'
+      +'<div class="stat-label">Corte</div>'
       +'<div style="font-size:0.78rem;font-weight:700;color:var(--dim);">'+(diasCorte||'—')+'</div></div>'
       +'</div>'
       +'<div style="margin-bottom:8px;">'
@@ -6301,11 +6295,7 @@ function guardarCompraTC(i){
   showToast('Compra registrada: '+fmt(monto));
   goSub('tarjetas_credito');
 }
-
-// ──────────────────────────────────────────────────────────────
 //  CRÉDITOS — Lo que debo / Lo que me deben
-// ──────────────────────────────────────────────────────────────
-
 function renderCreditos(){
   var mc=document.getElementById('mainContent');
   var creds=load('creditos',[]);
@@ -6745,11 +6735,7 @@ function eliminarAbono(ri,ai,tipo){
     goSub(tipo==='deuda'?'creditos_debo':'creditos_cobrar');
   });
 }
-
-// ──────────────────────────────────────────────────────────────
 //  CUENTAS POR COBRAR (CxC)
-// ──────────────────────────────────────────────────────────────
-
 function renderCxC(){
   var cxcs=load('cxc',[]);
   var mc=document.getElementById('mainContent');
@@ -7131,13 +7117,8 @@ function mostrarErroresPass(errores, containerId){
   html += '</div>';
   el.innerHTML = html;
 }
-// ─────────────────────────────────────────────
 //  USALA Suite — Autenticación y Sesión
-//  js/auth.js
-// ─────────────────────────────────────────────
-
 // ── Variables de estado ──
-
 
 function arrancarApp(){
     var raw = localStorage.getItem('usala_session');
@@ -7313,7 +7294,6 @@ async function verificarCodigo(){
 
   }).catch(function(e){
     // ── CASO C: sin conexión — usar localStorage ──
-    console.warn('verificarCodigo sin conexion:', e);
     var cods = JSON.parse(localStorage.getItem('usala_codigos')||'[]');
     var cod  = cods.find(function(c){ return c.codigo===codigo && c.activo!==false; });
     if(cod){
@@ -7861,10 +7841,9 @@ async function eliminarSolicitudDB(solId, codigoGenerado){
       ? ('Eliminar esta solicitud y REVOCAR el codigo ' + codigoGenerado + '? El usuario perdera el acceso.')
       : 'Eliminar permanentemente esta solicitud?';
   usalaConfirm(msg, async function(){
-    
+
   });
 }
-
 
 function recuperarAdmin(){
   usalaConfirm('Restablecer la contrasena de administrador?\nSolo hazlo si olvidaste la contrasena.', function(){
@@ -8302,7 +8281,6 @@ function actualizarBadgeSolicitudes(){
   }
 }
 
-
 async function renderDashboardAdmin(){
   var mc = document.getElementById('mainContent');
   if(!mc) return;
@@ -8446,7 +8424,6 @@ async function renderDashboardAdmin(){
       + '<div>Error cargando datos<br><span style="font-size:0.75rem;">'+e.message+'</span></div>'
       + '<button class="btn-main" onclick="renderDashboardAdmin()" style="margin-top:16px;">Reintentar</button>'
       + '</div>';
-    console.error('Dashboard admin:', e);
   }
 }
 
@@ -8472,7 +8449,7 @@ function renderNoticiasAdmin(){
     +'</div></div></div>'
     +'<div class="card"><div class="card-title">📋 Publicadas ('+noticias.length+')</div>';
   if(noticias.length===0){
-    html += '<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin noticias publicadas</div>';
+    html += '<div class="empty-state">Sin noticias publicadas</div>';
   } else {
     noticias.slice().reverse().forEach(function(n,i){
       var ri = noticias.length-1-i;
@@ -8536,7 +8513,7 @@ function renderNoticias(){
         +'</div>'
         +'<button class="ic-btn" onclick="borrarNoticia('+ri+')" style="flex-shrink:0;">🗑️</button>'
         +'</div></div>';
-    }).join('') : '<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin mensajes enviados</div>';
+    }).join('') : '<div class="empty-state">Sin mensajes enviados</div>';
     return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">📢 Centro de Mensajes</div></div>'
       +'<div class="card" style="margin-bottom:14px;">'
       +'<div class="card-title">✍️ Nuevo mensaje</div>'
@@ -8575,18 +8552,14 @@ function renderNoticias(){
         +'<div style="font-size:0.8rem;color:var(--dim);line-height:1.6;">'+n.mensaje+'</div>'
         +'<div style="font-size:0.65rem;color:var(--dim);margin-top:8px;">'+n.fecha+'</div>'
         +'</div>';
-    }).join('') : '<div style="text-align:center;padding:30px;color:var(--dim);font-size:0.83rem;">📭 No hay mensajes aún</div>';
+    }).join('') : '<div class="empty-state">📭 No hay mensajes aún</div>';
     return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">📢 Mensajes</div></div>'
       + items;
   }
 }
 
 function getNoticias(){ return JSON.parse(localStorage.getItem('usala_noticias')||'[]'); }
-
-
-// ════════════════════════════════════════════════════
 //  PANTALLA: Registro completado → redirige al login
-// ════════════════════════════════════════════════════
 function mostrarExitoRegistro(nombre, codigo){
   // Limpiar campos
   var campos = ['accNuevaPass','accPassword','accCodigo','accNombre'];
@@ -8707,11 +8680,7 @@ function irAlLogin(){
 }
 
 
-// ─────────────────────────────────────────────
 //  USALA Suite — Transacciones
-//  js/transacciones.js
-// ─────────────────────────────────────────────
-
 function getTxs(){
   var txs = load('txs',[]);
   var dirty = false;
@@ -8915,7 +8884,7 @@ function renderSubTxs(titulo, icono, cat){
   var items = txs.slice().reverse().map(function(t){
     var cuentaLabel = t.cuenta ? ' <span style="font-size:0.65rem;background:var(--inp);padding:2px 6px;border-radius:6px;color:var(--dim);">'+nombreCuenta(t.cuenta)+'</span>' : '';
     return txItem(t,true).replace('</div></div>','</div>'+cuentaLabel+'</div>');
-  }).join('') || '<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin registros</div>';
+  }).join('') || '<div class="empty-state">Sin registros</div>';
   var cuentaOpts = buildCuentaOpts('');
   return '<div class="page-header">'+backSubBtn()+'<div class="page-title">'+icono+' '+titulo+'</div></div>'
     +'<div class="card" style="margin-bottom:12px;"><div class="stat-label">Total gastado</div><div class="stat-val red">'+fmt(total)+'</div></div>'
@@ -8950,7 +8919,7 @@ function renderIngresosActivos(){
   var items = txs.slice().reverse().map(function(t){
     var cuentaLabel = t.cuenta ? ' <span style="font-size:0.65rem;background:var(--inp);padding:2px 6px;border-radius:6px;color:var(--dim);">'+nombreCuenta(t.cuenta)+'</span>' : '';
     return txItem(t,true).replace('</div></div>','</div>'+cuentaLabel+'</div>');
-  }).join('') || '<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin ingresos aún</div>';
+  }).join('') || '<div class="empty-state">Sin ingresos aún</div>';
   var cuentaOpts = buildCuentaOpts('');
   return '<div class="page-header">'+backSubBtn()+'<div class="page-title">📥 Activos</div></div>'
     +'<div class="card" style="margin-bottom:12px;"><div class="stat-label">Total ingresos</div><div class="stat-val">'+fmt(total)+'</div></div>'
@@ -8997,7 +8966,7 @@ function renderHistorial(){
       +'<button class="ic-btn" onclick="editarTx(\"'+t.id+'\")" title="Editar">✏️</button>'
       +'<button class="ic-btn" onclick="borrarTx(\"'+t.id+'\")" title="Eliminar">🗑️</button>'
       +'</div></div></div>';
-  }).join('') : '<div style="text-align:center;padding:30px;color:var(--dim);font-size:0.83rem;">Sin movimientos '+(filtro!=='todos'?'en esta categoría':'aún')+'</div>';
+  }).join('') : '<div class="empty-state">Sin movimientos '+(filtro!=='todos'?'en esta categoría':'aún')+'</div>';
   function filtBtn(val, label){
     var act = filtro===val;
     return '<button onclick="window._histFiltro=\''+val+'\';goSub(\'historial\')" style="padding:7px 14px;border:none;border-radius:20px;font-family:\'Outfit\',sans-serif;font-size:0.75rem;font-weight:700;cursor:pointer;background:'+(act?'var(--accent)':'rgba(0,0,0,0.06)')+';color:'+(act?'var(--navtext)':'var(--dim)')+';">'+label+'</button>';
@@ -9108,11 +9077,7 @@ function carritoConfirmarFin(){
 
 
 
-// ─────────────────────────────────────────────
 //  USALA Suite — Dashboard & UI
-//  js/dashboard.js
-// ─────────────────────────────────────────────
-
 function renderInicio(){
   var txs = getTxs();
   var ing = txs.filter(function(t){ return t.tipo==='ingreso'; }).reduce(function(s,t){ return s+Number(t.monto); },0);
@@ -9291,7 +9256,7 @@ function renderInicio(){
       +'</div></div>';
   }
   var rec = txs.slice(-5).reverse().map(function(t){ return txItem(t,true); }).join('')
-    || '<div style="text-align:center;padding:28px 20px;color:var(--dim);font-size:0.83rem;">Sin transacciones aún<br><span style="font-size:0.7rem;">Toca ➕ para agregar la primera</span></div>';
+    || '<div class="empty-state">Sin transacciones aún<br><span style="font-size:0.7rem;">Toca ➕ para agregar la primera</span></div>';
   var consejeroCard = renderConsejero(ing, gas, debo, totalDisp, pn);
   return ''
     + noticiasBanner
@@ -9312,7 +9277,6 @@ function renderInicio(){
     +'<div class="card" style="padding:8px 16px;">'+rec+'</div>'
     +'</div>';
 }
-
 
 function renderMas(){
   var isAdmin = S.user && S.user.isAdmin;
@@ -9607,7 +9571,7 @@ function renderMetas(){
       +'<button class="cred-btn" onclick="editarMeta('+i+')">✏️</button>'
       +'<button class="cred-btn danger" onclick="borrarMeta('+i+')">🗑️</button>'
       +'</div></div>';
-  }).join(''):'<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin metas aún</div>';
+  }).join(''):'<div class="empty-state">Sin metas aún</div>';
   return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">🎯 Metas de Ahorro</div></div>'
     +'<div class="card" style="margin-bottom:14px;">'
     +'<label class="inp-label">Nombre de la meta</label><input class="inp" id="metaNombre" placeholder="Ej: Fondo de emergencia">'
@@ -9645,7 +9609,7 @@ function renderAlertas(){
       +'<div style="background:rgba(0,0,0,0.08);border-radius:8px;height:7px;overflow:hidden;">'
       +'<div style="height:100%;border-radius:8px;background:'+color+';width:'+pct+'%;transition:width 0.4s;"></div></div>'
       +'</div>';
-  }).join(''):'<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin alertas configuradas</div>';
+  }).join(''):'<div class="empty-state">Sin alertas configuradas</div>';
   return '<div class="page-header">'+backBtn('mas',4)+'<div class="page-title">🔔 Alertas de Gasto</div></div>'
     +'<div class="card" style="margin-bottom:14px;" id="alertaForm">'
     +'<div class="card-title">+ Nueva alerta</div>'
@@ -9870,7 +9834,7 @@ function renderProgreso(){
     +'<div><div style="font-size:1rem;font-weight:900;color:'+si.color+';">'+si.label+'</div>'
     +'<div style="font-size:0.74rem;color:var(--dim);margin-top:2px;">Salud financiera · '+new Date().toLocaleString('es-MX',{month:'long',year:'numeric'})+'</div></div></div>';
   mc.appendChild(salud);
-  
+
   var grid=document.createElement('div');
   grid.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;';
   var p=penultimo;
@@ -10126,7 +10090,6 @@ function renderConsejero(ing, gas, debo, totalDisp, pn){
   return '<div class="consejero-card" onclick="renderConsejeroDetalle()">'    +'<div class="consejero-avatar">'+svg+'</div>'    +'<div class="consejero-body">'    +'<div class="consejero-titulo">💡 Consejero Financiero</div>'    +'<div class="consejero-estado">'+tituloCard+'</div>'    +'<div class="consejero-msg">'+mensaje+'</div>'    +'<div class="consejero-chips">'+chipsHtml+'</div>'    +'<div style="margin-top:8px;">'    +'<div style="display:flex;justify-content:space-between;font-size:0.68rem;color:var(--dim);margin-bottom:4px;">'    +'<span>Salud de flujo (sin patrimonio)</span>'    +'<span style="font-weight:700;color:var(--text);">'+puntos+'/100</span>'    +'</div>'    +'<div class="salud-bar-wrap"><div class="salud-bar-fill" id="'+barId+'" style="width:0%;background:'+colorBarra+';"></div></div>'    +'</div>'    +nota    +'</div>'    +'</div>';
 }
 
-
 function actualizarUMenu(){
   var c = getCuentas();
   var efectivo = Number(c.efectivo||0);
@@ -10306,7 +10269,6 @@ function renderVersion(){
     +'<button class="btn-main" onclick="guardarVersion()">💾 Guardar</button>'
     +'</div>':'');
 }
-
 
 function backBtn(tab, idx){
   return '<button class="back-btn" onclick="goTab(\''+tab+'\',document.querySelectorAll(\'.nb\')['+idx+'])" style="width:36px;height:36px;border-radius:50%;background:var(--inp);border:1px solid var(--border);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:var(--text);cursor:pointer;flex-shrink:0;transition:background 0.15s;">‹</button>';
