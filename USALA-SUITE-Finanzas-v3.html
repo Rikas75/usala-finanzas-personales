@@ -4432,27 +4432,45 @@ function carritoHistorialPreciosTienda(nombre){
 // ─────────────────────────────────────────────
 // RENDER PRINCIPAL — Pantalla del carrito
 // ─────────────────────────────────────────────
+
+function nowFechaHora(){
+  var d = new Date();
+  var pad = function(n){ return n<10?'0'+n:n; };
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())
+    +' '+pad(d.getHours())+':'+pad(d.getMinutes());
+}
+function fmtFechaHora(str){
+  if(!str) return '';
+  // "2025-03-14 18:30" → "14 Mar 2025 · 18:30"
+  var meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  var partes = str.split(' ');
+  if(partes.length < 2) return str; // formato viejo sin hora
+  var f = partes[0].split('-');
+  var h = partes[1];
+  return f[2]+' '+meses[parseInt(f[1])-1]+' '+f[0]+' · '+h;
+}
+
 function renderCarrito(){
   var cats   = getCarritoCats();
   var actual = getCarritoActual();
   var hist   = getCarritoHistorial();
-  // Tabs: Actual | Historial | Catálogo
-  var tabActual = (S._carritoTab || 'lista') === 'lista';
-  var tabHist   = (S._carritoTab) === 'historial';
-  var tabCat    = (S._carritoTab) === 'catalogo';
+  var tab    = S._carritoTab || 'lista';
 
   var tabs = '<div style="display:flex;gap:6px;margin-bottom:14px;">'
-    + ['lista','historial','catalogo'].map(function(t,i){
-        var labels = ['🛒 Lista actual','📋 Historial','🔍 Catálogo'];
-        var active = (S._carritoTab||'lista') === t;
-        return '<button onclick="_carritoTab(\''+t+'\')" style="flex:1;padding:9px 4px;border-radius:12px;border:none;font-family:Outfit,sans-serif;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.18s;background:'+(active?'var(--accent)':'var(--inp)')+';color:'+(active?'#fff':'var(--dim)')+';">'+labels[i]+'</button>';
+    + [
+        {id:'lista',    lbl:'🛒 Actual'},
+        {id:'listas',   lbl:'📋 Mis Listas'},
+        {id:'catalogo', lbl:'🗂 Catálogo'}
+      ].map(function(t){
+        var active = tab === t.id;
+        return '<button onclick="_carritoTab(\''+t.id+'\')" style="flex:1;padding:9px 4px;border-radius:12px;border:none;font-family:Outfit,sans-serif;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.18s;background:'+(active?'var(--accent)':'var(--inp)')+';color:'+(active?'#fff':'var(--dim)')+';">'+t.lbl+'</button>';
       }).join('')
     + '</div>';
 
   var content = '';
-  if(tabHist)   content = _renderCarritoHistorial();
-  else if(tabCat) content = _renderCarritoCatalogo();
-  else          content = _renderCarritoLista(actual, cats);
+  if(tab === 'listas')   content = _renderCarritoHistorial();
+  else if(tab === 'catalogo') content = _renderCarritoCatalogo();
+  else                   content = _renderCarritoLista(actual, cats);
 
   return '<div class="page-header">'
     + backSubBtn()
@@ -4598,35 +4616,35 @@ function _renderCarritoHistorial(){
       + '<div style="font-size:0.85rem;">Sin listas guardadas aún</div>'
       + '<div style="font-size:0.72rem;margin-top:4px;">Finaliza una compra para guardarla aquí</div></div>';
   }
-
+  var cats = getCarritoCats();
   return hist.map(function(lista, hi){
-    var total = (lista.items||[]).reduce(function(s,i){ return s+(i.precio||0)*(i.qty||1); },0);
+    var total     = (lista.items||[]).reduce(function(s,i){ return s+(i.precio||0)*(i.qty||1); },0);
     var comprados = (lista.items||[]).filter(function(i){ return i.comprado; }).length;
-    var cats = getCarritoCats();
-    var cat = cats.find(function(c){ return c.id === lista.catId; });
-
+    var cat       = cats.find(function(c){ return c.id === lista.catId; });
     return '<div class="card" style="margin-bottom:10px;padding:14px 16px;">'
       + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">'
-      + '<div>'
-      + '<div style="font-weight:800;font-size:0.9rem;color:var(--text);">'+(cat?cat.ico+' ':'')+( lista.nombre||'Sin nombre')+'</div>'
-      + '<div style="font-size:0.68rem;color:var(--dim);margin-top:2px;">'
-      + lista.fecha + (lista.tienda?' · '+lista.tienda:'')
-      + ' · '+comprados+'/'+(lista.items||[]).length+' productos'
-      + '</div>'
-      + '</div>'
-      + '<div style="font-size:1rem;font-weight:900;color:var(--accent);">'+fmt(total)+'</div>'
+        + '<div style="flex:1;">'
+          + '<div style="font-weight:800;font-size:0.9rem;color:var(--text);">'+(cat?cat.ico+' ':'')+( lista.nombre||'Sin nombre')+'</div>'
+          + '<div style="font-size:0.68rem;color:var(--dim);margin-top:2px;">'
+            + fmtFechaHora(lista.fechaFin||lista.fecha) + (lista.tienda?' · '+lista.tienda:'')+ (lista.editada?' <span style="font-size:0.65rem;background:rgba(56,170,255,0.15);color:var(--blue);padding:1px 6px;border-radius:8px;">✏️ editada</span>':'')
+            + ' · '+comprados+'/'+(lista.items||[]).length+' productos'
+          + '</div>'
+        + '</div>'
+        + '<div style="font-size:1rem;font-weight:900;color:var(--accent);">'+fmt(total)+'</div>'
       + '</div>'
       // Productos resumidos
-      + '<div style="font-size:0.72rem;color:var(--dim);margin-bottom:10px;line-height:1.6;">'
-      + (lista.items||[]).slice(0,5).map(function(i){ return i.nombre+(i.precio?' ('+fmt(i.precio)+')':''); }).join(' · ')
-      + ((lista.items||[]).length > 5 ? ' · +'+((lista.items||[]).length-5)+' más' : '')
+      + '<div style="font-size:0.72rem;color:var(--dim);margin-bottom:12px;line-height:1.6;">'
+        + (lista.items||[]).slice(0,5).map(function(i){ return (i.nombre||'')+(i.precio?' ('+fmt(i.precio)+')':''); }).join(' · ')
+        + ((lista.items||[]).length > 5 ? ' · +'+((lista.items||[]).length-5)+' más' : '')
       + '</div>'
-      + '<div style="display:flex;gap:8px;">'
-      + '<button onclick="carritoCargarLista('+hi+')" style="flex:1;background:var(--accent);border:none;border-radius:12px;padding:9px;font-family:Outfit,sans-serif;font-size:0.78rem;font-weight:700;color:#fff;cursor:pointer;">📂 Usar lista</button>'
-      + '<button onclick="carritoCompartirLista('+hi+')" style="background:var(--inp);border:1px solid var(--border);border-radius:12px;padding:9px 12px;font-family:Outfit,sans-serif;font-size:0.78rem;color:var(--text);cursor:pointer;">&#x1F4E4;</button>'
-      + '<button onclick="carritoEliminarLista('+hi+')" style="background:var(--inp);border:1px solid var(--border);border-radius:12px;padding:9px 12px;font-family:Outfit,sans-serif;font-size:0.78rem;color:var(--dim);cursor:pointer;">🗑</button>'
+      // Acciones
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap;">'
+        + '<button onclick="carritoCargarLista('+hi+')" style="flex:1;min-width:80px;background:var(--accent);border:none;border-radius:12px;padding:9px;font-family:Outfit,sans-serif;font-size:0.78rem;font-weight:700;color:#fff;cursor:pointer;">📂 Usar lista</button>'
+        + '<button onclick="carritoEditarLista('+hi+')" style="background:rgba(56,170,255,0.1);border:1px solid rgba(56,170,255,0.3);border-radius:12px;padding:9px 12px;font-family:Outfit,sans-serif;font-size:0.78rem;font-weight:700;color:var(--blue);cursor:pointer;">✏️ Editar</button>'
+        + '<button onclick="carritoCompartirLista('+hi+')" style="background:var(--inp);border:1px solid var(--border);border-radius:12px;padding:9px 12px;font-family:Outfit,sans-serif;font-size:0.78rem;color:var(--text);cursor:pointer;">&#x1F4E4;</button>'
+        + '<button onclick="carritoEliminarLista('+hi+')" style="background:var(--inp);border:1px solid rgba(229,57,53,0.3);border-radius:12px;padding:9px 12px;font-family:Outfit,sans-serif;font-size:0.78rem;color:var(--danger);cursor:pointer;">🗑</button>'
       + '</div>'
-      + '</div>';
+    + '</div>';
   }).join('');
 }
 // ─────────────────────────────────────────────
@@ -5049,7 +5067,8 @@ function carritoConfirmarFin(){
   // 1. Guardar en historial
   var hist = getCarritoHistorial();
   var listaGuardar = JSON.parse(JSON.stringify(actual));
-  listaGuardar.fechaFin = today();
+  listaGuardar.fechaFin = nowFechaHora();
+  listaGuardar.fecha    = listaGuardar.fecha || nowFechaHora();
   listaGuardar.totalReal = total;
   hist.unshift(listaGuardar);
   if(hist.length > 50) hist = hist.slice(0,50);
@@ -10799,6 +10818,159 @@ function _txSearch(containerId, query){
   });
 
   if(emptyDiv) emptyDiv.style.display = (q && visible===0) ? 'block' : 'none';
+}
+
+function carritoEditarLista(hi){
+  var hist = getCarritoHistorial();
+  var lista = hist[hi];
+  if(!lista) return;
+
+  // Modal de edición
+  var viejo = document.getElementById('_editListaModal');
+  if(viejo) viejo.remove();
+
+  var m = document.createElement('div');
+  m.id = '_editListaModal';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:flex-end;justify-content:center;';
+
+  var itemsHTML = (lista.items||[]).map(function(item, ii){
+    return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);" id="editItem_'+hi+'_'+ii+'">'
+      + '<div style="flex:1;">'
+        + '<div style="font-size:0.85rem;font-weight:600;">'+(item.nombre||'Sin nombre')+'</div>'
+        + '<div style="font-size:0.68rem;color:var(--dim);">'+(item.qty||1)+' '+(item.unidad||'pza')+(item.precio?' · '+fmt(item.precio):'')+'</div>'
+      + '</div>'
+      + '<button onclick="carritoEditarItem('+hi+','+ii+')" style="background:rgba(56,170,255,0.1);border:1px solid rgba(56,170,255,0.3);border-radius:8px;padding:6px 10px;font-size:0.75rem;color:var(--blue);cursor:pointer;">✏️</button>'
+      + '<button onclick="carritoBorrarItemLista('+hi+','+ii+')" style="background:rgba(229,57,53,0.07);border:1px solid rgba(229,57,53,0.2);border-radius:8px;padding:6px 10px;font-size:0.75rem;color:var(--danger);cursor:pointer;">🗑</button>'
+    + '</div>';
+  }).join('') || '<div style="text-align:center;padding:16px;color:var(--dim);font-size:0.8rem;">Sin productos</div>';
+
+  m.innerHTML = '<div style="background:var(--card);border-radius:24px 24px 0 0;padding:24px 20px 40px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;">'
+    + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">'
+      + '<div style="font-size:1rem;font-weight:800;">✏️ Editar lista</div>'
+      + '<button onclick="document.getElementById(\'_editListaModal\').remove()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--dim);">✕</button>'
+    + '</div>'
+    // Nombre
+    + '<label class="inp-label">Nombre de la lista</label>'
+    + '<input class="inp" id="editListaNombre_'+hi+'" value="'+(lista.nombre||'')+'" placeholder="Ej: Super semanal" style="margin-bottom:8px;">'
+    // Tienda
+    + '<label class="inp-label">Tienda / lugar</label>'
+    + '<input class="inp" id="editListaTienda_'+hi+'" value="'+(lista.tienda||'')+'" placeholder="Ej: Walmart, Soriana..." style="margin-bottom:16px;">'
+    // Productos
+    + '<div style="font-size:0.72rem;font-weight:700;color:var(--dim);margin-bottom:8px;">PRODUCTOS</div>'
+    + '<div id="editListaItems_'+hi+'">' + itemsHTML + '</div>'
+    // Botón guardar
+    + '<div style="display:flex;gap:8px;margin-top:16px;">'
+      + '<button onclick="carritoGuardarEdicionLista('+hi+')" class="btn-main" style="flex:1;">💾 Guardar cambios</button>'
+    + '</div>'
+  + '</div>';
+
+  document.body.appendChild(m);
+  // Cerrar al tocar el fondo
+  m.addEventListener('click', function(e){ if(e.target===m) m.remove(); });
+}
+
+function carritoGuardarEdicionLista(hi){
+  var hist = getCarritoHistorial();
+  if(!hist[hi]) return;
+  var nombre = (document.getElementById('editListaNombre_'+hi)||{}).value || '';
+  var tienda = (document.getElementById('editListaTienda_'+hi)||{}).value || '';
+
+  // Crear copia editada (no modificar el original)
+  var copia = JSON.parse(JSON.stringify(hist[hi]));
+  copia.nombre    = nombre.trim() || copia.nombre;
+  copia.tienda    = tienda.trim();
+  copia.fechaFin  = nowFechaHora();  // fecha de edición
+  copia.fecha     = nowFechaHora();
+  copia.editada   = true;
+  copia.origenIdx = hi;  // referencia al original
+
+  // Insertar la copia al inicio del historial (original queda intacto)
+  hist.unshift(copia);
+  if(hist.length > 50) hist = hist.slice(0,50);
+  saveCarritoHistorial(hist);
+
+  var modal = document.getElementById('_editListaModal');
+  if(modal) modal.remove();
+  showToast('✅ Copia editada guardada — original conservado');
+  S._carritoTab = 'listas';
+  goSub('carrito');
+}
+
+function carritoBorrarItemLista(hi, ii){
+  var hist = getCarritoHistorial();
+  if(!hist[hi]) return;
+  var item = hist[hi].items[ii];
+  // Guardar índice para seguir editando la copia después
+  window._editandoListaHi = hi;
+  // No borrar del original — se borrará al guardar copia
+  var modal = document.getElementById('_editListaModal');
+  if(modal) modal.remove();
+  // Marcar item como "eliminado" temporalmente en la sesión
+  if(!window._itemsBorradosLista) window._itemsBorradosLista = {};
+  if(!window._itemsBorradosLista[hi]) window._itemsBorradosLista[hi] = [];
+  window._itemsBorradosLista[hi].push(ii);
+  showToast('🗑 ' + (item.nombre||'Producto') + ' marcado para eliminar al guardar');
+  carritoEditarLista(hi);
+}
+
+function carritoEditarItem(hi, ii){
+  var hist = getCarritoHistorial();
+  if(!hist[hi] || !hist[hi].items[ii]) return;
+  var item = hist[hi].items[ii];
+
+  var viejo = document.getElementById('_editItemModal');
+  if(viejo) viejo.remove();
+
+  var m = document.createElement('div');
+  m.id = '_editItemModal';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;';
+  m.innerHTML = '<div style="background:var(--card);border-radius:20px;padding:20px;width:100%;max-width:360px;">'
+    + '<div style="font-size:0.95rem;font-weight:800;margin-bottom:14px;">✏️ Editar producto</div>'
+    + '<label class="inp-label">Nombre</label>'
+    + '<input class="inp" id="eiNombre" value="'+(item.nombre||'')+'" style="margin-bottom:8px;">'
+    + '<div style="display:flex;gap:8px;margin-bottom:8px;">'
+      + '<div style="flex:1;"><label class="inp-label">Precio</label><input class="inp" id="eiPrecio" type="number" value="'+(item.precio||'')+'" placeholder="0.00"></div>'
+      + '<div style="width:70px;"><label class="inp-label">Cant.</label><input class="inp" id="eiQty" type="number" value="'+(item.qty||1)+'"></div>'
+    + '</div>'
+    + '<label class="inp-label">Nota</label>'
+    + '<input class="inp" id="eiNota" value="'+(item.nota||'')+'" placeholder="Opcional" style="margin-bottom:14px;">'
+    + '<div style="display:flex;gap:8px;">'
+      + '<button onclick="carritoGuardarEdicionItem('+hi+','+ii+')" class="btn-main" style="flex:1;">💾 Guardar</button>'
+      + '<button onclick="document.getElementById(\'_editItemModal\').remove()" class="btn-sec">Cancelar</button>'
+    + '</div>'
+  + '</div>';
+  document.body.appendChild(m);
+  m.addEventListener('click', function(e){ if(e.target===m) m.remove(); });
+  setTimeout(function(){ var el=document.getElementById('eiNombre'); if(el){el.focus();el.select();} }, 80);
+}
+
+function carritoGuardarEdicionItem(hi, ii){
+  var hist = getCarritoHistorial();
+  if(!hist[hi] || !hist[hi].items[ii]) return;
+  var nombre = (document.getElementById('eiNombre')||{}).value || '';
+  var precio = parseFloat((document.getElementById('eiPrecio')||{}).value) || 0;
+  var qty    = parseFloat((document.getElementById('eiQty')||{}).value) || 1;
+  var nota   = (document.getElementById('eiNota')||{}).value || '';
+  if(!nombre.trim()){ showToast('⚠ El nombre es obligatorio'); return; }
+
+  // Crear copia de la lista con el item editado
+  var copia = JSON.parse(JSON.stringify(hist[hi]));
+  copia.items[ii].nombre = nombre.trim();
+  copia.items[ii].precio = precio;
+  copia.items[ii].qty    = qty;
+  copia.items[ii].nota   = nota;
+  copia.fechaFin = nowFechaHora();
+  copia.fecha    = nowFechaHora();
+  copia.editada  = true;
+
+  hist.unshift(copia);
+  if(hist.length > 50) hist = hist.slice(0,50);
+  saveCarritoHistorial(hist);
+
+  var m1 = document.getElementById('_editItemModal');
+  if(m1) m1.remove();
+  showToast('✅ Producto actualizado — copia guardada');
+  carritoEditarLista(0); // abrir la copia recién guardada
 }
 </script>
 </body>
