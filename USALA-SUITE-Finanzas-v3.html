@@ -3457,8 +3457,8 @@ function txItem(t, showEdit){
     +'</div>'
     +'<div class="tx-right">'
     +'<div class="tx-amt '+(isIng?'ing':'gas')+'">'+(isIng?'+':'-')+fmt(t.monto)+'</div>'
-    +(es?'<button class="ic-btn" onclick="editarTx(\"'+t.id+'\")" style="font-size:0.8rem;">✏️</button>':'')
-    +(es?'<button class="ic-btn" onclick="borrarTx(\"'+t.id+'\")" style="font-size:0.8rem;">🗑️</button>':'')
+    +(es?'<button class="ic-btn" onclick="editarTx('+t.id+') style="font-size:0.8rem;">✏️</button>':'')
+    +(es?'<button class="ic-btn" onclick="borrarTx('+t.id+') style="font-size:0.8rem;">🗑️</button>':'')
     +'</div></div>';
 }
 
@@ -5849,7 +5849,7 @@ function renderActivos(){
     if(!grupos[cat]) return;
     var tit=document.createElement('div');
     tit.style.cssText='font-size:0.72rem;font-weight:800;color:var(--dim);text-transform:uppercase;letter-spacing:0.06em;margin:10px 0 6px;';
-    tit.textContent=cat; mc.appendChild(tit);
+    tit.textContent=cat||"Otros"; mc.appendChild(tit);
     grupos[cat].forEach(function(a){
       var idx=activos.indexOf(a);
       var card=document.createElement('div');
@@ -5857,7 +5857,7 @@ function renderActivos(){
       var row=document.createElement('div');
       row.style.cssText='display:flex;justify-content:space-between;align-items:flex-start;';
       var left=document.createElement('div'); left.style.flex='1';
-      var nom=document.createElement('div'); nom.style.cssText='font-weight:700;font-size:0.9rem;'; nom.textContent=a.nombre; left.appendChild(nom);
+      var nom=document.createElement('div'); nom.style.cssText='font-weight:700;font-size:0.9rem;'; nom.textContent=a.nombre||a.desc||"Activo"; left.appendChild(nom);
       var meta=document.createElement('div'); meta.style.cssText='font-size:0.72rem;color:var(--dim);margin-top:2px;';
       meta.textContent=(a.descripcion||'')+(a.fecha?' · Desde '+a.fecha:''); left.appendChild(meta);
       var right=document.createElement('div'); right.style.cssText='display:flex;flex-direction:column;align-items:flex-end;gap:6px;';
