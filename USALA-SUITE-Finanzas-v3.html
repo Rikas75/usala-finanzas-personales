@@ -9685,150 +9685,111 @@ function menuAccion(accion){
 function cerrarMenu(){ var m=document.getElementById('menuModal'); if(m) m.classList.remove('open'); }
 
 var FAQS = [
-  // ── 🏠 Inicio ──────────────────────────────────────────────
+  // ── 🏠 Inicio ──
   {cat:'🏠 Inicio', q:'¿Qué muestra la pantalla de Inicio?',
-   a:'Tu resumen financiero completo: gasto acumulado del día, total disponible, Patrimonio Neto, deudas, ingresos/gastos del período, pagos del mes y últimas transacciones.'},
-
+   a:'Tu resumen financiero: gasto del día, total disponible, Patrimonio Neto, deudas, ingresos/gastos, pagos del mes y últimas transacciones.'},
   {cat:'🏠 Inicio', q:'¿Qué es el cuadro "Gasto de hoy"?',
-   a:'Un contador en tiempo real que suma TODOS los gastos registrados hoy — efectivo, banco y tarjetas. Se reinicia automáticamente cada día a las 12:00 am. El color cambia: azul (bajo), dorado (moderado) o rojo (alto). Incluye un desglose por tipo de cuenta.'},
-
-  {cat:'🏠 Inicio', q:'¿Cómo registro un gasto o ingreso rápido?',
-   a:'Toca ➖ para gasto o ➕ para ingreso en los botones de acceso rápido. También puedes usar la voz diciendo "gasté 200" o "ingresé 500".'},
-
-  {cat:'🏠 Inicio', q:'¿Qué es el botón ⏰ Pago Pendiente?',
-   a:'Muestra cuántos pagos del mes vencen en los próximos 7 días. El número en rojo indica la cantidad de pagos urgentes. Tócalo para ir a la lista de pagos.'},
-
-  {cat:'🏠 Inicio', q:'¿Qué significa la tarjeta 💳 en el cuadro azul?',
-   a:'Aparece cuando tienes deuda en tarjetas de crédito. Muestra el total adeudado y te lleva directo a Tarjetas de Crédito al tocarlo.'},
-
-  {cat:'🏠 Inicio', q:'¿Qué son los chips de Ingresos y Gastos?',
-   a:'Muestran el total acumulado en el período actual. Al tocarlos vas al historial filtrado por tipo dentro de la sección de Cuentas.'},
-
+   a:'Suma todos tus gastos del día (efectivo, banco y tarjetas). Se reinicia automáticamente cada día a medianoche. El color cambia según el monto: azul (bajo) → dorado (moderado) → rojo (alto). Incluye chips con desglose por tipo de cuenta.'},
   {cat:'🏠 Inicio', q:'¿Cómo edito o borro una transacción desde el inicio?',
-   a:'En la sección "Últimas transacciones" al final de la pantalla, cada transacción tiene un botón ✏️ para editar y 🗑️ para borrar. Si borras por error, aparece un aviso de "Deshacer" por 7 segundos.'},
-  // ── 💳 Tarjetas ─────────────────────────────────────────────
+   a:'En "Últimas transacciones" al fondo de la pantalla, cada movimiento tiene ✏️ para editar y 🗑️ para borrar. Si borras por error, aparece "↩ Deshacer" por 7 segundos.'},
+  {cat:'🏠 Inicio', q:'¿Qué significa la tarjeta 💳 en el cuadro azul?',
+   a:'Aparece cuando tienes deuda en tarjetas. Muestra el total adeudado y lleva directo a Tarjetas de Crédito al tocarlo.'},
+  {cat:'🏠 Inicio', q:'¿Qué es el botón ⏰ Pago Pendiente?',
+   a:'Muestra cuántos pagos del mes vencen en los próximos 7 días. El número en rojo indica urgencia.'},
+
+  // ── 💳 Tarjetas ──
   {cat:'💳 Tarjetas', q:'¿Cómo agrego una tarjeta de crédito?',
-   a:'Ve a Cuentas → Tarjetas de Crédito → "+ Nueva tarjeta". Llena banco, tipo (Visa/MC/Amex), límite, saldo actual e interés anual. Opcionalmente agrega fecha de corte y día de pago.'},
-
+   a:'Cuentas → Tarjetas de Crédito → "+ Nueva tarjeta". Llena banco, tipo, límite, saldo y opcionalmente fecha de corte y día de pago.'},
   {cat:'💳 Tarjetas', q:'¿Cómo registro un pago de tarjeta?',
-   a:'En Tarjetas de Crédito toca el botón "Pagar" de la tarjeta. Ingresa el monto y la cuenta de origen. Esto reduce el saldo de la tarjeta y registra el movimiento automáticamente.'},
-
-  {cat:'💳 Tarjetas', q:'¿Qué es el botón "Detalle" en una tarjeta?',
-   a:'Muestra el resumen completo: saldo, disponible, barra de uso, fecha de corte, día de pago, interés anual y todos los movimientos registrados con esa tarjeta.'},
-
+   a:'En Tarjetas toca "Pagar" en la tarjeta deseada. Ingresa el monto y la cuenta de origen. Reduce el saldo automáticamente.'},
+  {cat:'💳 Tarjetas', q:'¿Qué muestra el botón "Detalle"?',
+   a:'Saldo, disponible, barra de uso, fecha de corte, día de pago, interés anual y todos los movimientos de esa tarjeta.'},
   {cat:'💳 Tarjetas', q:'¿Los gastos con tarjeta afectan mi efectivo?',
-   a:'No directamente. Los gastos con TC solo aumentan el saldo de la tarjeta. Cuando registras el PAGO de la tarjeta, ahí sí se descuenta de tu cuenta bancaria o efectivo.'},
+   a:'No directamente. Solo aumentan el saldo de la tarjeta. Cuando registras el PAGO sí se descuenta de tu cuenta.'},
 
-  {cat:'💳 Tarjetas', q:'¿Qué es el Saldo al Corte AUTO?',
-   a:'La app suma automáticamente todos los gastos de la tarjeta en el período actual (desde el último corte hasta hoy). Aparece abajo del porcentaje de uso.'},
-  // ── 🤝 Créditos ─────────────────────────────────────────────
+  // ── 🤝 Créditos ──
   {cat:'🤝 Créditos', q:'¿Qué secciones tiene Créditos?',
-   a:'Mis Deudas (lo que yo debo), Créditos por Cobrar (dinero que presté), y Deuda a Pagar Mensual (pagos fijos como TC, servicios y renta).'},
-
+   a:'Mis Deudas (lo que yo debo), Créditos por Cobrar (lo que me deben), y Deuda a Pagar Mensual (pagos fijos recurrentes).'},
   {cat:'🤝 Créditos', q:'¿Cómo abono a una deuda?',
-   a:'En Mis Deudas toca "+ Abonar" en la deuda. Ingresa el monto, la fecha y la cuenta de origen. El sistema descuenta del saldo pendiente y guarda el historial de abonos.'},
-
-  {cat:'🤝 Créditos', q:'¿Puedo ver el historial de abonos?',
-   a:'Sí. En cada crédito hay un botón 📋 con el número de abonos. Al tocarlo se despliega el historial con fecha, monto, interés pagado y nota de cada abono. Puedes editar o borrar abonos individuales.'},
-
+   a:'En Mis Deudas toca "+ Abonar". Ingresa monto, fecha y cuenta de origen. El historial de abonos queda guardado por crédito.'},
   {cat:'🤝 Créditos', q:'¿Qué tipos de interés maneja?',
-   a:'Tres tipos: Total (se aplica una sola vez al monto), Mensual (se suma cada mes) y Anual (se distribuye en 12 meses). Se configura al crear o editar el crédito.'},
+   a:'Total (una sola vez), Mensual (se suma cada mes) y Anual (distribuido en 12 meses). Se configura al crear el crédito.'},
 
-  {cat:'🤝 Créditos', q:'¿Qué son las Cuentas por Cobrar (CxC)?',
-   a:'Deudas informales que alguien tiene contigo sin un crédito formal. Al cobrar, el dinero se registra como ingreso en la cuenta que elijas.'},
-  // ── 🏦 Cuentas ──────────────────────────────────────────────
-  {cat:'🏦 Cuentas', q:'¿Qué módulos tiene la sección Cuentas?',
-   a:'3 secciones: 💵 Efectivo, 🏧 Banco (cuentas de cheques) y 💳 Tarjetas de Crédito. Cada una con historial y formulario de movimientos.'},
-
+  // ── 🏦 Cuentas ──
+  {cat:'🏦 Cuentas', q:'¿Qué módulos tiene Cuentas?',
+   a:'💵 Efectivo, 🏧 Banco y 💳 Tarjetas de Crédito. Cada una con búsqueda 🔍 en movimientos, historial y formulario de registro.'},
+  {cat:'🏦 Cuentas', q:'¿Cómo busco un movimiento específico?',
+   a:'En cada pantalla de movimientos (Efectivo, Banco, Historial, Tarjeta) hay una barra de búsqueda 🔍. Escribe descripción, categoría, monto o fecha para filtrar en tiempo real.'},
   {cat:'🏦 Cuentas', q:'¿Cómo transfiero efectivo a mi banco?',
-   a:'En Efectivo registra una Salida y en el campo destino elige la cuenta bancaria. La app mueve el dinero y crea un movimiento de entrada en tu banco automáticamente.'},
+   a:'En Efectivo registra una Salida y elige la cuenta bancaria como destino. La app mueve el dinero automáticamente.'},
 
-  {cat:'🏦 Cuentas', q:'¿Qué pasa si borro una transacción?',
-   a:'El saldo de la cuenta se revierte automáticamente. Tienes 7 segundos para deshacer la acción tocando "↩ Deshacer" en el aviso que aparece abajo.'},
-  // ── 📅 Pagos del Mes ────────────────────────────────────────
+  // ── 📅 Pagos del Mes ──
   {cat:'📅 Pagos del Mes', q:'¿Para qué sirven los Pagos del Mes?',
-   a:'Para registrar gastos fijos recurrentes: renta, servicios, suscripciones, créditos, etc. La app te avisa cuando se acercan y lleva el control de cuánto has pagado vs el total del mes.'},
-
+   a:'Para registrar gastos fijos recurrentes: renta, servicios, suscripciones, créditos. La app avisa cuando se acercan y lleva el control del mes.'},
   {cat:'📅 Pagos del Mes', q:'¿Cómo agrego un pago fijo?',
-   a:'En la sección Créditos toca "Deuda a Pagar Mensual", luego el botón "+" o "Nuevo pago". Define nombre, monto, día del mes y categoría. Puedes poner frecuencia mensual, quincenal o semanal.'},
+   a:'En Créditos → "Deuda a Pagar Mensual" → botón "+". Define nombre, monto, día del mes y frecuencia (mensual, quincenal, etc.).'},
+  {cat:'📅 Pagos del Mes', q:'¿Los pagos se resetean solos?',
+   a:'Sí. Al inicio de cada mes todos aparecen pendientes. El historial de meses anteriores se conserva para consulta.'},
 
-  {cat:'📅 Pagos del Mes', q:'¿Los pagos se resetean solos cada mes?',
-   a:'Sí. El estado de "pagado" se guarda por mes. Al iniciar un nuevo mes, todos los pagos aparecen pendientes nuevamente, pero el historial de meses anteriores se conserva.'},
-  // ── 🔐 Seguridad ────────────────────────────────────────────
-  {cat:'🔐 Seguridad', q:'¿Qué es el NIP y para qué sirve?',
-   a:'Un código de 4 dígitos que protege tu sesión. Si lo activas, la app te lo pedirá al abrir o al volver después de un tiempo inactivo. Se guarda solo en tu dispositivo.'},
+  // ── 🛒 Carrito ──
+  {cat:'🛒 Carrito', q:'¿Cómo funciona el Carrito?',
+   a:'Tienes 2 tabs: 🛒 Lista actual (tu compra en curso) y 📋 Mis Listas (historial de listas guardadas). Agrega productos, marca lo comprado y finaliza para guardar.'},
+  {cat:'🛒 Carrito', q:'¿Puedo editar o borrar listas guardadas?',
+   a:'Sí. En Mis Listas cada lista tiene botones: 📂 Usar (reusar), ✏️ Editar (nombre, tienda, productos), 📤 Compartir y 🗑 Borrar. Al editar se crea una copia nueva con la fecha de edición — el original se conserva intacto.'},
+  {cat:'🛒 Carrito', q:'¿Las listas tienen fecha y hora?',
+   a:'Sí. Cada lista guardada muestra la fecha y hora exacta (ej: 14 Mar 2025 · 18:30). Las listas editadas muestran la fecha de edición y el badge "✏️ editada" para distinguirlas del original.'},
 
-  {cat:'🔐 Seguridad', q:'¿Cómo activo mi NIP?',
-   a:'Ve a ⋯ Más → Seguridad → Configurar NIP. Elige 4 dígitos y confírmalos. Para cambiarlo o eliminarlo, usa las opciones de la misma pantalla.'},
-
+  // ── 🔐 Seguridad ──
+  {cat:'🔐 Seguridad', q:'¿Qué es el NIP?',
+   a:'Código de 4 dígitos que protege tu sesión. Se activa en ⋯ Más → Seguridad → Configurar NIP. Solo se guarda en tu dispositivo.'},
   {cat:'🔐 Seguridad', q:'¿Qué es el bloqueo automático?',
-   a:'Bloquea la app si no la usas por un tiempo definido (1 min, 5 min, etc.). Al volver, pide tu NIP. Se activa en Más → Seguridad → Bloqueo automático.'},
+   a:'Bloquea la app tras un tiempo de inactividad. Se configura en Más → Seguridad. Al volver pide tu NIP.'},
+  {cat:'🔐 Seguridad', q:'¿Mis datos son privados?',
+   a:'Sí. Cada usuario ve solo sus datos. Los datos se guardan localmente y se sincronizan con la nube cuando hay conexión.'},
 
-  {cat:'🔐 Seguridad', q:'¿Qué pasa si olvido mi NIP?',
-   a:'Solo el administrador puede resetearlo desde el panel de administración. Contacta al admin con tu código de acceso para que restablezca tu NIP.'},
-
-  {cat:'🔐 Seguridad', q:'¿Mis datos son privados respecto a otros usuarios?',
-   a:'Sí. Cada usuario solo ve sus propios datos. El administrador puede ver estadísticas generales pero no el detalle de tus transacciones.'},
-  // ── 🔑 Acceso ───────────────────────────────────────────────
+  // ── 🔑 Acceso ──
   {cat:'🔑 Acceso', q:'¿Cómo entran otras personas?',
-   a:'El administrador genera un código de acceso (ej: MARI-WTFX) y lo comparte. Al primer ingreso el usuario registra su nombre y puede crear una contraseña personal.'},
-
+   a:'El admin genera un código (ej: MARI-WTFX) y lo comparte. Al primer ingreso el usuario registra nombre y crea contraseña opcional.'},
   {cat:'🔑 Acceso', q:'¿Qué requisitos tiene la contraseña?',
-   a:'Mínimo 8 caracteres, al menos una mayúscula, una minúscula y un símbolo especial. No puede tener números consecutivos (123) ni letras consecutivas del abecedario (abc).'},
+   a:'Mínimo 8 caracteres, mayúscula, minúscula y símbolo especial. Sin números consecutivos (123) ni letras seguidas del abecedario (abc). El indicador muestra la fortaleza en tiempo real.'},
+  {cat:'🔑 Acceso', q:'¿Los códigos tienen vencimiento?',
+   a:'Sí. Opciones: 7 días, 15 días, 1 mes, 1 año o Sin vencimiento. El admin puede renovar o desactivar el acceso desde la ficha del usuario.'},
+  {cat:'🔑 Acceso', q:'¿Cómo desactivo el acceso de un usuario?',
+   a:'En el panel de admin → Usuarios → toca el nombre → botón 🚫 "Desactivar acceso". Se puede reactivar después con el botón ✅.'},
 
-  {cat:'🔑 Acceso', q:'¿Los códigos de invitado tienen vencimiento?',
-   a:'Sí, el admin define la vigencia al generar el código. Cuando vence, el usuario no puede entrar hasta que el admin lo renueve.'},
-
-  {cat:'🔑 Acceso', q:'¿Olvidé mi contraseña de acceso?',
-   a:'En la pantalla de login toca "¿Olvidaste tu contraseña?". El admin puede resetearla desde el panel de administración.'},
-  // ── 📈 Progreso ─────────────────────────────────────────────
+  // ── 📈 Progreso ──
   {cat:'📈 Progreso', q:'¿Qué es el Patrimonio Neto?',
-   a:'Es la diferencia entre lo que tienes (efectivo + banco + activos) y lo que debes (tarjetas + créditos). Un número positivo y creciente indica salud financiera.'},
+   a:'Lo que tienes (efectivo + banco + activos) menos lo que debes (tarjetas + créditos). Un número creciente = salud financiera.'},
+  {cat:'📈 Progreso', q:'¿Qué es el Consejero Financiero?',
+   a:'Analiza tu tasa de ahorro, carga de deuda y cobertura de emergencias. Da una puntuación 0-100 con chips de color y consejos personalizados.'},
+  {cat:'📈 Progreso', q:'¿Qué son los Activos Personales?',
+   a:'Bienes de valor que posees: inmuebles, vehículos, inversiones, ahorros, etc. Su valor suma al Patrimonio Neto. Se actualizan en Más → Herramientas → Activos.'},
 
-  {cat:'📈 Progreso', q:'¿Qué significa el semáforo de salud financiera?',
-   a:'El Consejero Financiero analiza tu tasa de ahorro, carga de deuda y cobertura de emergencias. Da una puntuación de 0 a 100 con chips de color: verde (bien), dorado (cuidado), rojo (acción requerida).'},
-
-  {cat:'📈 Progreso', q:'¿Cuándo se guarda el snapshot mensual?',
-   a:'Al cerrar cada mes la app guarda automáticamente tu Patrimonio Neto. El mes siguiente puedes ver la variación (↑ subió / ↓ bajó) comparada con el mes anterior.'},
-  // ── 🏦 Activos ──────────────────────────────────────────────
-  {cat:'🏦 Activos', q:'¿Qué son los Activos Personales?',
-   a:'Bienes de valor que posees: inmuebles, vehículos, negocios, inversiones, etc. Su valor suma al Patrimonio Neto.'},
-
-  {cat:'🏦 Activos', q:'¿Con qué frecuencia actualizo el valor?',
-   a:'Cuando quieras. Para inmuebles y vehículos se recomienda revisarlo cada 6-12 meses. Para inversiones puedes actualizarlo mensualmente.'},
-  // ── 🎙️ Voz ──────────────────────────────────────────────────
+  // ── 🎙️ Voz ──
   {cat:'🎙️ Voz', q:'¿Cómo funciona el control por voz?',
-   a:'Toca el ícono 🎙️ en la barra superior y habla. Puedes registrar gastos, ingresos y navegar entre secciones. Requiere permiso de micrófono.'},
-
-  {cat:'🎙️ Voz', q:'¿Qué comandos puedo usar?',
-   a:'Gastos: "gasté 200 en comida". Ingresos: "ingresé 5000". Navegación: "ir a tarjetas", "abrir cuentas", "ver créditos", "mostrar historial". Calculadora: "abrir calculadora".'},
-
+   a:'Toca 🎙️ en la barra superior y habla. Reconoce comandos de navegación, registro de gastos/ingresos y acceso a cualquier sección.'},
+  {cat:'🎙️ Voz', q:'Comandos de navegación',
+   a:'"inicio" · "cuentas" · "créditos" · "reportes" · "más" · "efectivo" · "banco" · "tarjeta" · "historial" · "metas" · "presupuesto" · "activos" · "progreso" · "conversor" · "alertas" · "configuración" · "ayuda" · "noticias" · "carrito" · "mis listas" · "pagos del mes"'},
+  {cat:'🎙️ Voz', q:'Comandos para registrar gastos',
+   a:'"gasté 200" → gasto de $200 en efectivo · "gasté 350 en comida" → gasto con descripción · "ingresé 5000" → ingreso en efectivo · "ingresé 3000 de nómina" → ingreso con descripción'},
   {cat:'🎙️ Voz', q:'El micrófono está bloqueado, ¿qué hago?',
-   a:'Ve a Más → Config → "Restablecer micrófono". O en tu navegador/celular: Ajustes → Permisos del sitio → Micrófono → Permitir.'},
-  // ── 🔵 Botón U ──────────────────────────────────────────────
-  {cat:'🔵 Botón U', q:'¿Para qué sirve el botón U azul?',
-   a:'Es tu menú rápido de cuentas. Muestra al instante tu saldo en efectivo, banco y deuda en tarjetas. Desde ahí puedes cerrar sesión o ir a configuración.'},
-  // ── ↩️ General ──────────────────────────────────────────────
+   a:'Ve a Más → Config → "Restablecer micrófono". O en tu navegador: Ajustes → Permisos del sitio → Micrófono → Permitir.'},
+
+  // ── ↩️ General ──
   {cat:'↩️ General', q:'¿Puedo deshacer un borrado?',
-   a:'Sí. Después de borrar una transacción, crédito, pago o meta aparece un aviso "↩ Deshacer" por 7 segundos. Tócalo para restaurar el dato y revertir el saldo.'},
-
+   a:'Sí. Aparece "↩ Deshacer" por 7 segundos después de borrar cualquier transacción, pago, meta o crédito.'},
   {cat:'↩️ General', q:'¿Funciona sin internet?',
-   a:'Sí. Todos tus datos se guardan localmente en el dispositivo. Cuando hay conexión, la app sincroniza con la nube (Supabase) para respaldo. Si no hay internet, todo sigue funcionando.'},
-
+   a:'Sí. Todos los datos se guardan localmente. La conexión solo se usa para sincronizar con la nube (respaldo). Todo funciona offline.'},
   {cat:'↩️ General', q:'¿Cómo uso la calculadora?',
-   a:'Toca el ícono 🔢 en la barra superior. Puedes hacer operaciones básicas y el resultado se puede usar directamente al registrar un gasto o ingreso.'},
-  // ── ⚙️ Config ───────────────────────────────────────────────
+   a:'Toca el ícono 🔢 en la barra superior. También puedes abrir con el comando de voz "calculadora".'},
+
+  // ── ⚙️ Config ──
   {cat:'⚙️ Config', q:'¿Cómo cambio el tema visual?',
-   a:'Ve a ⋯ Más → Config → Tema. Hay 5 temas: Verde Natural (default), Oscuro Pro, Dorado Élite, Océano y Rosa Elegante. El cambio es inmediato.'},
-
+   a:'Más → Config → Tema. Hay 5 temas: Verde Natural, Oscuro Pro, Dorado Élite, Océano y Rosa Elegante.'},
   {cat:'⚙️ Config', q:'¿Cómo cambio la moneda?',
-   a:'En Más → Config → Moneda. Puedes elegir entre MXN, USD, EUR, CAD, GBP, COP, ARS, GTQ y PEN. Cambia el símbolo en toda la app.'},
-
+   a:'Más → Config → Moneda. Cambia el símbolo en toda la app: MXN, USD, EUR, CAD, GBP, COP, ARS, GTQ, PEN.'},
   {cat:'⚙️ Config', q:'¿Cómo agrego categorías personalizadas?',
-   a:'En Más → Config → Categorías. Puedes agregar tus propias categorías de gastos, ingresos, pagos y activos. Las personalizadas se muestran junto a las predefinidas.'},
-
-  {cat:'⚙️ Config', q:'¿Cómo borro todos mis datos?',
-   a:'En Más → Config → "Borrar mis datos". Esta acción es irreversible — elimina transacciones, cuentas, créditos, metas y presupuestos. No se puede deshacer.'},
+   a:'Más → Config → Categorías. Agrega tus propias categorías de gastos, ingresos, pagos y activos. Aparecen junto a las predefinidas.'},
 ];
 function renderAyuda(){
   var st = _getSecurityStatus();
@@ -9984,39 +9945,65 @@ function detenerVoz(){
 }
 function procesarComandoVoz(t){
   var nb = document.querySelectorAll('.nb');
+  // ── Navegación principal ──
   if(/\binicio\b|\bhome\b/.test(t)){ goTab('inicio',nb[0]); showToast('🏠 Inicio'); return; }
   if(/\bcuentas?\b/.test(t) && !/tarjeta|tc\b/.test(t)){ goTab('cuentas',nb[1]); showToast('🏦 Cuentas'); return; }
   if(/\bcr[eé]ditos?\b|\bpr[eé]stamo\b/.test(t)){ goTab('creditos',nb[2]); showToast('🤝 Créditos'); return; }
   if(/\breportes?\b/.test(t)){ goTab('reportes',nb[3]); showToast('📊 Reportes'); return; }
-  if(/\bm[aá]s\b|\bajuste\b|\bconfig\b/.test(t)){ goTab('mas',document.querySelectorAll('.nb')[4]); showToast('⋯ Más'); return; }
+  if(/\bm[aá]s\b|\bajuste\b|\bconfig\b/.test(t)){ goTab('mas',nb[4]); showToast('⋯ Más'); return; }
+  // ── Cuentas ──
   if(/\befectivo\b/.test(t)){ goTab('cuentas',nb[1]); setTimeout(function(){ goSub('efectivo'); },60); showToast('💵 Efectivo'); return; }
   if(/\bbanco\b|\bcheque\b/.test(t)){ goTab('cuentas',nb[1]); setTimeout(function(){ goSub('cheques'); },60); showToast('🏦 Banco'); return; }
   if(/\btarjeta\b|\btc\b/.test(t)){ goTab('cuentas',nb[1]); setTimeout(function(){ goSub('tarjetas_credito'); },60); showToast('💳 Tarjetas'); return; }
+  // ── Créditos ──
+  if(/\bdeudas?\b|\blo que debo\b/.test(t)){ goSub('creditos_debo'); goTab('creditos',nb[2]); showToast('📤 Mis deudas'); return; }
+  if(/\bme deben\b|\bcobrar\b/.test(t)){ goSub('creditos_cobrar'); goTab('creditos',nb[2]); showToast('📥 Me deben'); return; }
+  if(/\bpagos del mes\b|\bpagos fijos\b/.test(t)){ goSub('pagos_mes'); goTab('creditos',nb[2]); showToast('📅 Pagos del mes'); return; }
+  // ── Carrito ──
+  if(/\bcarrito\b|\bsuper\b|\blista de compras\b/.test(t)){ goTab('cuentas',nb[1]); setTimeout(function(){ goSub('carrito'); },60); showToast('🛒 Carrito'); return; }
+  if(/\bmis listas\b|\blistas guardadas\b/.test(t)){ S._carritoTab='listas'; goTab('cuentas',nb[1]); setTimeout(function(){ goSub('carrito'); },60); showToast('📋 Mis Listas'); return; }
+  // ── Herramientas ──
   if(/\bcalculadora\b|\bcalc\b/.test(t)){ abrirCalc(); showToast('🔢 Calculadora'); return; }
-  if(/\bhistorial\b/.test(t)){ goTab('mas',document.querySelectorAll('.nb')[4]); setTimeout(function(){ goSub('historial'); },60); showToast('📋 Historial'); return; }
-  if(/\bayuda\b/.test(t)){ goTab('mas',document.querySelectorAll('.nb')[4]); setTimeout(function(){ goSub('ayuda'); },60); showToast('❓ Ayuda'); return; }
-  if(/\bmetas?\b/.test(t)){ goTab('mas',document.querySelectorAll('.nb')[4]); setTimeout(function(){ goSub('metas'); },60); showToast('🎯 Metas'); return; }
-  if(/\bpresupuesto\b/.test(t)){ goTab('mas',document.querySelectorAll('.nb')[4]); setTimeout(function(){ goSub('presupuesto'); },60); showToast('💰 Presupuesto'); return; }
-  if(/\bconversor\b|\btipo de cambio\b/.test(t)){ goTab('mas',document.querySelectorAll('.nb')[4]); setTimeout(function(){ goSub('conversor'); },60); showToast('💱 Conversor'); return; }
+  if(/\bhistorial\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('historial'); },60); showToast('📋 Historial'); return; }
+  if(/\bayuda\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('ayuda'); },60); showToast('❓ Ayuda'); return; }
+  if(/\bmetas?\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('metas'); },60); showToast('🎯 Metas'); return; }
+  if(/\bpresupuesto\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('presupuesto'); },60); showToast('💰 Presupuesto'); return; }
+  if(/\bconversor\b|\btipo de cambio\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('conversor'); },60); showToast('💱 Conversor'); return; }
+  if(/\bactivos\b|\bbienes\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('activos'); },60); showToast('🏦 Activos'); return; }
+  if(/\bprogreso\b|\bpatrimonio\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('progreso'); },60); showToast('📈 Progreso'); return; }
+  if(/\balertas?\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('alertas'); },60); showToast('🔔 Alertas'); return; }
+  if(/\breportes?\b|\binforme\b/.test(t)){ goTab('reportes',nb[3]); showToast('📊 Reportes'); return; }
+  if(/\bconversor\b|\bmoneda\b|\bcambio\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('conversor'); },60); showToast('💱 Conversor'); return; }
+  if(/\bnoticias?\b|\bmensajes?\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('noticias'); },60); showToast('📢 Noticias'); return; }
+  if(/\bconfiguraci[oó]n\b|\btema\b/.test(t)){ goTab('mas',nb[4]); setTimeout(function(){ goSub('config'); },60); showToast('⚙️ Configuración'); return; }
+  // ── Registrar gasto/ingreso por voz ──
   var mG = t.match(/gast[eé]\s+(\d+[\.,]?\d*)/);
   var mI = t.match(/ingres[eé]\s+(\d+[\.,]?\d*)/);
+  var mGDesc = t.match(/gast[eé]\s+(\d+[\.,]?\d*)\s+en\s+(.+)/);
+  var mIDesc = t.match(/ingres[eé]\s+(\d+[\.,]?\d*)\s+(?:de|por)\s+(.+)/);
+  if(mGDesc){
+    var monto = parseFloat(mGDesc[1].replace(',','.')); var desc = mGDesc[2].trim();
+    if(monto>0){ var c=getCuentas(); c.efectivo=(c.efectivo||0)-monto; saveCuentas(c);
+      var txs=getTxs(); txs.push({id:Date.now(),tipo:'gasto',desc:desc,monto:monto,cat:'Otros gastos',fecha:today(),cuenta:'efectivo'}); saveTxs(txs);
+      showToast('💸 '+fmt(monto)+' en '+desc); renderTab(S.tab); return; }
+  }
   if(mG){
-    var m = parseFloat(mG[1].replace(',','.'));
-    if(m > 0){
-      var c = getCuentas(); c.efectivo = (c.efectivo||0) - m; saveCuentas(c);
-      var txs = getTxs(); txs.push({id:Date.now(),tipo:'gasto',desc:'Voz',monto:m,cat:'Otros gastos',fecha:today(),cuenta:'efectivo'}); saveTxs(txs);
-      showToast('💸 Gasto ' + getSimboloMoneda() + m.toFixed(2) + ' en Efectivo'); renderTab(S.tab); return;
-    }
+    var m=parseFloat(mG[1].replace(',','.')); if(m>0){ var c=getCuentas(); c.efectivo=(c.efectivo||0)-m; saveCuentas(c);
+      var txs=getTxs(); txs.push({id:Date.now(),tipo:'gasto',desc:'Voz',monto:m,cat:'Otros gastos',fecha:today(),cuenta:'efectivo'}); saveTxs(txs);
+      showToast('💸 Gasto '+fmt(m)); renderTab(S.tab); return; }
+  }
+  if(mIDesc){
+    var monto2=parseFloat(mIDesc[1].replace(',','.')); var desc2=mIDesc[2].trim();
+    if(monto2>0){ var c2=getCuentas(); c2.efectivo=(c2.efectivo||0)+monto2; saveCuentas(c2);
+      var txs2=getTxs(); txs2.push({id:Date.now(),tipo:'ingreso',desc:desc2,monto:monto2,cat:'Otros ingresos',fecha:today(),cuenta:'efectivo'}); saveTxs(txs2);
+      showToast('💰 '+fmt(monto2)+' de '+desc2); renderTab(S.tab); return; }
   }
   if(mI){
-    var m2 = parseFloat(mI[1].replace(',','.'));
-    if(m2 > 0){
-      var c2 = getCuentas(); c2.efectivo = (c2.efectivo||0) + m2; saveCuentas(c2);
-      var txs2 = getTxs(); txs2.push({id:Date.now(),tipo:'ingreso',desc:'Voz',monto:m2,cat:'Otros ingresos',fecha:today(),cuenta:'efectivo'}); saveTxs(txs2);
-      showToast('💰 Ingreso ' + getSimboloMoneda() + m2.toFixed(2) + ' en Efectivo'); renderTab(S.tab); return;
-    }
+    var m2=parseFloat(mI[1].replace(',','.')); if(m2>0){ var c2=getCuentas(); c2.efectivo=(c2.efectivo||0)+m2; saveCuentas(c2);
+      var txs2=getTxs(); txs2.push({id:Date.now(),tipo:'ingreso',desc:'Voz',monto:m2,cat:'Otros ingresos',fecha:today(),cuenta:'efectivo'}); saveTxs(txs2);
+      showToast('💰 Ingreso '+fmt(m2)); renderTab(S.tab); return; }
   }
-  showToast('❓ No entendí: "' + t + '"');
+  showToast('❓ No entendí: "'+t+'"');
 }
 function verFichaCodigo(codigo){
   var cods=JSON.parse(localStorage.getItem('usala_codigos')||'[]');
