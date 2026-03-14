@@ -4453,24 +4453,20 @@ function fmtFechaHora(str){
 function renderCarrito(){
   var cats   = getCarritoCats();
   var actual = getCarritoActual();
-  var hist   = getCarritoHistorial();
   var tab    = S._carritoTab || 'lista';
+  if(tab === 'catalogo') tab = 'lista'; // por si quedó guardado
 
   var tabs = '<div style="display:flex;gap:6px;margin-bottom:14px;">'
-    + [
-        {id:'lista',    lbl:'🛒 Actual'},
-        {id:'listas',   lbl:'📋 Mis Listas'},
-        {id:'catalogo', lbl:'🗂 Catálogo'}
-      ].map(function(t){
+    + [{id:'lista', lbl:'🛒 Lista actual'}, {id:'listas', lbl:'📋 Mis Listas'}]
+      .map(function(t){
         var active = tab === t.id;
-        return '<button onclick="_carritoTab(\''+t.id+'\')" style="flex:1;padding:9px 4px;border-radius:12px;border:none;font-family:Outfit,sans-serif;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.18s;background:'+(active?'var(--accent)':'var(--inp)')+';color:'+(active?'#fff':'var(--dim)')+';">'+t.lbl+'</button>';
+        return '<button onclick="_carritoTab(\''+t.id+'\')" style="flex:1;padding:9px 4px;border-radius:12px;border:none;font-family:Outfit,sans-serif;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all 0.18s;background:'+(active?'var(--accent)':'var(--inp)')+';color:'+(active?'#fff':'var(--dim)')+';">'+t.lbl+'</button>';
       }).join('')
     + '</div>';
 
-  var content = '';
-  if(tab === 'listas')   content = _renderCarritoHistorial();
-  else if(tab === 'catalogo') content = _renderCarritoCatalogo();
-  else                   content = _renderCarritoLista(actual, cats);
+  var content = (tab === 'listas')
+    ? _renderCarritoHistorial()
+    : _renderCarritoLista(actual, cats);
 
   return '<div class="page-header">'
     + backSubBtn()
