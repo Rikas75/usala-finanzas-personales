@@ -3323,9 +3323,9 @@ function goSub(sub){
 
   var renders = {
     efectivo: renderEfectivo, cheques: renderCheques,
-    pagos_mes:       renderPagosMes,
-    activos:         renderActivos,
-    progreso:        renderProgreso,
+    pagos_mes:       null,
+    activos:         null,
+    progreso:        null,
     ingresos_activos: renderIngresosActivos,
     metas: renderMetas, alertas: renderAlertas,
     historial: renderHistorial, conversor: renderConversor,
@@ -3335,10 +3335,10 @@ function goSub(sub){
     carrito: renderCarrito
   };
   if(sub==='ingresos_activos'){ document.getElementById('mainContent').innerHTML=renderIngresosActivos(); return; }
-  if(sub==='presupuesto'){ renderPresupuesto(); return; 
+  if(sub==='presupuesto'){ renderPresupuesto(); return; }
   if(sub==='activos')   { renderActivos();  return; }
   if(sub==='pagos_mes') { renderPagosMes(); return; }
-  if(sub==='progreso')  { renderProgreso(); return; }}
+  if(sub==='progreso')  { renderProgreso(); return; }
   if(sub==='dashboard_admin'){ renderDashboardAdmin(); return; }
   if(sub==='panel_admin')     { renderAdminPanel(); return; }
   if(sub==='codigos')         { renderCodigos(); return; }
@@ -10141,9 +10141,9 @@ function registrarPagoTC(i){
       +'<div style="display:flex;justify-content:space-between;"><span style="font-size:0.75rem;color:var(--dim);">Pago minimo</span><span style="font-size:0.8rem;font-weight:700;color:var(--accent);">'+fmt(pagoMin)+'</span></div>'
     +'</div>'
     +'<label class="inp-label">Monto ($)</label>'
-    +'<input class="inp" id="pagoTCMonto" type="number" inputmode="decimal" placeholder="0.00" value="'+(pagoMin||'')+'"><br>'
+    +'<input class="inp" id="pagoTCMonto" type="number" inputmode="decimal" placeholder="0.00" value="'+pagoMin+'"><br>'
     +'<label class="inp-label">De que cuenta</label>'
-    +buildCuentaOpts('pagoTCCuenta')
+    +'<select class="inp" id="pagoTCCuenta">'+buildCuentaOpts('')+'</select>'
     +'<div style="display:flex;gap:8px;margin-top:12px;">'
       +'<button class="btn-main" style="flex:1;" onclick="_confirmarPagoTC('+i+')">Registrar</button>'
       +'<button class="btn-sec" onclick="document.getElementById(\'pagoTCModal\').remove()">Cancelar</button>'
@@ -11231,7 +11231,7 @@ function cobrarCxC(i){
     +'<div class="modal-title">✅ Cobrar a '+c.nombre+'</div>'
     +'<div style="font-size:0.85rem;color:var(--dim);margin-bottom:14px;">'+c.concepto+' · '+fmt(c.monto)+'</div>'
     +'<label class="inp-label">¿A qué cuenta ingresa?</label>'
-    +buildCuentaOpts('cobrarCxCCuenta')
+    +'<select class="inp" id="cobrarCxCCuenta">'+buildCuentaOpts('')+'</select>'
     +'<label class="inp-label" style="margin-top:10px;">Fecha</label>'
     +'<input class="inp" id="cobrarCxCFecha" type="date" value="'+today()+'">'
     +'<div style="display:flex;gap:8px;margin-top:12px;">'
