@@ -10066,98 +10066,162 @@ function menuAccion(accion){
 function cerrarMenu(){ var m=document.getElementById('menuModal'); if(m) m.classList.remove('open'); }
 
 var FAQS = [
+  // ── 🏠 Inicio ──────────────────────────────────────────────
   {cat:'🏠 Inicio', q:'¿Qué muestra la pantalla de Inicio?',
-   a:'Tu resumen financiero completo: Total disponible, Patrimonio Neto, Deudas, Pagos Pendientes, últimas transacciones y alertas de seguridad activas.'},
+   a:'Tu resumen financiero completo: gasto acumulado del día, total disponible, Patrimonio Neto, deudas, ingresos/gastos del período, pagos del mes y últimas transacciones.'},
+
+  {cat:'🏠 Inicio', q:'¿Qué es el cuadro "Gasto de hoy"?',
+   a:'Un contador en tiempo real que suma TODOS los gastos registrados hoy — efectivo, banco y tarjetas. Se reinicia automáticamente cada día a las 12:00 am. El color cambia: azul (bajo), dorado (moderado) o rojo (alto). Incluye un desglose por tipo de cuenta.'},
+
+  {cat:'🏠 Inicio', q:'¿Cómo registro un gasto o ingreso rápido?',
+   a:'Toca ➖ para gasto o ➕ para ingreso en los botones de acceso rápido. También puedes usar la voz diciendo "gasté 200" o "ingresé 500".'},
+
   {cat:'🏠 Inicio', q:'¿Qué es el botón ⏰ Pago Pendiente?',
-   a:'Muestra cuántos pagos vencen pronto. El badge es rojo si hay vencidos, naranja si vencen esta semana. Tócalo para ver el detalle.'},
-  {cat:'🏠 Inicio', q:'¿Qué es el aviso de seguridad en el inicio?',
-   a:'Si tu cuenta no tiene NIP o bloqueo automático, aparece un banner de alerta. Puedes configurarlo desde ahí mismo o cerrarlo temporalmente.'},
-  {cat:'🏠 Inicio', q:'¿Cómo registro un ingreso o gasto rápido?',
-   a:'Usa el botón U azul flotante para acceder en un toque a Efectivo, Banco o Tarjetas. O di un comando de voz: "gasté 200" o "ingresé 500".'},
-  {cat:'🔵 Botón U', q:'¿Para qué sirve el botón U azul?',
-   a:'Acceso rápido a tus 3 cuentas desde cualquier pantalla. Tócalo y aparece un menú con Efectivo, Banco y Tarjetas con el saldo actual.'},
-  {cat:'🎙️ Voz', q:'¿Cómo funciona el control por voz?',
-   a:'Toca 🎙️ en la barra superior. Se activa y escucha. Di tu comando claramente. Ejecuta la acción al instante. Sin IA, solo acción.'},
-  {cat:'🎙️ Voz', q:'¿Necesita internet para funcionar?',
-   a:'Sí. En Chrome (Android) el reconocimiento de voz envía el audio a Google para procesarlo. Sin conexión el botón 🎙️ no funciona.'},
-  {cat:'🎙️ Voz', q:'¿Qué comandos de navegación puedo usar?',
-   a:'"inicio", "cuentas", "créditos", "reportes", "más", "efectivo", "banco", "tarjetas", "calculadora", "historial", "metas", "presupuesto", "conversor", "ayuda".'},
-  {cat:'🎙️ Voz', q:'¿Puedo registrar gastos con voz?',
-   a:'Sí. "Gasté 200" registra $200 de gasto en Efectivo. "Ingresé 500" registra un ingreso. El saldo se actualiza al instante.'},
-  {cat:'🎙️ Voz', q:'El micrófono está bloqueado, ¿qué hago?',
-   a:'Más → Configuración → 🎤 Restablecer micrófono. O en Chrome: ⋮ → Configuración → Privacidad → Micrófono → busca la app → Permitir.'},
-  {cat:'🏦 Cuentas', q:'¿Qué módulos tiene Cuentas?',
-   a:'3 secciones: 💵 Efectivo, 🏧 Banco y 💳 Tarjetas de Crédito. Cada una con historial y formulario de movimientos.'},
-  {cat:'🏦 Cuentas', q:'¿Cómo transfiero efectivo a mi banco?',
-   a:'Efectivo → Salida → en "¿A qué banco?" elige tu cuenta. Resta de Efectivo y suma al banco destino automáticamente.'},
-  {cat:'🏦 Cuentas', q:'¿Qué pasa si borro una transacción?',
-   a:'El saldo se revierte automáticamente. Tienes 6 segundos para tocar "Deshacer" y restaurar todo.'},
-  {cat:'🏦 Cuentas', q:'¿Las compras con TC afectan mi efectivo?',
-   a:'No. Las compras con tarjeta solo aumentan la deuda de esa TC. Tu efectivo y banco NO se ven afectados.'},
+   a:'Muestra cuántos pagos del mes vencen en los próximos 7 días. El número en rojo indica la cantidad de pagos urgentes. Tócalo para ir a la lista de pagos.'},
+
+  {cat:'🏠 Inicio', q:'¿Qué significa la tarjeta 💳 en el cuadro azul?',
+   a:'Aparece cuando tienes deuda en tarjetas de crédito. Muestra el total adeudado y te lleva directo a Tarjetas de Crédito al tocarlo.'},
+
+  {cat:'🏠 Inicio', q:'¿Qué son los chips de Ingresos y Gastos?',
+   a:'Muestran el total acumulado en el período actual. Al tocarlos vas al historial filtrado por tipo dentro de la sección de Cuentas.'},
+
+  {cat:'🏠 Inicio', q:'¿Cómo edito o borro una transacción desde el inicio?',
+   a:'En la sección "Últimas transacciones" al final de la pantalla, cada transacción tiene un botón ✏️ para editar y 🗑️ para borrar. Si borras por error, aparece un aviso de "Deshacer" por 7 segundos.'},
+
+  // ── 💳 Tarjetas ─────────────────────────────────────────────
+  {cat:'💳 Tarjetas', q:'¿Cómo agrego una tarjeta de crédito?',
+   a:'Ve a Cuentas → Tarjetas de Crédito → "+ Nueva tarjeta". Llena banco, tipo (Visa/MC/Amex), límite, saldo actual e interés anual. Opcionalmente agrega fecha de corte y día de pago.'},
+
+  {cat:'💳 Tarjetas', q:'¿Cómo registro un pago de tarjeta?',
+   a:'En Tarjetas de Crédito toca el botón "Pagar" de la tarjeta. Ingresa el monto y la cuenta de origen. Esto reduce el saldo de la tarjeta y registra el movimiento automáticamente.'},
+
+  {cat:'💳 Tarjetas', q:'¿Qué es el botón "Detalle" en una tarjeta?',
+   a:'Muestra el resumen completo: saldo, disponible, barra de uso, fecha de corte, día de pago, interés anual y todos los movimientos registrados con esa tarjeta.'},
+
+  {cat:'💳 Tarjetas', q:'¿Los gastos con tarjeta afectan mi efectivo?',
+   a:'No directamente. Los gastos con TC solo aumentan el saldo de la tarjeta. Cuando registras el PAGO de la tarjeta, ahí sí se descuenta de tu cuenta bancaria o efectivo.'},
+
   {cat:'💳 Tarjetas', q:'¿Qué es el Saldo al Corte AUTO?',
-   a:'Se calcula sumando todas las compras del período actual. Aparece con badge naranja "AUTO". No tienes que calcularlo manualmente.'},
-  {cat:'💳 Tarjetas', q:'¿Cómo registro un pago de TC?',
-   a:'Toca "💳 Pago" en la tarjeta. El saldo se reduce. Al llegar a $0 se marca "Al corriente".'},
-  {cat:'📅 Pagos del Mes', q:'¿Para qué sirven los Pagos del Mes?',
-   a:'Para registrar todos tus pagos fijos: servicios, renta, seguros, TC, etc. Llevas control de cuánto has pagado y cuánto falta cada mes.'},
-  {cat:'📅 Pagos del Mes', q:'¿Cómo agrego un pago fijo?',
-   a:'Créditos → Pagos del Mes → + Agregar. Escribe nombre, categoría, monto estimado, frecuencia y día de vencimiento.'},
-  {cat:'📅 Pagos del Mes', q:'¿Cómo funciona el panel ⏰ de la pantalla principal?',
-   a:'Muestra los pagos que vencen próximamente en 4 vistas: Hoy, Esta semana, Este mes y Este año. Badge rojo = pagos ya vencidos.'},
-  {cat:'📅 Pagos del Mes', q:'¿Los pagos se resetean solos cada mes?',
-   a:'Sí. El estado (pagado/pendiente) se resetea automáticamente cada mes. Tus pagos fijos permanecen.'},
-  {cat:'🤝 Créditos', q:'¿Qué son los Créditos?',
-   a:'"Mis Deudas" = dinero que tú pediste prestado. "Por Cobrar" = dinero que tú prestaste. Con seguimiento de abonos, intereses y fechas límite.'},
+   a:'La app suma automáticamente todos los gastos de la tarjeta en el período actual (desde el último corte hasta hoy). Aparece abajo del porcentaje de uso.'},
+
+  // ── 🤝 Créditos ─────────────────────────────────────────────
+  {cat:'🤝 Créditos', q:'¿Qué secciones tiene Créditos?',
+   a:'Mis Deudas (lo que yo debo), Créditos por Cobrar (dinero que presté), y Deuda a Pagar Mensual (pagos fijos como TC, servicios y renta).'},
+
   {cat:'🤝 Créditos', q:'¿Cómo abono a una deuda?',
-   a:'Toca "+ Abonar". La barra de progreso se actualiza. Al 100% se marca como pagado automáticamente.'},
-  {cat:'🔐 Seguridad', q:'¿Por qué me aparece un aviso de seguridad?',
-   a:'Tu cuenta no tiene NIP o bloqueo automático activos. Son medidas opcionales pero muy recomendadas para que nadie más vea tus finanzas.'},
+   a:'En Mis Deudas toca "+ Abonar" en la deuda. Ingresa el monto, la fecha y la cuenta de origen. El sistema descuenta del saldo pendiente y guarda el historial de abonos.'},
+
+  {cat:'🤝 Créditos', q:'¿Puedo ver el historial de abonos?',
+   a:'Sí. En cada crédito hay un botón 📋 con el número de abonos. Al tocarlo se despliega el historial con fecha, monto, interés pagado y nota de cada abono. Puedes editar o borrar abonos individuales.'},
+
+  {cat:'🤝 Créditos', q:'¿Qué tipos de interés maneja?',
+   a:'Tres tipos: Total (se aplica una sola vez al monto), Mensual (se suma cada mes) y Anual (se distribuye en 12 meses). Se configura al crear o editar el crédito.'},
+
+  {cat:'🤝 Créditos', q:'¿Qué son las Cuentas por Cobrar (CxC)?',
+   a:'Deudas informales que alguien tiene contigo sin un crédito formal. Al cobrar, el dinero se registra como ingreso en la cuenta que elijas.'},
+
+  // ── 🏦 Cuentas ──────────────────────────────────────────────
+  {cat:'🏦 Cuentas', q:'¿Qué módulos tiene la sección Cuentas?',
+   a:'3 secciones: 💵 Efectivo, 🏧 Banco (cuentas de cheques) y 💳 Tarjetas de Crédito. Cada una con historial y formulario de movimientos.'},
+
+  {cat:'🏦 Cuentas', q:'¿Cómo transfiero efectivo a mi banco?',
+   a:'En Efectivo registra una Salida y en el campo destino elige la cuenta bancaria. La app mueve el dinero y crea un movimiento de entrada en tu banco automáticamente.'},
+
+  {cat:'🏦 Cuentas', q:'¿Qué pasa si borro una transacción?',
+   a:'El saldo de la cuenta se revierte automáticamente. Tienes 7 segundos para deshacer la acción tocando "↩ Deshacer" en el aviso que aparece abajo.'},
+
+  // ── 📅 Pagos del Mes ────────────────────────────────────────
+  {cat:'📅 Pagos del Mes', q:'¿Para qué sirven los Pagos del Mes?',
+   a:'Para registrar gastos fijos recurrentes: renta, servicios, suscripciones, créditos, etc. La app te avisa cuando se acercan y lleva el control de cuánto has pagado vs el total del mes.'},
+
+  {cat:'📅 Pagos del Mes', q:'¿Cómo agrego un pago fijo?',
+   a:'En la sección Créditos toca "Deuda a Pagar Mensual", luego el botón "+" o "Nuevo pago". Define nombre, monto, día del mes y categoría. Puedes poner frecuencia mensual, quincenal o semanal.'},
+
+  {cat:'📅 Pagos del Mes', q:'¿Los pagos se resetean solos cada mes?',
+   a:'Sí. El estado de "pagado" se guarda por mes. Al iniciar un nuevo mes, todos los pagos aparecen pendientes nuevamente, pero el historial de meses anteriores se conserva.'},
+
+  // ── 🔐 Seguridad ────────────────────────────────────────────
   {cat:'🔐 Seguridad', q:'¿Qué es el NIP y para qué sirve?',
-   a:'Un código secreto de 4 dígitos. Aunque alguien tenga tu dispositivo o código de invitado, sin el NIP no puede entrar a tus finanzas.'},
+   a:'Un código de 4 dígitos que protege tu sesión. Si lo activas, la app te lo pedirá al abrir o al volver después de un tiempo inactivo. Se guarda solo en tu dispositivo.'},
+
   {cat:'🔐 Seguridad', q:'¿Cómo activo mi NIP?',
-   a:'Más → Configuración → 🔒 NIP de seguridad → escribe 4 dígitos y confirma. Desde ese momento se pedirá cada vez que entres.'},
+   a:'Ve a ⋯ Más → Seguridad → Configurar NIP. Elige 4 dígitos y confírmalos. Para cambiarlo o eliminarlo, usa las opciones de la misma pantalla.'},
+
   {cat:'🔐 Seguridad', q:'¿Qué es el bloqueo automático?',
-   a:'La app se bloquea sola si no la usas por el tiempo elegido (1 min a 1 hora). Al bloquearse pedirá tu NIP para volver a entrar.'},
-  {cat:'🔐 Seguridad', q:'¿Cómo activo el bloqueo automático?',
-   a:'Más → Configuración → ⏱ Bloqueo automático → elige el tiempo. Cualquier toque reinicia el contador. Recomendamos 5 minutos.'},
-  {cat:'🔐 Seguridad', q:'¿Qué pasa si me bloquea y no tengo NIP?',
-   a:'Aparece un botón "Desbloquear" directo. Por eso recomendamos ambos: NIP + bloqueo automático. Sin NIP el bloqueo no protege realmente.'},
-  {cat:'🔐 Seguridad', q:'¿Puedo cerrar sesión desde la pantalla bloqueada?',
-   a:'Sí. En la pantalla de bloqueo hay un botón "Salir" que cierra sesión completamente.'},
-  {cat:'🔐 Seguridad', q:'Olvidé mi NIP, ¿qué hago?',
-   a:'El admin puede resetearlo: Más → Códigos de Acceso → busca tu código → toca 🔓. El NIP se elimina y puedes configurar uno nuevo.'},
+   a:'Bloquea la app si no la usas por un tiempo definido (1 min, 5 min, etc.). Al volver, pide tu NIP. Se activa en Más → Seguridad → Bloqueo automático.'},
+
+  {cat:'🔐 Seguridad', q:'¿Qué pasa si olvido mi NIP?',
+   a:'Solo el administrador puede resetearlo desde el panel de administración. Contacta al admin con tu código de acceso para que restablezca tu NIP.'},
+
   {cat:'🔐 Seguridad', q:'¿Mis datos son privados respecto a otros usuarios?',
-   a:'Sí. Cada usuario tiene su espacio completamente aislado. Nadie puede ver los datos de otro, ni el administrador.'},
-  {cat:'🏦 Activos', q:'¿Qué son los Activos Personales?',
-   a:'Todo lo que posees con valor: casa, carro, negocio, inversiones, joyas, etc. Su valor suma a tu Patrimonio Neto.'},
-  {cat:'🏦 Activos', q:'¿Cada cuánto actualizo el valor?',
-   a:'Cuando cambie significativamente. Edita con ✏️ y actualiza el monto. Afectará tu Patrimonio Neto en el siguiente snapshot.'},
-  {cat:'📈 Progreso', q:'¿Qué es el Patrimonio Neto?',
-   a:'Efectivo + Banco + Activos − Total Deudas. Si sube mes a mes, estás progresando financieramente.'},
-  {cat:'📈 Progreso', q:'¿Qué significa el semáforo de salud financiera?',
-   a:'🟢 Progresando = patrimonio sube, deudas bajan. 🟡 Estable = sin cambios. 🔴 Atención = deudas suben o patrimonio baja.'},
-  {cat:'📈 Progreso', q:'¿Cuándo se guarda el snapshot mensual?',
-   a:'Automáticamente al abrir la app, una vez por mes. También puedes forzarlo con 📸 Guardar snapshot ahora dentro del módulo.'},
+   a:'Sí. Cada usuario solo ve sus propios datos. El administrador puede ver estadísticas generales pero no el detalle de tus transacciones.'},
+
+  // ── 🔑 Acceso ───────────────────────────────────────────────
   {cat:'🔑 Acceso', q:'¿Cómo entran otras personas?',
-   a:'El admin genera un código en Más → Códigos de Acceso. O el visitante solicita acceso y el admin aprueba desde el badge 🔴.'},
+   a:'El administrador genera un código de acceso (ej: MARI-WTFX) y lo comparte. Al primer ingreso el usuario registra su nombre y puede crear una contraseña personal.'},
+
+  {cat:'🔑 Acceso', q:'¿Qué requisitos tiene la contraseña?',
+   a:'Mínimo 8 caracteres, al menos una mayúscula, una minúscula y un símbolo especial. No puede tener números consecutivos (123) ni letras consecutivas del abecedario (abc).'},
+
   {cat:'🔑 Acceso', q:'¿Los códigos de invitado tienen vencimiento?',
-   a:'Sí. El admin define la fecha de vencimiento al crear el código. Pasada esa fecha el código deja de funcionar.'},
-  {cat:'🔑 Acceso', q:'¿Olvidé mi contraseña de admin?',
-   a:'Login → 🔐 Admin → "¿Olvidaste tu contraseña?". Usa la clave maestra admin1234 para recuperar el acceso.'},
-  {cat:'⚙️ Config', q:'¿Cómo cambio el tema visual?',
-   a:'Más → Configuración → 🎨 Cambiar tema. 5 temas: Verde Natural, Oscuro Pro, Dorado Élite, Océano y Rosa Elegante.'},
-  {cat:'⚙️ Config', q:'¿Cómo cambio la moneda?',
-   a:'Más → Configuración → 💱 Moneda. 9 monedas disponibles: MXN, USD, EUR, CAD, GBP, COP, ARS, GTQ, PEN.'},
-  {cat:'⚙️ Config', q:'¿Cómo agrego categorías personalizadas?',
-   a:'Más → Configuración → 🏷️ Mis categorías. Categorías ilimitadas para Gastos, Ingresos, Activos y Pagos fijos.'},
-  {cat:'⚙️ Config', q:'¿Cómo borro mis datos?',
-   a:'Más → Configuración → Zona de peligro. Borra transacciones o restablece toda la cuenta. ⚠️ No se puede deshacer.'},
+   a:'Sí, el admin define la vigencia al generar el código. Cuando vence, el usuario no puede entrar hasta que el admin lo renueve.'},
+
+  {cat:'🔑 Acceso', q:'¿Olvidé mi contraseña de acceso?',
+   a:'En la pantalla de login toca "¿Olvidaste tu contraseña?". El admin puede resetearla desde el panel de administración.'},
+
+  // ── 📈 Progreso ─────────────────────────────────────────────
+  {cat:'📈 Progreso', q:'¿Qué es el Patrimonio Neto?',
+   a:'Es la diferencia entre lo que tienes (efectivo + banco + activos) y lo que debes (tarjetas + créditos). Un número positivo y creciente indica salud financiera.'},
+
+  {cat:'📈 Progreso', q:'¿Qué significa el semáforo de salud financiera?',
+   a:'El Consejero Financiero analiza tu tasa de ahorro, carga de deuda y cobertura de emergencias. Da una puntuación de 0 a 100 con chips de color: verde (bien), dorado (cuidado), rojo (acción requerida).'},
+
+  {cat:'📈 Progreso', q:'¿Cuándo se guarda el snapshot mensual?',
+   a:'Al cerrar cada mes la app guarda automáticamente tu Patrimonio Neto. El mes siguiente puedes ver la variación (↑ subió / ↓ bajó) comparada con el mes anterior.'},
+
+  // ── 🏦 Activos ──────────────────────────────────────────────
+  {cat:'🏦 Activos', q:'¿Qué son los Activos Personales?',
+   a:'Bienes de valor que posees: inmuebles, vehículos, negocios, inversiones, etc. Su valor suma al Patrimonio Neto.'},
+
+  {cat:'🏦 Activos', q:'¿Con qué frecuencia actualizo el valor?',
+   a:'Cuando quieras. Para inmuebles y vehículos se recomienda revisarlo cada 6-12 meses. Para inversiones puedes actualizarlo mensualmente.'},
+
+  // ── 🎙️ Voz ──────────────────────────────────────────────────
+  {cat:'🎙️ Voz', q:'¿Cómo funciona el control por voz?',
+   a:'Toca el ícono 🎙️ en la barra superior y habla. Puedes registrar gastos, ingresos y navegar entre secciones. Requiere permiso de micrófono.'},
+
+  {cat:'🎙️ Voz', q:'¿Qué comandos puedo usar?',
+   a:'Gastos: "gasté 200 en comida". Ingresos: "ingresé 5000". Navegación: "ir a tarjetas", "abrir cuentas", "ver créditos", "mostrar historial". Calculadora: "abrir calculadora".'},
+
+  {cat:'🎙️ Voz', q:'El micrófono está bloqueado, ¿qué hago?',
+   a:'Ve a Más → Config → "Restablecer micrófono". O en tu navegador/celular: Ajustes → Permisos del sitio → Micrófono → Permitir.'},
+
+  // ── 🔵 Botón U ──────────────────────────────────────────────
+  {cat:'🔵 Botón U', q:'¿Para qué sirve el botón U azul?',
+   a:'Es tu menú rápido de cuentas. Muestra al instante tu saldo en efectivo, banco y deuda en tarjetas. Desde ahí puedes cerrar sesión o ir a configuración.'},
+
+  // ── ↩️ General ──────────────────────────────────────────────
   {cat:'↩️ General', q:'¿Puedo deshacer un borrado?',
-   a:'Sí. Tienes 6 segundos para tocar "Deshacer". El saldo también se restaura automáticamente.'},
+   a:'Sí. Después de borrar una transacción, crédito, pago o meta aparece un aviso "↩ Deshacer" por 7 segundos. Tócalo para restaurar el dato y revertir el saldo.'},
+
   {cat:'↩️ General', q:'¿Funciona sin internet?',
-   a:'Sí, casi todo. Solo el reconocimiento de voz y el conversor de monedas requieren conexión.'},
+   a:'Sí. Todos tus datos se guardan localmente en el dispositivo. Cuando hay conexión, la app sincroniza con la nube (Supabase) para respaldo. Si no hay internet, todo sigue funcionando.'},
+
   {cat:'↩️ General', q:'¿Cómo uso la calculadora?',
-   a:'Toca 🔢 en la barra superior. Arrástrala, minimízala con − sin perder el cálculo, o ciérrala con ×.'},
+   a:'Toca el ícono 🔢 en la barra superior. Puedes hacer operaciones básicas y el resultado se puede usar directamente al registrar un gasto o ingreso.'},
+
+  // ── ⚙️ Config ───────────────────────────────────────────────
+  {cat:'⚙️ Config', q:'¿Cómo cambio el tema visual?',
+   a:'Ve a ⋯ Más → Config → Tema. Hay 5 temas: Verde Natural (default), Oscuro Pro, Dorado Élite, Océano y Rosa Elegante. El cambio es inmediato.'},
+
+  {cat:'⚙️ Config', q:'¿Cómo cambio la moneda?',
+   a:'En Más → Config → Moneda. Puedes elegir entre MXN, USD, EUR, CAD, GBP, COP, ARS, GTQ y PEN. Cambia el símbolo en toda la app.'},
+
+  {cat:'⚙️ Config', q:'¿Cómo agrego categorías personalizadas?',
+   a:'En Más → Config → Categorías. Puedes agregar tus propias categorías de gastos, ingresos, pagos y activos. Las personalizadas se muestran junto a las predefinidas.'},
+
+  {cat:'⚙️ Config', q:'¿Cómo borro todos mis datos?',
+   a:'En Más → Config → "Borrar mis datos". Esta acción es irreversible — elimina transacciones, cuentas, créditos, metas y presupuestos. No se puede deshacer.'},
 ];
 
 function renderAyuda(){
@@ -10212,10 +10276,14 @@ function renderAyuda(){
     +'<div style="display:flex;gap:7px;overflow-x:auto;padding-bottom:8px;margin-bottom:10px;scrollbar-width:none;">'
       +'<div style="display:flex;gap:7px;overflow-x:auto;padding-bottom:8px;margin-bottom:10px;scrollbar-width:none;">'
       +'<button class="ayuda-chip active" id="chip_todos" data-cat="" onclick="ayudaChipEv(this)">Todos</button>'
-      +'<button class="ayuda-chip" data-cat="Seguridad" onclick="ayudaChipEv(this)">🔐 Seguridad</button>'
-      +'<button class="ayuda-chip" data-cat="Pagos" onclick="ayudaChipEv(this)">📅 Pagos</button>'
-      +'<button class="ayuda-chip" data-cat="Cuentas" onclick="ayudaChipEv(this)">🏦 Cuentas</button>'
+      +'<button class="ayuda-chip" data-cat="Inicio" onclick="ayudaChipEv(this)">🏠 Inicio</button>'
+      +'<button class="ayuda-chip" data-cat="Tarjetas" onclick="ayudaChipEv(this)">💳 Tarjetas</button>'
       +'<button class="ayuda-chip" data-cat="Créditos" onclick="ayudaChipEv(this)">🤝 Créditos</button>'
+      +'<button class="ayuda-chip" data-cat="Cuentas" onclick="ayudaChipEv(this)">🏦 Cuentas</button>'
+      +'<button class="ayuda-chip" data-cat="Pagos" onclick="ayudaChipEv(this)">📅 Pagos</button>'
+      +'<button class="ayuda-chip" data-cat="Seguridad" onclick="ayudaChipEv(this)">🔐 Seguridad</button>'
+      +'<button class="ayuda-chip" data-cat="Acceso" onclick="ayudaChipEv(this)">🔑 Acceso</button>'
+      +'<button class="ayuda-chip" data-cat="Progreso" onclick="ayudaChipEv(this)">📈 Progreso</button>'
       +'<button class="ayuda-chip" data-cat="Voz" onclick="ayudaChipEv(this)">🎙️ Voz</button>'
       +'<button class="ayuda-chip" data-cat="Config" onclick="ayudaChipEv(this)">⚙️ Config</button>'
     +'</div>'
