@@ -5945,96 +5945,95 @@ function renderTarjetasCredito(){
   var c=getCuentas(); var tcs=c.tarjetas||[];
   var txs=getTxs();
   var items=tcs.map(function(t,i){
-    var pct=t.limite>0?Math.min(100,Math.round((t.balance/t.limite)*100)):0;
-    var disp=Math.max(0,(t.limite||0)-(t.balance||0));
-    var color=pct>=90?'var(--danger)':pct>=70?'#f57c00':'var(--accent)';
-    var hoy=new Date(); var diasCorte='';
-    var saldoAutoCorte = 0;
-    if(t.fechaCorte){
-      var fc=new Date(t.fechaCorte.split('-').join('/'));
-      var diff=Math.ceil((fc-hoy)/(1000*60*60*24));
-      diasCorte=diff>0?diff+' días para corte':'Cortó hace '+Math.abs(diff)+' días';
-      var fcPrev = new Date(fc);
-      fcPrev.setMonth(fcPrev.getMonth()-1);
-      txs.forEach(function(tx){
-        if(tx.cuenta==='tc_'+i && tx.tipo==='gasto'){
-          var txDate = new Date(tx.fecha.split('-').join('/'));
-          if(txDate >= fcPrev && txDate <= fc){
-            saldoAutoCorte += Number(tx.monto);
+    var banco   = t.banco      || 'Tarjeta';
+    var tipo    = t.tipo       || '';
+    var ultimos = t.ultimos    || '';
+    var limite  = Number(t.limite)  || 0;
+    var balance = Number(t.balance) || 0;
+    var pagoPend= t.pagoPendiente || false;
+    var fechaCorte = t.fechaCorte || '';
+    var pct   = limite>0 ? Math.min(100,Math.round((balance/limite)*100)) : 0;
+    var disp  = Math.max(0, limite - balance);
+    var color = pct>=90?'var(--danger)':pct>=70?'#f57c00':'var(--accent)';
+    var diasCorte=''; var saldoAutoCorte=0;
+    if(fechaCorte){
+      var fc=new Date(fechaCorte.split('-').join('/'));
+      if(!isNaN(fc.getTime())){
+        var hoy=new Date();
+        var diff=Math.ceil((fc-hoy)/(1000*60*60*24));
+        diasCorte=diff>0?diff+' dias para corte':'Corte hace '+Math.abs(diff)+' dias';
+        var fcPrev=new Date(fc); fcPrev.setMonth(fcPrev.getMonth()-1);
+        txs.forEach(function(tx){
+          if(tx.cuenta==='tc_'+i&&tx.tipo==='gasto'){
+            var d=new Date((tx.fecha||'').split('-').join('/'));
+            if(!isNaN(d.getTime())&&d>=fcPrev&&d<=fc) saldoAutoCorte+=Number(tx.monto)||0;
           }
-        }
-      });
+        });
+      }
     } else {
       txs.forEach(function(tx){
-        if(tx.cuenta==='tc_'+i && tx.tipo==='gasto'){
-          saldoAutoCorte += Number(tx.monto);
-        }
+        if(tx.cuenta==='tc_'+i&&tx.tipo==='gasto') saldoAutoCorte+=Number(tx.monto)||0;
       });
     }
     return '<div class="cred-item">'
       +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'
-      +'<div style="width:42px;height:28px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:#fff;font-weight:800;">'+t.banco.substring(0,4).toUpperCase()+'</div>'
-      +'<div style="flex:1;"><div style="font-weight:800;font-size:0.9rem;">'+t.banco+'</div>'
-      +'<div style="font-size:0.68rem;color:var(--dim);">'+t.tipo+(t.ultimos?' · ***'+t.ultimos:'')+'</div></div>'
-      +'<span class="cred-badge '+(t.pagoPendiente?'badge-vencido':'badge-pagado')+'">'+(t.pagoPendiente?'⚠ Pago pend.':'✅ Al corriente')+'</span>'
+        +'<div style="width:42px;height:28px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:#fff;font-weight:800;">'+banco.substring(0,4).toUpperCase()+'</div>'
+        +'<div style="flex:1;">'
+          +'<div style="font-weight:800;font-size:0.9rem;">'+banco+'</div>'
+          +'<div style="font-size:0.68rem;color:var(--dim);">'+tipo+(ultimos?' - ***'+ultimos:'')+'</div>'
+        +'</div>'
+        +'<span class="cred-badge '+(pagoPend?'badge-vencido':'badge-pagado')+'">'+(pagoPend?'Pago pend.':'Al corriente')+'</span>'
       +'</div>'
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
-      +'<div style="background:var(--inp);border-radius:10px;padding:10px;">'
-      +'<div class="stat-label">Saldo usado</div>'
-      +'<div style="font-size:1rem;font-weight:900;color:var(--danger);">'+fmt(t.balance||0)+'</div></div>'
-      +'<div style="background:var(--inp);border-radius:10px;padding:10px;">'
-      +'<div class="stat-label">Disponible</div>'
-      +'<div style="font-size:1rem;font-weight:900;color:var(--accent);">'+fmt(disp)+'</div></div>'
-      +'<div style="background:var(--inp);border-radius:10px;padding:10px;">'
-      +'<div class="stat-label">Límite</div>'
-      +'<div style="font-size:1rem;font-weight:900;">'+fmt(t.limite||0)+'</div></div>'
-      +'<div style="background:var(--inp);border-radius:10px;padding:10px;">'
-      +'<div class="stat-label">Corte</div>'
-      +'<div style="font-size:0.78rem;font-weight:700;color:var(--dim);">'+(diasCorte||'—')+'</div></div>'
+        +'<div style="background:var(--inp);border-radius:10px;padding:10px;">'
+          +'<div class="stat-label">Saldo usado</div>'
+          +'<div style="font-size:1rem;font-weight:900;color:var(--danger);">'+fmt(balance)+'</div>'
+        +'</div>'
+        +'<div style="background:var(--inp);border-radius:10px;padding:10px;">'
+          +'<div class="stat-label">Disponible</div>'
+          +'<div style="font-size:1rem;font-weight:900;color:var(--accent);">'+fmt(disp)+'</div>'
+        +'</div>'
+        +'<div style="background:var(--inp);border-radius:10px;padding:10px;">'
+          +'<div class="stat-label">Limite</div>'
+          +'<div style="font-size:1rem;font-weight:900;">'+fmt(limite)+'</div>'
+        +'</div>'
+        +'<div style="background:var(--inp);border-radius:10px;padding:10px;">'
+          +'<div class="stat-label">Corte</div>'
+          +'<div style="font-size:0.78rem;font-weight:700;color:var(--dim);">'+(diasCorte||'No definido')+'</div>'
+        +'</div>'
       +'</div>'
       +'<div style="margin-bottom:8px;">'
-      +'<div style="display:flex;justify-content:space-between;font-size:0.68rem;color:var(--dim);margin-bottom:4px;">'
-      +'<span>Uso de crédito</span><span style="color:'+color+';">'+pct+'%</span></div>'
-      +'<div style="height:6px;background:var(--inp);border-radius:3px;overflow:hidden;">'
-      +'<div style="height:100%;width:'+pct+'%;background:'+color+';border-radius:3px;transition:width 0.5s ease;"></div></div>'
+        +'<div style="display:flex;justify-content:space-between;font-size:0.68rem;color:var(--dim);margin-bottom:4px;">'
+          +'<span>Uso de credito</span><span style="color:'+color+';">'+pct+'%</span>'
+        +'</div>'
+        +'<div style="height:6px;background:var(--inp);border-radius:3px;overflow:hidden;">'
+          +'<div style="height:100%;width:'+pct+'%;background:'+color+';border-radius:3px;"></div>'
+        +'</div>'
       +'</div>'
-      +(saldoAutoCorte>0?'<div style="font-size:0.72rem;color:var(--dim);margin-bottom:8px;">📊 Gasto en período actual: <b style="color:var(--danger);">'+fmt(saldoAutoCorte)+'</b></div>':'')
+      +(saldoAutoCorte>0?'<div style="font-size:0.72rem;color:var(--dim);margin-bottom:8px;">Periodo actual: <b style="color:var(--danger);">'+fmt(saldoAutoCorte)+'</b></div>':'')
       +'<div style="display:flex;gap:6px;flex-wrap:wrap;">'
-      +'<button class="cred-btn success" onclick="registrarPagoTC('+i+')">💳 Pagar</button>'
-      +'<button class="cred-btn" onclick="abrirDetalleTC('+i+')" style="background:rgba(56,170,255,0.1);color:var(--blue);border-color:rgba(56,170,255,0.3);">📋 Detalle</button>'
-      +'<button class="cred-btn" onclick="editarTC('+i+')">✏️</button>'
-      +'<button class="cred-btn danger" onclick="borrarTC('+i+')">🗑️</button>'
+        +'<button class="cred-btn success" onclick="registrarPagoTC('+i+')">Pagar</button>'
+        +'<button class="cred-btn" onclick="abrirDetalleTC('+i+')" style="background:rgba(56,170,255,0.1);color:var(--blue);border-color:rgba(56,170,255,0.3);">Detalle</button>'
+        +'<button class="cred-btn" onclick="editarTC('+i+')">Editar</button>'
+        +'<button class="cred-btn danger" onclick="borrarTC('+i+')">Borrar</button>'
       +'</div>'
       +'</div>';
   }).join('');
 
-  var totalDeuda = tcs.reduce(function(s,t){ return s+(t.balance||0); },0);
-  var totalLimite= tcs.reduce(function(s,t){ return s+(t.limite||0); },0);
-  var totalDisp  = Math.max(0, totalLimite - totalDeuda);
-
-  var html = '<div class="page-header">'+backSubBtn()+'<div class="page-title">💳 Tarjetas de Crédito</div></div>';
-
+  var totalDeuda=tcs.reduce(function(s,t){ return s+Number(t.balance||0); },0);
+  var totalLimite=tcs.reduce(function(s,t){ return s+Number(t.limite||0); },0);
+  var totalDisp=Math.max(0,totalLimite-totalDeuda);
+  var html='<div class="page-header">'+backSubBtn()+'<div class="page-title">Tarjetas de Credito</div></div>';
   if(tcs.length>0){
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">'
-      +'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">'
-      +'<div style="font-size:0.58rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Deuda total</div>'
-      +'<div style="font-size:0.95rem;font-weight:900;color:var(--danger);">'+fmt(totalDeuda)+'</div></div>'
-      +'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">'
-      +'<div style="font-size:0.58rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Disponible</div>'
-      +'<div style="font-size:0.95rem;font-weight:900;color:var(--accent);">'+fmt(totalDisp)+'</div></div>'
-      +'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">'
-      +'<div style="font-size:0.58rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Límite total</div>'
-      +'<div style="font-size:0.95rem;font-weight:900;">'+fmt(totalLimite)+'</div></div>'
+    html+='<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">'
+      +'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;"><div class="stat-label">Deuda total</div><div style="font-size:0.95rem;font-weight:900;color:var(--danger);">'+fmt(totalDeuda)+'</div></div>'
+      +'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;"><div class="stat-label">Disponible</div><div style="font-size:0.95rem;font-weight:900;color:var(--accent);">'+fmt(totalDisp)+'</div></div>'
+      +'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;"><div class="stat-label">Limite total</div><div style="font-size:0.95rem;font-weight:900;">'+fmt(totalLimite)+'</div></div>'
       +'</div>';
   }
-
-  html += '<button class="btn-main" style="margin-bottom:16px;" onclick="goSub(\'nueva_tarjeta\')">+ Nueva tarjeta</button>';
-  html += items || '<div style="text-align:center;padding:40px 20px;color:var(--dim);">'+
-    '<div style="font-size:3rem;margin-bottom:12px;">💳</div>'+
-    '<div style="font-size:0.85rem;">Sin tarjetas registradas</div>'+
-    '<div style="font-size:0.75rem;margin-top:4px;opacity:0.6;">Agrega tu primera tarjeta de crédito</div></div>';
-
-  document.getElementById('mainContent').innerHTML = html;
+  html+='<button class="btn-main" style="margin-bottom:16px;" onclick="goSub(\'nueva_tarjeta\')">+ Nueva tarjeta</button>';
+  html+=items||'<div class="empty-state"><div style="font-size:3rem;margin-bottom:12px;">$</div><div>Sin tarjetas registradas</div></div>';
+  document.getElementById('mainContent').innerHTML=html;
 }
 
 function renderFormTC(data){
@@ -6129,63 +6128,47 @@ function borrarTC(i){
 function registrarPagoTC(i){
   var c=getCuentas(); var tcs=c.tarjetas||[]; var t=tcs[i];
   if(!t){ showToast('Tarjeta no encontrada'); return; }
-
-  // Crear modal de pago
-  var m = document.createElement('div');
+  var banco=t.banco||'Tarjeta';
+  var balance=Number(t.balance)||0;
+  var pagoMin=Number(t.pagoMinimo)||0;
+  var m=document.createElement('div');
   m.className='modal open'; m.id='pagoTCModal';
   m.innerHTML='<div class="modal-body">'
-    +'<div class="modal-title">💳 Pagar '+t.banco+'</div>'
+    +'<div class="modal-title">Pagar '+banco+'</div>'
     +'<div style="background:var(--inp);border-radius:12px;padding:12px;margin-bottom:14px;">'
-    +'<div style="display:flex;justify-content:space-between;margin-bottom:4px;">'
-    +'<span style="font-size:0.75rem;color:var(--dim);">Saldo actual</span>'
-    +'<span style="font-size:0.9rem;font-weight:900;color:var(--danger);">'+fmt(t.balance||0)+'</span></div>'
-    +'<div style="display:flex;justify-content:space-between;">'
-    +'<span style="font-size:0.75rem;color:var(--dim);">Pago mínimo</span>'
-    +'<span style="font-size:0.8rem;font-weight:700;color:var(--accent);">'+fmt(t.pagoMinimo||0)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="font-size:0.75rem;color:var(--dim);">Saldo</span><span style="font-size:0.9rem;font-weight:900;color:var(--danger);">'+fmt(balance)+'</span></div>'
+      +'<div style="display:flex;justify-content:space-between;"><span style="font-size:0.75rem;color:var(--dim);">Pago minimo</span><span style="font-size:0.8rem;font-weight:700;color:var(--accent);">'+fmt(pagoMin)+'</span></div>'
     +'</div>'
-    +'<label class="inp-label">Monto del pago ($)</label>'
-    +'<input class="inp" id="pagoTCMonto" type="number" inputmode="decimal" placeholder="0.00" '
-    +'value="'+(t.pagoMinimo||'')+'"><br>'
-    +'<label class="inp-label">¿De qué cuenta?</label>'
+    +'<label class="inp-label">Monto ($)</label>'
+    +'<input class="inp" id="pagoTCMonto" type="number" inputmode="decimal" placeholder="0.00" value="'+(pagoMin||'')+'"><br>'
+    +'<label class="inp-label">De que cuenta</label>'
     +buildCuentaOpts('pagoTCCuenta')
     +'<div style="display:flex;gap:8px;margin-top:12px;">'
-    +'<button class="btn-main" style="flex:1;" onclick="_confirmarPagoTC('+i+')">Registrar pago</button>'
-    +'<button class="btn-sec" onclick="document.getElementById(\'pagoTCModal\').remove()">Cancelar</button>'
+      +'<button class="btn-main" style="flex:1;" onclick="_confirmarPagoTC('+i+')">Registrar</button>'
+      +'<button class="btn-sec" onclick="document.getElementById(\'pagoTCModal\').remove()">Cancelar</button>'
     +'</div></div>';
   document.body.appendChild(m);
 }
 
 function _confirmarPagoTC(i){
-  var monto = parseFloat(document.getElementById('pagoTCMonto').value)||0;
-  var cuenta = document.getElementById('pagoTCCuenta').value;
+  var monto=parseFloat(document.getElementById('pagoTCMonto').value)||0;
+  var cuenta=document.getElementById('pagoTCCuenta').value;
   if(!monto||monto<=0){ showToast('Ingresa el monto'); return; }
-
   var c=getCuentas(); var t=c.tarjetas[i];
   if(!t){ showToast('Tarjeta no encontrada'); return; }
-
-  // Reducir saldo de TC
-  var saldoAnterior = t.balance||0;
-  t.balance = Math.max(0, saldoAnterior - monto);
-  t.pagoPendiente = t.balance > 0;
-  c.tarjetas[i] = t;
-  saveCuentas(c);
-
-  // Registrar como gasto en la cuenta de origen
-  if(cuenta && cuenta !== 'ninguna'){
-    aplicarMovimientoCuenta(cuenta, monto, 'gasto', 'Pago tarjeta '+t.banco, today(), Date.now());
+  var banco=t.banco||'Tarjeta';
+  t.balance=Math.max(0,(Number(t.balance)||0)-monto);
+  t.pagoPendiente=t.balance>0;
+  c.tarjetas[i]=t; saveCuentas(c);
+  if(cuenta&&cuenta!=='ninguna'&&cuenta!==''){
+    aplicarMovimientoCuenta(cuenta,monto,'gasto','Pago TC '+banco,today(),Date.now());
   }
-
-  // Registrar transacción
-  var txs = getTxs();
-  txs.push({
-    id: Date.now(), tipo:'gasto', desc:'Pago TC '+t.banco,
-    monto:monto, fecha:today(), cat:'Tarjeta de crédito',
-    cuenta:cuenta||'efectivo', nota:'Pago tarjeta'
-  });
-  save('txs', txs);
-
-  document.getElementById('pagoTCModal').remove();
-  showToast('Pago registrado: '+fmt(monto));
+  var txs=getTxs();
+  txs.push({id:Date.now(),tipo:'gasto',desc:'Pago TC '+banco,
+    monto:monto,fecha:today(),cat:'Tarjeta de credito',cuenta:cuenta||'efectivo'});
+  save('txs',txs);
+  var modal=document.getElementById('pagoTCModal'); if(modal) modal.remove();
+  showToast('Pago: '+fmt(monto));
   goSub('tarjetas_credito');
 }
 
@@ -6193,61 +6176,52 @@ function _confirmarPagoTC(i){
 function abrirDetalleTC(i){
   var c=getCuentas(); var t=(c.tarjetas||[])[i];
   if(!t){ showToast('Tarjeta no encontrada'); return; }
-
-  var txs = getTxs().filter(function(tx){ return tx.cuenta==='tc_'+i; });
-  txs.sort(function(a,b){ return b.fecha.localeCompare(a.fecha); });
-
-  var mc = document.getElementById('mainContent');
-  var pct = t.limite>0 ? Math.min(100, Math.round((t.balance/t.limite)*100)) : 0;
-  var color = pct>=90?'var(--danger)':pct>=70?'#f57c00':'var(--accent)';
-
-  var html = '<div class="page-header">'+backSubBtn()+'<div class="page-title">💳 '+t.banco+'</div></div>'
-    // Resumen
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">'
-    +'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">'
-    +'<div style="font-size:0.6rem;font-weight:700;color:var(--dim);text-transform:uppercase;margin-bottom:4px;">Saldo usado</div>'
-    +'<div style="font-size:1.2rem;font-weight:900;color:var(--danger);">'+fmt(t.balance||0)+'</div>'
-    +'<div style="font-size:0.68rem;color:var(--dim);margin-top:2px;">de '+fmt(t.limite||0)+' de límite</div>'
+  var banco=t.banco||'Tarjeta'; var tipo=t.tipo||''; var ultimos=t.ultimos||'';
+  var limite=Number(t.limite)||0; var balance=Number(t.balance)||0;
+  var interes=Number(t.interes)||0; var diaPago=t.diaPago||'';
+  var fechaCorte=t.fechaCorte||'';
+  var txs=getTxs().filter(function(tx){ return tx.cuenta==='tc_'+i; });
+  txs.sort(function(a,b){ return (b.fecha||'').localeCompare(a.fecha||''); });
+  var mc=document.getElementById('mainContent');
+  var pct=limite>0?Math.min(100,Math.round((balance/limite)*100)):0;
+  var color=pct>=90?'var(--danger)':pct>=70?'#f57c00':'var(--accent)';
+  var html='<div class="page-header">'+backSubBtn()+'<div class="page-title">'+banco+'</div></div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">'
+      +'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">'
+        +'<div class="stat-label">Saldo usado</div>'
+        +'<div style="font-size:1.2rem;font-weight:900;color:var(--danger);">'+fmt(balance)+'</div>'
+        +'<div style="font-size:0.68rem;color:var(--dim);">de '+fmt(limite)+' de limite</div>'
+      +'</div>'
+      +'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">'
+        +'<div class="stat-label">Disponible</div>'
+        +'<div style="font-size:1.2rem;font-weight:900;color:var(--accent);">'+fmt(Math.max(0,limite-balance))+'</div>'
+        +'<div style="font-size:0.68rem;color:var(--dim);">'+pct+'% usado</div>'
+      +'</div>'
     +'</div>'
-    +'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">'
-    +'<div style="font-size:0.6rem;font-weight:700;color:var(--dim);text-transform:uppercase;margin-bottom:4px;">Disponible</div>'
-    +'<div style="font-size:1.2rem;font-weight:900;color:var(--accent);">'+fmt(Math.max(0,(t.limite||0)-(t.balance||0)))+'</div>'
-    +'<div style="font-size:0.68rem;color:var(--dim);margin-top:2px;">'+pct+'% usado</div>'
-    +'</div></div>'
-    // Barra de uso
-    +'<div style="margin-bottom:16px;">'
-    +'<div style="height:8px;background:var(--inp);border-radius:4px;overflow:hidden;">'
-    +'<div style="height:100%;width:'+pct+'%;background:'+color+';border-radius:4px;transition:width 0.5s;"></div></div>'
-    +'</div>'
-    // Detalles
-    +(t.fechaCorte?'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px;font-size:0.78rem;display:flex;justify-content:space-between;align-items:center;">'
-    +'<span style="color:var(--dim);">📅 Fecha de corte</span><b>'+t.fechaCorte+'</b></div>':'')
-    +(t.diaPago?'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px;font-size:0.78rem;display:flex;justify-content:space-between;align-items:center;">'
-    +'<span style="color:var(--dim);">💳 Día de pago</span><b>Día '+t.diaPago+' de cada mes</b></div>':'')
-    +(t.interes?'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:16px;font-size:0.78rem;display:flex;justify-content:space-between;align-items:center;">'
-    +'<span style="color:var(--dim);">% Interés anual</span><b>'+t.interes+'%</b></div>':'')
-    // Botones
+    +'<div style="margin-bottom:14px;"><div style="height:8px;background:var(--inp);border-radius:4px;overflow:hidden;">'
+      +'<div style="height:100%;width:'+pct+'%;background:'+color+';border-radius:4px;"></div></div></div>'
+    +(tipo||ultimos?'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;font-size:0.78rem;display:flex;justify-content:space-between;"><span style="color:var(--dim);">Tipo</span><b>'+tipo+(ultimos?' - ***'+ultimos:'')+'</b></div>':'')
+    +(fechaCorte?'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;font-size:0.78rem;display:flex;justify-content:space-between;"><span style="color:var(--dim);">Fecha de corte</span><b>'+fechaCorte+'</b></div>':'')
+    +(diaPago?'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;font-size:0.78rem;display:flex;justify-content:space-between;"><span style="color:var(--dim);">Dia de pago</span><b>Dia '+diaPago+' de cada mes</b></div>':'')
+    +(interes?'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:14px;font-size:0.78rem;display:flex;justify-content:space-between;"><span style="color:var(--dim);">Interes anual</span><b>'+interes+'%</b></div>':'')
     +'<div style="display:flex;gap:8px;margin-bottom:16px;">'
-    +'<button class="btn-main" style="flex:1;" onclick="registrarPagoTC('+i+')">💳 Registrar pago</button>'
-    +'<button class="btn-sec" onclick="editarTC('+i+')">✏️ Editar</button>'
+      +'<button class="btn-main" style="flex:1;" onclick="registrarPagoTC('+i+')">Registrar pago</button>'
+      +'<button class="btn-sec" onclick="editarTC('+i+')">Editar</button>'
     +'</div>'
-    // Movimientos
-    +'<div style="font-size:0.75rem;font-weight:800;color:var(--dim);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;">Movimientos ('+txs.length+')</div>';
-
-  if(txs.length===0){
-    html += '<div style="text-align:center;padding:24px;color:var(--dim);font-size:0.8rem;">Sin movimientos registrados en esta tarjeta</div>';
+    +'<div class="stat-label" style="margin-bottom:10px;">Movimientos ('+txs.length+')</div>';
+  if(!txs.length){
+    html+='<div class="empty-state">Sin movimientos en esta tarjeta</div>';
   } else {
     txs.forEach(function(tx){
-      html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;">'
-        +'<div><div style="font-size:0.82rem;font-weight:700;">'+tx.desc+'</div>'
-        +'<div style="font-size:0.68rem;color:var(--dim);">'+tx.fecha+(tx.cat?' · '+tx.cat:'')+'</div></div>'
-        +'<div style="font-size:0.95rem;font-weight:900;color:'+(tx.tipo==='ingreso'?'var(--accent)':'var(--danger)')+';">'
-        +(tx.tipo==='ingreso'?'+':'-')+fmt(tx.monto)+'</div>'
+      var esI=tx.tipo==='ingreso';
+      html+='<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;">'
+        +'<div><div style="font-size:0.82rem;font-weight:700;">'+(tx.desc||'Movimiento')+'</div>'
+        +'<div style="font-size:0.68rem;color:var(--dim);">'+(tx.fecha||'')+(tx.cat?' - '+tx.cat:'')+'</div></div>'
+        +'<div style="font-size:0.95rem;font-weight:900;color:'+(esI?'var(--accent)':'var(--danger)')+';">'+(esI?'+':'-')+fmt(tx.monto||0)+'</div>'
         +'</div>';
     });
   }
-
-  mc.innerHTML = html;
+  mc.innerHTML=html;
 }
 
 // ── Compras con TC (toggle + guardar) ────────────
