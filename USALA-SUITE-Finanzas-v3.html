@@ -3640,29 +3640,61 @@ function _guardarPrestamoRecibido(){
 }
 // ── Cobrar lo que me deben (CxC) ──
 function _abrirModalCobrarCxC(){
-  var cxcs = load('cxc',[]);
-  if(cxcs.length === 0){
-    showToast('No tienes cuentas por cobrar registradas');
+  // Leer de ambas fuentes
+  var cxcs     = load('cxc',[]).map(function(c,i){ return {
+    nombre: c.nombre||c.persona||'Sin nombre',
+    monto:  Number(c.monto||0),
+    nota:   c.nota||c.descripcion||'',
+    fuente: 'cxc', idx: i
+  }; });
+  var creditos = load('creditos',[])
+    .filter(function(c){ return c.tipo==='cobrar'; })
+    .map(function(c,i,arr){
+      // índice real en el array de creditos
+      var realIdx = load('creditos',[]).indexOf(c);
+      return {
+        nombre: c.persona||c.nombre||'Sin nombre',
+        monto:  Number(c.monto||0),
+        nota:   c.descripcion||c.nota||'',
+        fuente: 'creditos', idx: realIdx
+      };
+    });
+
+  var todos = cxcs.concat(creditos);
+
+  if(todos.length === 0){
+    showToast('No tienes créditos por cobrar registrados');
     return;
   }
+
+  var viejo = document.getElementById('cobrarCxCModal');
+  if(viejo) viejo.remove();
+
   var m = document.createElement('div');
   m.className = 'modal open';
   m.id = 'cobrarCxCModal';
-  var lista = cxcs.map(function(c,i){
-    return '<button onclick="_cobrarCxC('+i+')" style="'
+
+  var lista = todos.map(function(c, i){
+    return '<button onclick="_cobrarCxCUnificado('+i+')" style="'
       +'display:flex;align-items:center;justify-content:space-between;'
       +'padding:14px 16px;border-radius:16px;border:1.5px solid var(--border);'
       +'background:var(--card);cursor:pointer;width:100%;color:var(--text);margin-bottom:10px;">'
-      +'<div style="text-align:left;"><div style="font-weight:700;">'+c.nombre+'</div>'
-      +'<div style="font-size:0.78rem;color:var(--dim);">'+(c.nota||'')+'</div></div>'
+      +'<div style="text-align:left;">'
+        +'<div style="font-weight:700;">'+c.nombre+'</div>'
+        +'<div style="font-size:0.72rem;color:var(--dim);">'+(c.nota||'')+'</div>'
+      +'</div>'
       +'<div style="font-weight:800;color:var(--accent);">'+fmt(c.monto)+'</div>'
-      +'</button>';
+    +'</button>';
   }).join('');
+
   m.innerHTML = '<div class="modal-box" style="position:relative;z-index:2;">'
     +'<div class="modal-header"><div class="modal-title">📥 ¿Quién te pagó?</div>'
-    +'<button class="modal-close" onclick="document.getElementById(&quot;cobrarCxCModal&quot;).remove()">✕</button></div>'
+    +'<button class="modal-close" onclick="document.getElementById(\'cobrarCxCModal\').remove()">✕</button></div>'
     +'<p style="color:var(--dim);font-size:0.82rem;margin-bottom:14px;">Selecciona a quién cobraste</p>'
     +lista+'</div>';
+
+  // Guardar la lista unificada para que _cobrarCxCUnificado la pueda leer
+  window._cobrarCxCLista = todos;
   document.body.appendChild(m);
 }
 function _cobrarCxC(i){
@@ -11203,6 +11235,41 @@ function renderGastoHistorial(){
   });
   mc.appendChild(listaCard);
 }
-</script>
+
+function _cobrarCxCUnificado(i){
+  var lista = window._cobrarCxCLista || [];
+  var c = lista[i];
+  if(!c) return;
+
+  // Registrar el ingreso
+  var txs = load('txs',[]);
+  txs.push({
+    id: Date.now(), tipo: 'ingreso',
+    monto: c.monto, desc: 'Cobré a: '+c.nombre,
+    cat: 'Cobro de deuda', fecha: today(), cuenta: 'efectivo'
+  });
+  save('txs', txs);
+
+  // Eliminar de la fuente original
+  if(c.fuente === 'cxc'){
+    var cxcs = load('cxc',[]);
+    cxcs.splice(c.idx, 1);
+    save('cxc', cxcs);
+  } else if(c.fuente === 'creditos'){
+    var creds = load('creditos',[]);
+    if(creds[c.idx]){
+      creds[c.idx].cobrado = true;
+      creds[c.idx].fechaCobro = today();
+      save('creditos', creds);
+    }
+  }
+
+  var modal = document.getElementById('cobrarCxCModal');
+  if(modal) modal.remove();
+  window._cobrarCxCLista = null;
+  _ghdRegistrarHoy();
+  showToast('✅ Cobro de '+fmt(c.monto)+' registrado');
+  if(S.tab === 'inicio') renderTab('inicio');
+}</script>
 </body>
 </html>
