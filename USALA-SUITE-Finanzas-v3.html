@@ -5788,7 +5788,7 @@ function renderProgreso(){
     +'<div style="font-size:0.74rem;color:var(--dim);margin-top:2px;">Salud financiera · '+new Date().toLocaleString('es-MX',{month:'long',year:'numeric'})+'</div></div></div>';
   mc.appendChild(salud);
   // ── KPIs en grid 2x3 ──
-  function kpi(label,val,ant,inv){
+  function kpi(label,val,ant,inv,dest){
     var diff=ant!==null&&ant!==undefined?val-ant:null;
     var pct=(diff!==null&&ant!==0)?Math.round((diff/Math.abs(ant))*100):null;
     var sube=diff!==null?diff>0:null;
@@ -5796,24 +5796,46 @@ function renderProgreso(){
     var col=pos===null?'var(--dim)':pos?'#2d9e5f':'var(--danger)';
     var flecha=sube===null?'':sube?'↑':'↓';
     var d=document.createElement('div');
-    d.style.cssText='background:var(--card);border-radius:14px;padding:12px 13px;border:1.5px solid var(--border);';
-    d.innerHTML='<div style="font-size:0.67rem;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;">'+label+'</div>'
+    d.style.cssText='background:var(--card);border-radius:14px;padding:12px 13px;border:1.5px solid var(--border);'+(dest?'cursor:pointer;active-opacity:0.7;':'');
+    d.innerHTML=
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;">'
+        +'<div style="font-size:0.67rem;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;">'+label+'</div>'
+        +(dest?'<div style="font-size:0.7rem;color:var(--accent);font-weight:800;">›</div>':'')
+      +'</div>'
       +'<div style="font-size:1.05rem;font-weight:900;color:var(--text);">'+fmt(val)+'</div>'
       +(diff!==null
         ?'<div style="font-size:0.7rem;margin-top:3px;color:'+col+';">'+flecha+' '+fmt(Math.abs(diff))+(pct!==null?' ('+Math.abs(pct)+'%)':'')+'</div>'
         :'<div style="font-size:0.7rem;color:var(--dim);margin-top:3px;">Primer registro</div>');
+    if(dest){
+      d.addEventListener('click',function(){
+        var nb=document.querySelectorAll('.nb');
+        if(dest==='efectivo'||dest==='cheques'||dest==='tarjetas_credito'){
+          goTab('cuentas',nb[1]); setTimeout(function(){ goSub(dest); },80);
+        } else if(dest==='creditos_debo'){
+          goTab('creditos',nb[2]); setTimeout(function(){ goSub('creditos_debo'); },80);
+        } else if(dest==='activos'){
+          goTab('mas',nb[4]); setTimeout(function(){ goSub('activos'); },80);
+        } else if(dest==='historial_ing'){
+          window._histFiltro='ingresos';
+          goTab('mas',nb[4]); setTimeout(function(){ goSub('historial'); },80);
+        } else if(dest==='historial_gas'){
+          window._histFiltro='gastos';
+          goTab('mas',nb[4]); setTimeout(function(){ goSub('historial'); },80);
+        }
+      });
+    }
     return d;
   }
 
   var grid=document.createElement('div');
   grid.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;';
   var p=penultimo;
-  grid.appendChild(kpi('🏛 Patrimonio neto', ultimo.patrimonioNeto, p?p.patrimonioNeto:null, false));
-  grid.appendChild(kpi('💰 Efectivo+Banco',  ultimo.efectivo+ultimo.banco, p?p.efectivo+p.banco:null, false));
-  grid.appendChild(kpi('🔴 Total deudas',    ultimo.totalDeudas, p?p.totalDeudas:null, true));
-  grid.appendChild(kpi('🏦 Activos',         ultimo.totalActivos, p?p.totalActivos:null, false));
-  grid.appendChild(kpi('📥 Ingresos mes',    ultimo.ingresos, p?p.ingresos:null, false));
-  grid.appendChild(kpi('📤 Gastos mes',      ultimo.gastos, p?p.gastos:null, true));
+  grid.appendChild(kpi('🏛 Patrimonio neto', ultimo.patrimonioNeto, p?p.patrimonioNeto:null, false, null));
+  grid.appendChild(kpi('💰 Efectivo+Banco',  ultimo.efectivo+ultimo.banco, p?p.efectivo+p.banco:null, false, 'efectivo'));
+  grid.appendChild(kpi('🔴 Total deudas',    ultimo.totalDeudas, p?p.totalDeudas:null, true, 'creditos_debo'));
+  grid.appendChild(kpi('🏦 Activos',         ultimo.totalActivos, p?p.totalActivos:null, false, 'activos'));
+  grid.appendChild(kpi('📥 Ingresos mes',    ultimo.ingresos, p?p.ingresos:null, false, 'historial_ing'));
+  grid.appendChild(kpi('📤 Gastos mes',      ultimo.gastos, p?p.gastos:null, true, 'historial_gas'));
   mc.appendChild(grid);
   // ── Gráfica SVG patrimonio neto ──
   var ultimos6=snaps.slice(-6);
