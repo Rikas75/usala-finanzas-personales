@@ -1267,6 +1267,48 @@ textarea.inp{resize:vertical;}
   color:var(--dim);font-size:0.82rem;
   display:none;
 }
+
+/* ── Historial de Gasto Diario ── */
+.ghd-bar-wrap {
+  display:flex;align-items:flex-end;gap:4px;
+  height:80px;margin:12px 0 8px;
+}
+.ghd-bar-col {
+  flex:1;display:flex;flex-direction:column;
+  align-items:center;gap:3px;cursor:pointer;
+}
+.ghd-bar {
+  width:100%;border-radius:6px 6px 0 0;
+  min-height:4px;transition:height 0.4s ease;
+  position:relative;
+}
+.ghd-bar.hoy {
+  box-shadow:0 0 8px rgba(56,170,255,0.4);
+}
+.ghd-bar-lbl {
+  font-size:0.55rem;font-weight:700;
+  color:var(--dim);text-align:center;
+  white-space:nowrap;
+}
+.ghd-bar-amt {
+  font-size:0.52rem;color:var(--dim);
+  text-align:center;white-space:nowrap;
+}
+.ghd-row {
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 0;border-bottom:1px solid var(--border);
+}
+.ghd-row:last-child { border-bottom:none; }
+.ghd-row-fecha {
+  font-size:0.78rem;font-weight:700;color:var(--text);
+}
+.ghd-row-detalle {
+  font-size:0.65rem;color:var(--dim);margin-top:2px;
+}
+.ghd-row-monto {
+  font-size:0.92rem;font-weight:900;
+  font-family:'JetBrains Mono',monospace;
+}
 </style>
 </head>
 <body>
@@ -3174,7 +3216,8 @@ function goSub(sub){
     carrito: renderCarrito
   };
   if(sub==='ingresos_activos'){ document.getElementById('mainContent').innerHTML=renderIngresosActivos(); return; }
-  if(sub==='presupuesto'){ renderPresupuesto(); return; }
+  if(sub==='presupuesto')    { renderPresupuesto();    return; }
+  if(sub==='gasto_historial'){ renderGastoHistorial(); return; }
   if(sub==='activos')   { renderActivos();  return; }
   if(sub==='pagos_mes') { renderPagosMes(); return; }
   if(sub==='progreso')  { renderProgreso(); return; }
@@ -3864,7 +3907,8 @@ function guardarTx(){
   var fecha = document.getElementById('txFecha').value || today();
   var cuenta = document.getElementById('txCuenta').value;
   var tipo  = document.getElementById('tipoGasto').classList.contains('selected') ? 'gasto' : 'ingreso';
-  if(!desc){ showToast('⚠ Escribe una descripción'); return; }
+  if(!desc){ _ghdRegistrarHoy();
+  showToast('⚠ Escribe una descripción'); return; }
   if(!monto || monto<=0){ showToast('⚠ Escribe un monto válido'); return; }
   var txs = getTxs();
   if(S.editTxId){
@@ -3903,7 +3947,8 @@ function guardarTxInline(tipo, cat){
   var montoEl = document.getElementById('inMonto_'+sufijo);
   var fechaEl = document.getElementById('inFecha_'+sufijo);
   var cuentaEl= document.getElementById('inCuenta_'+sufijo);
-  if(!descEl||!montoEl){ showToast('⚠ Error de formulario'); return; }
+  if(!descEl||!montoEl){ _ghdRegistrarHoy();
+  showToast('⚠ Error de formulario'); return; }
   var desc  = descEl.value.trim();
   var monto = parseFloat(montoEl.value);
   var fecha = fechaEl ? fechaEl.value||today() : today();
@@ -3931,6 +3976,7 @@ function borrarTx(id){
   if(eli.cuenta) revertirMovimientoCuenta(eli.cuenta, Number(eli.monto), eli.tipo);
   saveTxs(txs.filter(function(t){ return String(t.id)!==String(id); }));
   renderTab(S.tab);
+  _ghdRegistrarHoy();
   mostrarUndo('Transacci\u00f3n eliminada', function(){
     var t2=getTxs(); t2.push(eli); saveTxs(t2);
     if(eli.cuenta) aplicarMovimientoCuenta(eli.cuenta, Number(eli.monto), eli.tipo, eli.desc, eli.fecha, eli.id);
@@ -4324,7 +4370,7 @@ function renderInicio(){
     +'<div style="position:absolute;right:-10px;top:-10px;font-size:5rem;opacity:0.06;line-height:1;">💸</div>'
     // Etiqueta
     +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">'
-      +'<div style="font-size:0.65rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:0.08em;">Gasto de hoy</div>'
+      +'<div style="font-size:0.65rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:0.08em;">Gasto de hoy</div>'+'<button onclick="_ghdRegistrarHoy();goSub(\'gasto_historial\')" style="font-size:0.62rem;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:8px;padding:3px 8px;color:var(--dim);cursor:pointer;font-family:Outfit,sans-serif;">📊 Ver historial</button>'
       +'<div style="font-size:0.62rem;color:var(--dim);">'
         +( nGastosHoy > 0 ? nGastosHoy + ' movimiento'+(nGastosHoy>1?'s':'') : 'Sin gastos aún' )
       +'</div>'
@@ -9138,7 +9184,8 @@ function guardarMovEfectivo(){
   var tipo  = document.getElementById('efTipoEnt').classList.contains('selected')?'ingreso':'gasto';
   var destEl = document.getElementById('efDestBanco');
   var dest  = destEl ? destEl.value : '';
-  if(!desc||!monto||monto<=0){ showToast('⚠ Completa descripción y monto'); return; }
+  if(!desc||!monto||monto<=0){ _ghdRegistrarHoy();
+  showToast('⚠ Completa descripción y monto'); return; }
   var id = Date.now();
   var txs = getTxs();
   txs.push({id:id, tipo:tipo, desc:desc, monto:monto, cat:cat, fecha:fecha, cuenta:'efectivo'});
@@ -9261,7 +9308,8 @@ function guardarMovBanco(idx){
   var fecha=document.getElementById('bkFecha').value||today();
   var cat=document.getElementById('bkCat').value;
   var tipo=document.getElementById('bkTipoEnt').classList.contains('selected')?'ingreso':'gasto';
-  if(!desc||!monto||monto<=0){ showToast('⚠ Completa descripción y monto'); return; }
+  if(!desc||!monto||monto<=0){ _ghdRegistrarHoy();
+  showToast('⚠ Completa descripción y monto'); return; }
   var cval='cheque_'+idx;
   var id=Date.now(); var txs=getTxs();
   txs.push({id:id,tipo:tipo,desc:desc,monto:monto,cat:cat,fecha:fecha,cuenta:cval});
@@ -10670,17 +10718,17 @@ function cobrarCxC(i){
   document.body.appendChild(m);
 }
 function _iniciarTimerMedianoche(){
-  // Calcular ms hasta el próximo 00:00:00
-  var ahora = new Date();
+  var ahora  = new Date();
   var manana = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate()+1);
   var msHasta = manana - ahora;
   setTimeout(function(){
-    // Si el usuario está en la pantalla de inicio, refrescarla
+    // Guardar el gasto del día que termina
+    _ghdRegistrarHoy();
+    // Refrescar inicio si está activo
     if(S.tab === 'inicio'){
       renderTab('inicio');
-      showToast('¡Nuevo día! Gasto diario reiniciado a $0.00 🌅');
+      showToast('¡Nuevo día! Gasto reiniciado 🌅');
     }
-    // Reprogramar para el siguiente día
     _iniciarTimerMedianoche();
   }, msHasta);
 }
@@ -10954,6 +11002,151 @@ function carritoGuardarEdicionItem(hi, ii){
   if(m1) m1.remove();
   showToast('✅ Producto actualizado — copia guardada');
   carritoEditarLista(0); // abrir la copia recién guardada
+}
+
+
+// ── Historial de gasto diario ──────────────────
+function _ghdKey(){
+  var u = S.user;
+  return 'usala_ghd_'+(u ? (u.isAdmin?'admin':'u_'+u.codigo) : 'anon');
+}
+
+function _ghdCargar(){
+  try { return JSON.parse(localStorage.getItem(_ghdKey())||'[]'); }
+  catch(e){ return []; }
+}
+
+function _ghdGuardar(hist){
+  // Máximo 90 días de historial
+  if(hist.length > 90) hist = hist.slice(-90);
+  localStorage.setItem(_ghdKey(), JSON.stringify(hist));
+}
+
+function _ghdRegistrarHoy(){
+  var hoy    = today();
+  var txs    = getTxs();
+  var gastos = txs.filter(function(t){ return t.tipo==='gasto' && t.fecha===hoy; });
+  var total  = gastos.reduce(function(s,t){ return s+Number(t.monto||0); },0);
+  if(total === 0) return; // no guardar días sin gasto
+
+  var efec = gastos.filter(function(t){ return t.cuenta==='efectivo'; })
+                   .reduce(function(s,t){ return s+Number(t.monto||0); },0);
+  var banco = gastos.filter(function(t){ return (t.cuenta||'').indexOf('cheque_')===0; })
+                    .reduce(function(s,t){ return s+Number(t.monto||0); },0);
+  var tc    = gastos.filter(function(t){ return (t.cuenta||'').indexOf('tc_')===0; })
+                    .reduce(function(s,t){ return s+Number(t.monto||0); },0);
+
+  var hist = _ghdCargar();
+  var idx  = hist.findIndex(function(d){ return d.fecha === hoy; });
+  var entrada = { fecha:hoy, total:total, efec:efec, banco:banco, tc:tc, n:gastos.length };
+  if(idx >= 0) hist[idx] = entrada;
+  else hist.push(entrada);
+  _ghdGuardar(hist);
+}
+
+function renderGastoHistorial(){
+  // Guardar el día actual antes de mostrar
+  _ghdRegistrarHoy();
+
+  var hist = _ghdCargar().slice().sort(function(a,b){ return a.fecha.localeCompare(b.fecha); });
+  var mc   = document.getElementById('mainContent');
+  mc.innerHTML = '';
+
+  var hdr = document.createElement('div');
+  hdr.innerHTML = '<div class="page-header">'+backSubBtn()+'<div class="page-title">📊 Historial de Gastos</div></div>';
+  mc.appendChild(hdr);
+
+  if(!hist.length){
+    var empty = document.createElement('div');
+    empty.className='empty-state';
+    empty.innerHTML='<div style="font-size:2.5rem;margin-bottom:10px;">📊</div><div>Sin historial aún</div><div style="font-size:0.72rem;margin-top:4px;opacity:0.7;">Se irá llenando día a día</div>';
+    mc.appendChild(empty); return;
+  }
+
+  // Últimos 30 días para la gráfica
+  var ultimos = hist.slice(-30);
+  var maxVal  = Math.max.apply(null, ultimos.map(function(d){ return d.total; }))||1;
+  var hoy     = today();
+
+  // ── Resumen rápido ──
+  var promedio = hist.reduce(function(s,d){ return s+d.total; },0) / hist.length;
+  var maximo   = hist.reduce(function(a,d){ return d.total>a.total?d:a; }, hist[0]);
+  var minimo   = hist.reduce(function(a,d){ return d.total<a.total?d:a; }, hist[0]);
+
+  var resumen = document.createElement('div');
+  resumen.style.cssText='display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;';
+  resumen.innerHTML =
+    '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center;">'
+      +'<div class="stat-label">Promedio</div>'
+      +'<div style="font-size:0.95rem;font-weight:900;color:var(--gold);">'+fmt(promedio)+'</div>'
+    +'</div>'
+    +'<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center;">'
+      +'<div class="stat-label">Mayor gasto</div>'
+      +'<div style="font-size:0.95rem;font-weight:900;color:var(--danger);">'+fmt(maximo.total)+'</div>'
+      +'<div style="font-size:0.58rem;color:var(--dim);">'+maximo.fecha+'</div>'
+    +'</div>'
+    +'<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center;">'
+      +'<div class="stat-label">Menor gasto</div>'
+      +'<div style="font-size:0.95rem;font-weight:900;color:var(--accent2);">'+fmt(minimo.total)+'</div>'
+      +'<div style="font-size:0.58rem;color:var(--dim);">'+minimo.fecha+'</div>'
+    +'</div>';
+  mc.appendChild(resumen);
+
+  // ── Gráfica de barras (últimos 30 días) ──
+  var grafCard = document.createElement('div');
+  grafCard.style.cssText='background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px;';
+  grafCard.innerHTML = '<div class="stat-label" style="margin-bottom:4px;">Últimos '+ultimos.length+' días</div>';
+  var barsWrap = document.createElement('div');
+  barsWrap.className='ghd-bar-wrap';
+  var meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+  ultimos.forEach(function(d){
+    var pct  = Math.max(5, Math.round((d.total/maxVal)*100));
+    var col  = d.total > promedio*1.5 ? 'var(--danger)' : d.total > promedio ? 'var(--gold)' : 'var(--accent)';
+    var esHoy = d.fecha === hoy;
+    var parts = d.fecha.split('-');
+    var lbl   = parts[2]+' '+meses[parseInt(parts[1])-1];
+    var col = document.createElement('div');
+    col.className='ghd-bar-col';
+    col.title = d.fecha+': '+fmt(d.total);
+    col.innerHTML =
+      '<div class="ghd-bar'+(esHoy?' hoy':'')+'" style="height:'+pct+'%;background:'
+        +(d.total > promedio*1.5 ? 'var(--danger)' : d.total > promedio ? 'var(--gold)' : 'var(--accent)')
+        +';opacity:'+(esHoy?'1':'0.7')+';">'
+      +'</div>'
+      +'<div class="ghd-bar-lbl">'+lbl+'</div>';
+    barsWrap.appendChild(col);
+  });
+  grafCard.appendChild(barsWrap);
+  mc.appendChild(grafCard);
+
+  // ── Lista detallada (más reciente primero) ──
+  var listaCard = document.createElement('div');
+  listaCard.style.cssText='background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;';
+  listaCard.innerHTML='<div class="stat-label" style="margin-bottom:10px;">Detalle por día</div>';
+
+  var histRev = hist.slice().reverse();
+  histRev.forEach(function(d){
+    var esHoy = d.fecha === hoy;
+    var esMayor = d.total === maximo.total;
+    var row = document.createElement('div');
+    row.className='ghd-row';
+    var parts = d.fecha.split('-');
+    var fechaLeg = parts[2]+' '+meses[parseInt(parts[1])-1]+' '+parts[0];
+    var col = d.total > promedio*1.5 ? 'var(--danger)' : d.total > promedio ? 'var(--gold)' : 'var(--accent2)';
+    var chips = [];
+    if(d.efec>0)  chips.push('💵 '+fmt(d.efec));
+    if(d.banco>0) chips.push('🏧 '+fmt(d.banco));
+    if(d.tc>0)    chips.push('💳 '+fmt(d.tc));
+    row.innerHTML =
+      '<div>'
+        +'<div class="ghd-row-fecha">'+(esHoy?'📍 Hoy — ':'')+fechaLeg+(esMayor?' 🔴':'')+'</div>'
+        +'<div class="ghd-row-detalle">'+d.n+' movimiento'+(d.n!==1?'s':'')+(chips.length?' · '+chips.join(' · '):'')+'</div>'
+      +'</div>'
+      +'<div class="ghd-row-monto" style="color:'+col+';">'+fmt(d.total)+'</div>';
+    listaCard.appendChild(row);
+  });
+  mc.appendChild(listaCard);
 }
 </script>
 </body>
