@@ -11132,12 +11132,29 @@ function _ghdRegistrarHoy(){
 }
 
 function renderGastoHistorial(){
-  // Guardar el día actual antes de mostrar
-  _ghdRegistrarHoy();
-
-  var hist = _ghdCargar().slice().sort(function(a,b){ return a.fecha.localeCompare(b.fecha); });
-  var mc   = document.getElementById('mainContent');
+  var mc = document.getElementById('mainContent');
   mc.innerHTML = '';
+
+  // Reconstruir historial completo desde txs (no solo lo que guardó el timer)
+  var txsTodas = getTxs();
+  var gastosPorDia = {};
+  txsTodas.filter(function(t){ return t.tipo==='gasto' && t.fecha; })
+    .forEach(function(t){
+      var d = t.fecha;
+      if(!gastosPorDia[d]) gastosPorDia[d] = {fecha:d, total:0, efec:0, banco:0, tc:0, n:0};
+      gastosPorDia[d].total += Number(t.monto||0);
+      gastosPorDia[d].n++;
+      if(t.cuenta==='efectivo') gastosPorDia[d].efec += Number(t.monto||0);
+      else if((t.cuenta||'').indexOf('cheque_')===0) gastosPorDia[d].banco += Number(t.monto||0);
+      else if((t.cuenta||'').indexOf('tc_')===0) gastosPorDia[d].tc += Number(t.monto||0);
+    });
+
+  var hist = Object.keys(gastosPorDia)
+    .sort()
+    .map(function(d){ return gastosPorDia[d]; });
+
+  // Guardar también en localStorage para el timer
+  _ghdGuardar(hist);
 
   var hdr = document.createElement('div');
   hdr.innerHTML = '<div class="page-header">'+backSubBtn()+'<div class="page-title">📊 Historial de Gastos</div></div>';
@@ -11145,90 +11162,97 @@ function renderGastoHistorial(){
 
   if(!hist.length){
     var empty = document.createElement('div');
-    empty.className='empty-state';
-    empty.innerHTML='<div style="font-size:2.5rem;margin-bottom:10px;">📊</div><div>Sin historial aún</div><div style="font-size:0.72rem;margin-top:4px;opacity:0.7;">Se irá llenando día a día</div>';
-    mc.appendChild(empty); return;
+    empty.className='card';
+    empty.style.cssText='text-align:center;padding:40px 20px;color:var(--dim);';
+    empty.innerHTML='<div style="font-size:2.5rem;margin-bottom:10px;">📊</div>'
+      +'<div style="font-size:0.88rem;font-weight:700;">Sin gastos registrados</div>'
+      +'<div style="font-size:0.72rem;margin-top:6px;">Registra gastos y aquí verás tu historial día a día</div>';
+    mc.appendChild(empty);
+    return;
   }
 
-  // Últimos 30 días para la gráfica
-  var ultimos = hist.slice(-30);
-  var maxVal  = Math.max.apply(null, ultimos.map(function(d){ return d.total; }))||1;
-  var hoy     = today();
-
-  // ── Resumen rápido ──
+  var hoy      = today();
   var promedio = hist.reduce(function(s,d){ return s+d.total; },0) / hist.length;
   var maximo   = hist.reduce(function(a,d){ return d.total>a.total?d:a; }, hist[0]);
   var minimo   = hist.reduce(function(a,d){ return d.total<a.total?d:a; }, hist[0]);
+  var meses    = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
+  // ── Resumen ──────────────────────────────────────────
   var resumen = document.createElement('div');
   resumen.style.cssText='display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;';
   resumen.innerHTML =
     '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center;">'
-      +'<div class="stat-label">Promedio</div>'
-      +'<div style="font-size:0.95rem;font-weight:900;color:var(--gold);">'+fmt(promedio)+'</div>'
+      +'<div class="stat-label">📊 Promedio</div>'
+      +'<div style="font-size:0.9rem;font-weight:900;color:var(--gold);">'+fmt(promedio)+'</div>'
+      +'<div style="font-size:0.6rem;color:var(--dim);">por día</div>'
     +'</div>'
     +'<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center;">'
-      +'<div class="stat-label">Mayor gasto</div>'
-      +'<div style="font-size:0.95rem;font-weight:900;color:var(--danger);">'+fmt(maximo.total)+'</div>'
-      +'<div style="font-size:0.58rem;color:var(--dim);">'+maximo.fecha+'</div>'
+      +'<div class="stat-label">🔴 Mayor</div>'
+      +'<div style="font-size:0.9rem;font-weight:900;color:var(--danger);">'+fmt(maximo.total)+'</div>'
+      +'<div style="font-size:0.6rem;color:var(--dim);">'+maximo.fecha+'</div>'
     +'</div>'
     +'<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center;">'
-      +'<div class="stat-label">Menor gasto</div>'
-      +'<div style="font-size:0.95rem;font-weight:900;color:var(--accent2);">'+fmt(minimo.total)+'</div>'
-      +'<div style="font-size:0.58rem;color:var(--dim);">'+minimo.fecha+'</div>'
+      +'<div class="stat-label">🟢 Menor</div>'
+      +'<div style="font-size:0.9rem;font-weight:900;color:var(--accent2);">'+fmt(minimo.total)+'</div>'
+      +'<div style="font-size:0.6rem;color:var(--dim);">'+minimo.fecha+'</div>'
     +'</div>';
   mc.appendChild(resumen);
 
-  // ── Gráfica de barras (últimos 30 días) ──
+  // ── Gráfica (últimos 30 días) ────────────────────────
+  var ultimos = hist.slice(-30);
+  var maxVal  = Math.max.apply(null, ultimos.map(function(d){ return d.total; }))||1;
   var grafCard = document.createElement('div');
-  grafCard.style.cssText='background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px;';
-  grafCard.innerHTML = '<div class="stat-label" style="margin-bottom:4px;">Últimos '+ultimos.length+' días</div>';
+  grafCard.className='card';
+  grafCard.style.marginBottom='14px';
+  var titG = document.createElement('div');
+  titG.style.cssText='font-size:0.75rem;font-weight:800;margin-bottom:8px;';
+  titG.textContent='Últimos '+ultimos.length+' días con gasto';
+  grafCard.appendChild(titG);
+
   var barsWrap = document.createElement('div');
   barsWrap.className='ghd-bar-wrap';
-  var meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-
   ultimos.forEach(function(d){
     var pct  = Math.max(5, Math.round((d.total/maxVal)*100));
-    var col  = d.total > promedio*1.5 ? 'var(--danger)' : d.total > promedio ? 'var(--gold)' : 'var(--accent)';
-    var esHoy = d.fecha === hoy;
-    var parts = d.fecha.split('-');
-    var lbl   = parts[2]+' '+meses[parseInt(parts[1])-1];
-    var col = document.createElement('div');
-    col.className='ghd-bar-col';
-    col.title = d.fecha+': '+fmt(d.total);
-    col.innerHTML =
-      '<div class="ghd-bar'+(esHoy?' hoy':'')+'" style="height:'+pct+'%;background:'
-        +(d.total > promedio*1.5 ? 'var(--danger)' : d.total > promedio ? 'var(--gold)' : 'var(--accent)')
-        +';opacity:'+(esHoy?'1':'0.7')+';">'
-      +'</div>'
-      +'<div class="ghd-bar-lbl">'+lbl+'</div>';
-    barsWrap.appendChild(col);
+    var esHoy= d.fecha===hoy;
+    var col  = d.total>promedio*1.5 ? 'var(--danger)' : d.total>promedio ? 'var(--gold)' : 'var(--accent)';
+    var parts= d.fecha.split('-');
+    var lbl  = parts[2]+'/'+parts[1];
+    var col2 = document.createElement('div');
+    col2.className='ghd-bar-col';
+    col2.title = d.fecha+': '+fmt(d.total);
+    col2.innerHTML =
+      '<div class="ghd-bar'+(esHoy?' hoy':'')+'" style="height:'+pct+'%;background:'+col+';opacity:'+(esHoy?'1':'0.75')+';"></div>'
+      +'<div class="ghd-bar-lbl">'+(esHoy?'Hoy':lbl)+'</div>';
+    barsWrap.appendChild(col2);
   });
   grafCard.appendChild(barsWrap);
   mc.appendChild(grafCard);
 
-  // ── Lista detallada (más reciente primero) ──
+  // ── Lista detallada ──────────────────────────────────
   var listaCard = document.createElement('div');
-  listaCard.style.cssText='background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;';
-  listaCard.innerHTML='<div class="stat-label" style="margin-bottom:10px;">Detalle por día</div>';
+  listaCard.className='card';
+  var titL = document.createElement('div');
+  titL.style.cssText='font-size:0.75rem;font-weight:800;margin-bottom:10px;';
+  titL.textContent='Detalle por día ('+hist.length+' días)';
+  listaCard.appendChild(titL);
 
-  var histRev = hist.slice().reverse();
-  histRev.forEach(function(d){
-    var esHoy = d.fecha === hoy;
-    var esMayor = d.total === maximo.total;
-    var row = document.createElement('div');
-    row.className='ghd-row';
-    var parts = d.fecha.split('-');
+  hist.slice().reverse().forEach(function(d){
+    var esHoy  = d.fecha===hoy;
+    var esMayor= d.total===maximo.total;
+    var col    = d.total>promedio*1.5 ? 'var(--danger)' : d.total>promedio ? 'var(--gold)' : 'var(--accent2)';
+    var parts  = d.fecha.split('-');
     var fechaLeg = parts[2]+' '+meses[parseInt(parts[1])-1]+' '+parts[0];
-    var col = d.total > promedio*1.5 ? 'var(--danger)' : d.total > promedio ? 'var(--gold)' : 'var(--accent2)';
-    var chips = [];
+    var chips  = [];
     if(d.efec>0)  chips.push('💵 '+fmt(d.efec));
     if(d.banco>0) chips.push('🏧 '+fmt(d.banco));
     if(d.tc>0)    chips.push('💳 '+fmt(d.tc));
+    var row = document.createElement('div');
+    row.className='ghd-row';
     row.innerHTML =
       '<div>'
-        +'<div class="ghd-row-fecha">'+(esHoy?'📍 Hoy — ':'')+fechaLeg+(esMayor?' 🔴':'')+'</div>'
-        +'<div class="ghd-row-detalle">'+d.n+' movimiento'+(d.n!==1?'s':'')+(chips.length?' · '+chips.join(' · '):'')+'</div>'
+        +'<div class="ghd-row-fecha">'+(esHoy?'📍 ':'')+(esMayor?'🔴 ':'')+fechaLeg+'</div>'
+        +'<div class="ghd-row-detalle">'+d.n+' movimiento'+(d.n!==1?'s':'')
+          +(chips.length?' · '+chips.join(' · '):'')+'</div>'
       +'</div>'
       +'<div class="ghd-row-monto" style="color:'+col+';">'+fmt(d.total)+'</div>';
     listaCard.appendChild(row);
