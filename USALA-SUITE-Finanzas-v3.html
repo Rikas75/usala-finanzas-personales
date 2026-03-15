@@ -3258,7 +3258,11 @@ function renderTab(tab){
 // ══════════════════════════════════════════
 // HELPERS
 // ══════════════════════════════════════════
-function today(){ return new Date().toISOString().split('T')[0]; }
+function today(){
+  var d=new Date();
+  var mm=d.getMonth()+1; var dd=d.getDate();
+  return d.getFullYear()+'-'+(mm<10?'0':'')+mm+'-'+(dd<10?'0':'')+dd;
+}
 function getSimboloMoneda(){
   var key = 'usala_moneda_app_' + (S.user ? (S.user.isAdmin ? 'admin' : S.user.codigo) : 'anon');
   try{ var m = JSON.parse(localStorage.getItem(key)||'null'); return m ? m.simbolo : '$'; }catch(e){ return '$'; }
@@ -5904,7 +5908,8 @@ function renderPagosMes(){
   var pagos  = loadPagosBase();
   var estado = loadPagosEstado();
   var hoy    = new Date(); hoy.setHours(0,0,0,0);
-  var mesActKey = new Date().toISOString().slice(0,7);
+  var _d=new Date(); var _mm=_d.getMonth()+1;
+  var mesActKey = _d.getFullYear()+'-'+(_mm<10?'0':'')+_mm;
   var mesNombre = hoy.toLocaleString('es-MX',{month:'long',year:'numeric'});
   // Helpers definidos primero para que todo el scope los vea
   function _calcFechaVenc(p, ref){
