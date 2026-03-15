@@ -3968,7 +3968,7 @@ function guardarTxInline(tipo, cat){
   saveTxs(txs);
   if(cuenta) aplicarMovimientoCuenta(cuenta, monto, tipo, desc, fecha, id);
   showToast('✓ Guardado'+(cuenta?' → '+nombreCuenta(cuenta):''));
-  var mapSub = {Pagos:'pagos', Compras:'compras', Servicios:'servicios', ingreso:'activos'};
+  var mapSub = {Pagos:'pagos', Compras:'compras', Servicios:'servicios', ingreso:'ingresos'};
   var sub = mapSub[cat]||mapSub[tipo];
   if(sub) goSub(sub);
 }
@@ -5263,9 +5263,37 @@ function renderServicios(){ return renderSubTxs('Servicios','⚡','Servicios'); 
 // INGRESOS
 // ══════════════════════════════════════════
 function renderIngresos(){
-  return '<div class="page-header" style="padding-top:4px;margin-bottom:16px;"><div style="font-size:1.05rem;font-weight:800;">💰 Ingresos</div></div>'
-    +'<div class="mod-list">'
-    +'<div class="mod-item" onclick="goSub(\'ingresos_activos\')"><div class="mod-icon">📥</div><div><div class="mod-label">Activos</div><div class="mod-sub">Salario, rentas, negocios</div></div><div class="mod-arrow">›</div></div>'
+  window._histFiltro = 'ingresos';
+  var txs = getTxs().filter(function(t){ return t.tipo==='ingreso'; });
+  var total = txs.reduce(function(s,t){ return s+Number(t.monto||0); },0);
+  var items = txs.slice().reverse().map(function(t){
+    var cuentaLabel = t.cuenta
+      ? '<span style="font-size:0.6rem;background:rgba(43,192,112,0.1);color:var(--accent2);padding:1px 5px;border-radius:8px;margin-left:4px;">'+nombreCuenta(t.cuenta)+'</span>'
+      : '';
+    return txItem(t,true).replace('</div></div>','</div>'+cuentaLabel+'</div>');
+  }).join('') || '<div style="text-align:center;padding:30px;color:var(--dim);font-size:0.83rem;">Sin ingresos registrados</div>';
+
+  var cuentaOpts = buildCuentaOpts('');
+  return '<div class="page-header">'+backSubBtn()+'<div class="page-title">💰 Ingresos</div></div>'
+    +'<div class="card" style="margin-bottom:12px;"><div class="stat-label">Total ingresos</div><div class="stat-val">'+fmt(total)+'</div></div>'
+    +'<div class="card" style="margin-bottom:14px;">'
+    +'<div class="card-title">+ Registrar ingreso</div>'
+    +'<label class="inp-label">Descripción</label>'
+    +'<input class="inp" id="inDesc_ingreso" placeholder="Ej: Nómina, freelance, renta..." autocomplete="off">'
+    +'<div class="form-row">'
+    +'<div><label class="inp-label">Monto ($)</label><input class="inp" id="inMonto_ingreso" type="number" inputmode="decimal" placeholder="0.00"></div>'
+    +'<div><label class="inp-label">Fecha</label><input class="inp" id="inFecha_ingreso" type="date" value="'+today()+'"></div>'
+    +'</div>'
+    +'<label class="inp-label">💼 ¿A qué cuenta entra?</label>'
+    +'<select class="inp" id="inCuenta_ingreso">'+cuentaOpts+'</select>'
+    +'<button class="btn-main" onclick="guardarTxInline(\'ingreso\',\'ingreso\')">💾 Guardar ingreso</button>'
+    +'</div>'
+    +'<div class="card">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'
+    +'<div class="card-title" style="margin:0;">Registros ('+txs.length+')</div>'
+    +'</div>'
+    +txSearchBar('subTxs_ingreso','Buscar ingreso...')
+    +'<div id="subTxs_ingreso">'+items+'</div>'
     +'</div>';
 }
 function renderIngresosActivos(){
