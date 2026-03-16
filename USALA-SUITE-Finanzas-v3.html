@@ -3334,6 +3334,7 @@ function txItem(t, showEdit){
     var meses=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
     return p[2]+' '+meses[+p[1]-1];
   })();
+  var sid = String(t.id||'');
   return '<div class="tx-item">'
     +'<div class="tx-ico" style="background:'+(isIng?'rgba(43,192,112,0.12)':'rgba(255,95,87,0.1)')+';border-color:'+(isIng?'rgba(43,192,112,0.2)':'rgba(255,95,87,0.15)')+';font-size:1rem;">'+ico+'</div>'
     +'<div class="tx-info">'
@@ -3342,8 +3343,8 @@ function txItem(t, showEdit){
     +'</div>'
     +'<div class="tx-right">'
     +'<div class="tx-amt '+(isIng?'ing':'gas')+'">'+(isIng?'+':'-')+fmt(t.monto)+'</div>'
-    +(es?'<button class="ic-btn" onclick="editarTx('+t.id+')" style="font-size:0.8rem;">✏️</button>':'')
-    +(es?'<button class="ic-btn" onclick="borrarTx('+t.id+')" style="font-size:0.8rem;">🗑️</button>':'')
+    +(es?'<button class="ic-btn tx-btn-edit" data-txid="'+sid+'" style="font-size:0.8rem;">✏️</button>':'')
+    +(es?'<button class="ic-btn tx-btn-del"  data-txid="'+sid+'" style="font-size:0.8rem;">🗑️</button>':'')
     +'</div></div>';
 }
 // ══════════════════════════════════════════
@@ -4020,6 +4021,20 @@ function borrarTx(id){
     showToast('\u2713 Restaurado'); renderTab(S.tab);
   });
 }
+
+// ── Delegado global para editar/borrar txs ────────────────
+document.addEventListener('click', function(e){
+  var btnEdit = e.target.closest('.tx-btn-edit');
+  var btnDel  = e.target.closest('.tx-btn-del');
+  if(btnEdit){
+    var id = btnEdit.getAttribute('data-txid');
+    if(id) editarTx(id);
+  } else if(btnDel){
+    var id2 = btnDel.getAttribute('data-txid');
+    if(id2) borrarTx(id2);
+  }
+});
+
 // ══════════════════════════════════════════
 // INICIO
 // ══════════════════════════════════════════
@@ -7699,8 +7714,8 @@ function renderHistorial(){
       +'<div class="tx-right" style="align-items:flex-end;gap:6px;">'
       +'<div class="tx-amt '+(t.tipo==='ingreso'?'ing':'gas')+'" style="font-size:0.95rem;">'+(t.tipo==='ingreso'?'+':'-')+fmt(t.monto)+'</div>'
       +'<div style="display:flex;gap:4px;">'
-      +'<button class="ic-btn" onclick="editarTx('+t.id+')" title="Editar">✏️</button>'
-      +'<button class="ic-btn" onclick="borrarTx('+t.id+')" title="Eliminar">🗑️</button>'
+      +'<button class="ic-btn tx-btn-edit" data-txid="'+String(t.id)+'" title="Editar">✏️</button>'
+      +'<button class="ic-btn tx-btn-del"  data-txid="'+String(t.id)+'" title="Eliminar">🗑️</button>'
       +'</div></div></div>';
   }).join('') : '<div style="text-align:center;padding:30px;color:var(--dim);font-size:0.83rem;">Sin movimientos '+(filtro!=='todos'?'en esta categoría':'aún')+'</div>';
   function filtBtn(val, label){
@@ -9214,8 +9229,8 @@ function renderEfectivo(){
       +'<div class="tx-right"><div class="tx-amt '+(t.tipo==='ingreso'?'ing':'gas')+'">'
       +(t.tipo==='ingreso'?'+':'-')+fmt(t.monto)+'</div>'
       +'<div style="display:flex;gap:4px;">'
-      +'<button class="ic-btn" onclick="editarTx('+t.id+')">✏️</button>'
-      +'<button class="ic-btn" onclick="borrarTx('+t.id+')">🗑️</button>'
+      +'<button class="ic-btn tx-btn-edit" data-txid="'+String(t.id)+'">✏️</button>'
+      +'<button class="ic-btn tx-btn-del" data-txid="'+String(t.id)+'">🗑️</button>'
       +'</div></div></div>';
   }).join('')||'<div style="text-align:center;padding:20px;color:var(--dim);font-size:0.83rem;">Sin movimientos</div>';
 
