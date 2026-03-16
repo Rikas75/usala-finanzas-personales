@@ -4229,7 +4229,7 @@ function renderInicio(){
   var ing = txs.filter(function(t){ return t.tipo==='ingreso'; }).reduce(function(s,t){ return s+Number(t.monto); },0);
   var gas = txs.filter(function(t){ return t.tipo==='gasto'; }).reduce(function(s,t){ return s+Number(t.monto); },0);
   var creds = load('creditos',[]);
-  var debo   = creds.filter(function(c){ return c.tipo==='deuda'&&c.estado!=='pagado'; }).reduce(function(s,c){ return s+(Number(c.monto||0)-Number(c.abonado||0)); },0);
+  var debo   = creds.filter(function(c){ return c.tipo==='deuda'&&c.estado!=='pagado'; }).reduce(function(s,c){ return s+(_calcTotalDeuda(c)-Number(c.abonado||0)); },0);
   var meDebn = creds.filter(function(c){ return c.tipo==='prestamo'&&c.estado!=='pagado'; }).reduce(function(s,c){ return s+(Number(c.monto||0)-Number(c.abonado||0)); },0);
   var cu = getCuentas();
   var efec  = cu.efectivo || 0;
@@ -4334,8 +4334,10 @@ function renderInicio(){
     +'<span class="insight-ico">🔴</span>'
     +'<div class="insight-label">Total Deudas</div>'
     +'<div class="insight-val" style="color:var(--danger);">'+fmt(deudaTC+debo)+'</div>'
-    +'<div class="insight-trend" style="color:var(--dim);">'
-    +'<span>💳'+fmt(deudaTC)+'</span></div>'
+    +'<div class="insight-trend" style="color:var(--dim);display:flex;gap:6px;flex-wrap:wrap;">'
+    +(debo>0?'<span>🤝 '+fmt(debo)+'</span>':'')
+    +(deudaTC>0?'<span>💳 '+fmt(deudaTC)+'</span>':'')
+    +'</div>'
     +'</div>'
     +'</div>'
     +'<div class="insight-row">'
