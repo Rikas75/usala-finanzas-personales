@@ -4416,7 +4416,7 @@ function renderInicio(){
   }
   var rec = txs.slice(-5).reverse().map(function(t){ return txItem(t,true); }).join('')
     || '<div class="empty-state">Sin transacciones aún<br><span style="font-size:0.7rem;">Toca ➕ para agregar la primera</span></div>';
-  var consejeroCard = renderConsejero(ing, gas, debo, totalDisp, pn);
+  var consejeroCard = renderConsejero(ing, gas, debo+deudaTC, totalDisp, pn);
 
   var gastoHoyCard = '<div style="'
     +'background:var(--card);border:1px solid var(--border);'
