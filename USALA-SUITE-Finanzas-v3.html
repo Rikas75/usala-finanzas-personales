@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es"> 
+<html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -5420,6 +5420,30 @@ function renderCreditos(){
     +'<div class="mod-item" onclick="goSub(\'pagos_mes\')"><div class="mod-icon">📅</div><div><div class="mod-label">Deuda a Pagar Mensual</div><div class="mod-sub">TC, servicios, renta, impuestos</div></div><div class="mod-arrow">›</div></div>'
     +'</div>';
 }
+
+// ── Calcula el total real de una deuda incluyendo interés ──
+function _calcTotalDeuda(c){
+  var monto   = Number(c.monto||0);
+  var interes = Number(c.interes||0);
+  var tipo    = c.tipoInteres || 'total';
+  if(!interes) return monto;
+  if(tipo === 'total'){
+    return monto + (monto * interes / 100);
+  } else if(tipo === 'mensual'){
+    // Calcular meses transcurridos desde fechaOrigen hasta hoy
+    var hoy = new Date();
+    var origen = c.fechaOrigen ? new Date(c.fechaOrigen.split('-').join('/')) : new Date(c.creado||hoy);
+    var meses = Math.max(0, Math.round((hoy - origen) / (1000*60*60*24*30)));
+    return monto + (monto * interes / 100 * meses);
+  } else if(tipo === 'anual'){
+    var hoy2 = new Date();
+    var origen2 = c.fechaOrigen ? new Date(c.fechaOrigen.split('-').join('/')) : new Date(c.creado||hoy2);
+    var anios = Math.max(0, (hoy2 - origen2) / (1000*60*60*24*365));
+    return monto + (monto * interes / 100 * anios);
+  }
+  return monto;
+}
+
 function renderListaCreds(tipo){
   var allCreds=load('creditos',[]);
   var creds=allCreds.filter(function(c){ return c.tipo===tipo; });
@@ -5435,7 +5459,9 @@ function renderListaCreds(tipo){
   var fragment=document.createDocumentFragment();
   creds.forEach(function(c,i){
     var ri=allCreds.indexOf(c);
-    var pct=c.monto>0?Math.min(100,Math.round(((c.abonado||0)/c.monto)*100)):0;
+    var _totalConInt = _calcTotalDeuda(c);
+    var _montoInteres = _totalConInt - c.monto;
+    var pct=_totalConInt>0?Math.min(100,Math.round(((c.abonado||0)/_totalConInt)*100)):0;
     var hoy=new Date();
     var fv=c.fechaLimite?(function(){ var p=c.fechaLimite.split('-'); return new Date(+p[0],+p[1]-1,+p[2]); })():null;
     var venc=fv&&fv<hoy&&c.estado!=='pagado';
@@ -5516,14 +5542,16 @@ function renderListaCreds(tipo){
       pie.innerHTML='<span>Total</span><span>Capital: '+fmt(totCapH)+(totIntH>0?' + Int: '+fmt(totIntH):'')+'</span>';
       histDiv.appendChild(pie);
     }
-    var pendiente=c.monto-(c.abonado||0);
+    var pendiente=_totalConInt-(c.abonado||0);
     div.innerHTML=
       '<div class="cred-top"><div>'
         +'<div class="cred-persona">'+(c.persona||'Sin nombre')+'</div>'
         +'<div class="cred-desc">'+(c.descripcion||'Sin descripcion')+descExtra+'</div>'
       +'</div><span class="cred-badge '+badgeCls+'">'+badgeTxt+'</span></div>'
       +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">'
-        +'<span style="font-size:0.73rem;background:var(--inp);border-radius:6px;padding:3px 8px;">Capital: <b>'+fmt(totalCap)+'</b> / '+fmt(c.monto)+'</span>'
+        +'<span style="font-size:0.73rem;background:var(--inp);border-radius:6px;padding:3px 8px;">Capital: <b>'+fmt(c.monto)+'</b></span>'
+        +(_montoInteres>0?'<span style="font-size:0.73rem;background:rgba(245,124,0,0.1);border-radius:6px;padding:3px 8px;color:#e07b00;">+Interés: <b>'+fmt(_montoInteres)+'</b></span>':'')
+        +'<span style="font-size:0.73rem;background:rgba(229,57,53,0.07);border-radius:6px;padding:3px 8px;color:var(--danger);">Total: <b>'+fmt(_totalConInt)+'</b></span>'
         +'<span style="font-size:0.73rem;background:var(--inp);border-radius:6px;padding:3px 8px;">Pendiente: <b style="color:'+(tipo==='deuda'?'var(--danger)':'var(--accent)')+'">'+fmt(pendiente)+'</b></span>'
         +resumenExtra
       +'</div>'
