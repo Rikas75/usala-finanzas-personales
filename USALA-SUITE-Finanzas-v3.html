@@ -3223,6 +3223,7 @@ function goSub(sub){
   if(sub==='ingresos_activos'){ document.getElementById('mainContent').innerHTML=renderIngresosActivos(); return; }
   if(sub==='presupuesto')    { renderPresupuesto();    return; }
   if(sub==='gasto_historial'){ renderGastoHistorial(); return; }
+  if(sub==='resumen_deudas'){ renderResumenDeudas(); return; }
   if(sub==='activos')   { renderActivos();  return; }
   if(sub==='pagos_mes') { renderPagosMes(); return; }
   if(sub==='progreso')  { renderProgreso(); return; }
@@ -4298,7 +4299,7 @@ function renderInicio(){
       return '⏰'+(_nV>0?'<div style="position:absolute;top:-4px;right:-4px;background:#ff5f57;color:#fff;font-size:0.55rem;font-weight:900;min-width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;">'+_nV+'</div>':'');
     })()
     +'</div><div class="quick-lbl">Pagos</div></div>'
-    +'<div class="quick-item" onclick="goTab(\'creditos\',document.querySelectorAll(\'.nb\')[2])">'
+    +'<div class="quick-item" onclick="goSub(\'resumen_deudas\')">'
     +'<div class="quick-ico">🤝</div>'
     +'<div class="quick-lbl">Créditos</div></div>'
     +'<div class="quick-item" onclick="goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[1]);setTimeout(function(){goSub(\'carrito\');},80)">'
@@ -11497,6 +11498,150 @@ function _cobrarCxCUnificado(i){
   _ghdRegistrarHoy();
   showToast('✅ Cobro de '+fmt(c.monto)+' registrado');
   if(S.tab === 'inicio') renderTab('inicio');
-}</script>
+}
+
+function renderResumenDeudas(){
+  var mc = document.getElementById('mainContent');
+  mc.innerHTML = '';
+
+  var hdr = document.createElement('div');
+  hdr.innerHTML = '<div class="page-header">'+backSubBtn()+'<div class="page-title">🔴 Total Deudas</div></div>';
+  mc.appendChild(hdr);
+
+  var creds   = load('creditos',[]);
+  var cuentas = getCuentas();
+  var tarjetas= cuentas.tarjetas || [];
+  var hoy     = new Date(); hoy.setHours(0,0,0,0);
+
+  // ── Calcular totales ──
+  var deudas   = creds.filter(function(c){ return c.tipo==='deuda' && c.estado!=='pagado'; });
+  var prestamos= creds.filter(function(c){ return c.tipo==='prestamo' && c.estado!=='pagado'; });
+
+  var totalDeudas   = deudas.reduce(function(s,c){ return s+(_calcTotalDeuda(c)-Number(c.abonado||0)); },0);
+  var totalPrestamos= prestamos.reduce(function(s,c){ return s+(_calcTotalDeuda(c)-Number(c.abonado||0)); },0);
+  var totalTC       = tarjetas.reduce(function(s,t){ return s+Number(t.balance||0); },0);
+  var totalGeneral  = totalDeudas + totalTC;
+
+  // ── Resumen general ──
+  var resCard = document.createElement('div');
+  resCard.style.cssText='background:rgba(229,57,53,0.07);border:1.5px solid rgba(229,57,53,0.3);border-radius:18px;padding:18px;margin-bottom:14px;';
+  resCard.innerHTML =
+    '<div style="font-size:0.68rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Total que debes</div>'
+    +'<div style="font-size:2.2rem;font-weight:900;color:var(--danger);margin-bottom:14px;">'+fmt(totalGeneral)+'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">'
+      +'<div style="background:rgba(0,0,0,0.15);border-radius:12px;padding:10px;text-align:center;">'
+        +'<div style="font-size:0.6rem;color:var(--dim);margin-bottom:4px;">🤝 Créditos</div>'
+        +'<div style="font-size:0.9rem;font-weight:900;color:var(--danger);">'+fmt(totalDeudas)+'</div>'
+      +'</div>'
+      +'<div style="background:rgba(0,0,0,0.15);border-radius:12px;padding:10px;text-align:center;">'
+        +'<div style="font-size:0.6rem;color:var(--dim);margin-bottom:4px;">💳 Tarjetas</div>'
+        +'<div style="font-size:0.9rem;font-weight:900;color:var(--danger);">'+fmt(totalTC)+'</div>'
+      +'</div>'
+      +(totalPrestamos>0
+        ?'<div style="background:rgba(0,0,0,0.15);border-radius:12px;padding:10px;text-align:center;">'
+          +'<div style="font-size:0.6rem;color:var(--dim);margin-bottom:4px;">📥 Me deben</div>'
+          +'<div style="font-size:0.9rem;font-weight:900;color:var(--accent2);">'+fmt(totalPrestamos)+'</div>'
+          +'</div>'
+        :'')
+    +'</div>';
+  mc.appendChild(resCard);
+
+  // ── Sección: Créditos / Lo que debo ──
+  if(deudas.length){
+    var secCred = document.createElement('div');
+    secCred.style.cssText='background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:12px;';
+    var titCred = document.createElement('div');
+    titCred.style.cssText='display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;';
+    titCred.innerHTML =
+      '<div style="font-size:0.78rem;font-weight:800;">🤝 Créditos / Lo que debo</div>'
+      +'<div style="font-size:0.88rem;font-weight:900;color:var(--danger);">'+fmt(totalDeudas)+'</div>';
+    secCred.appendChild(titCred);
+    deudas.forEach(function(c){
+      var total  = _calcTotalDeuda(c);
+      var pend   = total - Number(c.abonado||0);
+      var fv     = c.fechaLimite ? new Date(c.fechaLimite.split('-').join('/')) : null;
+      var venc   = fv && fv < hoy;
+      var row = document.createElement('div');
+      row.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);';
+      row.innerHTML =
+        '<div>'
+          +'<div style="font-size:0.82rem;font-weight:700;">'+(c.persona||'Sin nombre')+'</div>'
+          +'<div style="font-size:0.65rem;color:var(--dim);">'
+            +(c.descripcion||'')
+            +(c.interes?' · '+c.interes+'% '+(c.tipoInteres||''):'')
+            +(venc?' · <span style="color:var(--danger);">Vencido</span>':'')
+          +'</div>'
+        +'</div>'
+        +'<div style="text-align:right;">'
+          +'<div style="font-size:0.88rem;font-weight:900;color:var(--danger);">'+fmt(pend)+'</div>'
+          +(c.interes?'<div style="font-size:0.6rem;color:var(--dim);">Total c/int: '+fmt(total)+'</div>':'')
+        +'</div>';
+      secCred.appendChild(row);
+    });
+    mc.appendChild(secCred);
+  }
+
+  // ── Sección: Tarjetas de crédito ──
+  if(tarjetas.length){
+    var secTC = document.createElement('div');
+    secTC.style.cssText='background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:12px;';
+    var titTC = document.createElement('div');
+    titTC.style.cssText='display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;';
+    titTC.innerHTML =
+      '<div style="font-size:0.78rem;font-weight:800;">💳 Tarjetas de Crédito</div>'
+      +'<div style="font-size:0.88rem;font-weight:900;color:var(--danger);">'+fmt(totalTC)+'</div>';
+    secTC.appendChild(titTC);
+    tarjetas.forEach(function(t, i){
+      var balance = Number(t.balance||0);
+      if(!balance) return;
+      var pct = t.limite>0 ? Math.min(100,Math.round((balance/Number(t.limite))*100)) : 0;
+      var row = document.createElement('div');
+      row.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer;';
+      row.innerHTML =
+        '<div>'
+          +'<div style="font-size:0.82rem;font-weight:700;">'+(t.banco||'Tarjeta')+(t.ultimos?' ***'+t.ultimos:'')+'</div>'
+          +'<div style="font-size:0.65rem;color:var(--dim);">'+(t.tipo||'')+(t.limite?' · '+pct+'% usado':'')+'</div>'
+        +'</div>'
+        +'<div style="font-size:0.88rem;font-weight:900;color:var(--danger);">'+fmt(balance)+'</div>';
+      (function(idx){ row.onclick=function(){ goTab('cuentas',document.querySelectorAll('.nb')[1]); setTimeout(function(){ abrirDetalleTC(idx); },80); }; })(i);
+      secTC.appendChild(row);
+    });
+    mc.appendChild(secTC);
+  }
+
+  // ── Sección: Me deben ──
+  if(prestamos.length){
+    var secPrest = document.createElement('div');
+    secPrest.style.cssText='background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:12px;';
+    var titPrest = document.createElement('div');
+    titPrest.style.cssText='display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;';
+    titPrest.innerHTML =
+      '<div style="font-size:0.78rem;font-weight:800;">📥 Me deben</div>'
+      +'<div style="font-size:0.88rem;font-weight:900;color:var(--accent2);">'+fmt(totalPrestamos)+'</div>';
+    secPrest.appendChild(titPrest);
+    prestamos.forEach(function(c){
+      var pend = _calcTotalDeuda(c) - Number(c.abonado||0);
+      var row = document.createElement('div');
+      row.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);';
+      row.innerHTML =
+        '<div>'
+          +'<div style="font-size:0.82rem;font-weight:700;">'+(c.persona||'Sin nombre')+'</div>'
+          +'<div style="font-size:0.65rem;color:var(--dim);">'+(c.descripcion||'')+'</div>'
+        +'</div>'
+        +'<div style="font-size:0.88rem;font-weight:900;color:var(--accent2);">'+fmt(pend)+'</div>';
+      secPrest.appendChild(row);
+    });
+    mc.appendChild(secPrest);
+  }
+
+  // Botón ir a créditos completo
+  var btn = document.createElement('button');
+  btn.className='btn-sec';
+  btn.style.cssText='width:100%;margin-top:4px;';
+  btn.textContent='Ver detalle completo en Créditos →';
+  btn.onclick=function(){ goTab('creditos',document.querySelectorAll('.nb')[2]); };
+  mc.appendChild(btn);
+}
+</script>
 </body>
 </html>
