@@ -1930,6 +1930,7 @@ textarea.inp{resize:vertical;}
   <div style="font-size:1.2rem;line-height:1;">🔢</div>
   <div id="calcBubbleVal" style="font-size:0.55rem;font-weight:800;color:#ffd60a;margin-top:2px;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;">0</div>
 </div>
+
 <script>
 
 var SUPA_URL = 'https://mdllmtuitgsqlpjmnllf.supabase.co';
@@ -5160,7 +5161,7 @@ function carritoConfirmarFin(){
     var cats = getCarritoCats();
     var cat  = cats.find(function(c){ return c.id===actual.catId; });
     var desc = (actual.nombre||'Compra') + (actual.tienda?' en '+actual.tienda:'');
-    var txId = 'tx_'+Date.now();
+    var txId = Date.now();
     var tx = {
       id: txId,
       tipo: 'gasto',
