@@ -11135,26 +11135,27 @@ function renderGastoHistorial(){
   var mc = document.getElementById('mainContent');
   mc.innerHTML = '';
 
-  // Reconstruir historial completo desde txs (no solo lo que guardó el timer)
+  // Reconstruir desde todas las txs de gasto
   var txsTodas = getTxs();
   var gastosPorDia = {};
   txsTodas.filter(function(t){ return t.tipo==='gasto' && t.fecha; })
     .forEach(function(t){
       var d = t.fecha;
-      if(!gastosPorDia[d]) gastosPorDia[d] = {fecha:d, total:0, efec:0, banco:0, tc:0, n:0};
+      if(!gastosPorDia[d]) gastosPorDia[d] = {fecha:d, total:0, txs:[]};
       gastosPorDia[d].total += Number(t.monto||0);
-      gastosPorDia[d].n++;
-      if(t.cuenta==='efectivo') gastosPorDia[d].efec += Number(t.monto||0);
-      else if((t.cuenta||'').indexOf('cheque_')===0) gastosPorDia[d].banco += Number(t.monto||0);
-      else if((t.cuenta||'').indexOf('tc_')===0) gastosPorDia[d].tc += Number(t.monto||0);
+      gastosPorDia[d].txs.push(t);
     });
 
-  var hist = Object.keys(gastosPorDia)
-    .sort()
+  var hist = Object.keys(gastosPorDia).sort()
     .map(function(d){ return gastosPorDia[d]; });
 
-  // Guardar también en localStorage para el timer
-  _ghdGuardar(hist);
+  _ghdGuardar(hist.map(function(d){
+    return {fecha:d.fecha, total:d.total, n:d.txs.length,
+      efec: d.txs.filter(function(t){ return t.cuenta==='efectivo'; }).reduce(function(s,t){ return s+Number(t.monto||0); },0),
+      banco: d.txs.filter(function(t){ return (t.cuenta||'').indexOf('cheque_')===0; }).reduce(function(s,t){ return s+Number(t.monto||0); },0),
+      tc: d.txs.filter(function(t){ return (t.cuenta||'').indexOf('tc_')===0; }).reduce(function(s,t){ return s+Number(t.monto||0); },0)
+    };
+  }));
 
   var hdr = document.createElement('div');
   hdr.innerHTML = '<div class="page-header">'+backSubBtn()+'<div class="page-title">📊 Historial de Gastos</div></div>';
@@ -11177,7 +11178,7 @@ function renderGastoHistorial(){
   var minimo   = hist.reduce(function(a,d){ return d.total<a.total?d:a; }, hist[0]);
   var meses    = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
-  // ── Resumen ──────────────────────────────────────────
+  // ── Resumen ──
   var resumen = document.createElement('div');
   resumen.style.cssText='display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;';
   resumen.innerHTML =
@@ -11198,7 +11199,7 @@ function renderGastoHistorial(){
     +'</div>';
   mc.appendChild(resumen);
 
-  // ── Gráfica (últimos 30 días) ────────────────────────
+  // ── Gráfica barras (últimos 30 días) ──
   var ultimos = hist.slice(-30);
   var maxVal  = Math.max.apply(null, ultimos.map(function(d){ return d.total; }))||1;
   var grafCard = document.createElement('div');
@@ -11208,27 +11209,25 @@ function renderGastoHistorial(){
   titG.style.cssText='font-size:0.75rem;font-weight:800;margin-bottom:8px;';
   titG.textContent='Últimos '+ultimos.length+' días con gasto';
   grafCard.appendChild(titG);
-
   var barsWrap = document.createElement('div');
   barsWrap.className='ghd-bar-wrap';
   ultimos.forEach(function(d){
     var pct  = Math.max(5, Math.round((d.total/maxVal)*100));
     var esHoy= d.fecha===hoy;
-    var col  = d.total>promedio*1.5 ? 'var(--danger)' : d.total>promedio ? 'var(--gold)' : 'var(--accent)';
+    var col  = d.total>promedio*1.5?'var(--danger)':d.total>promedio?'var(--gold)':'var(--accent)';
     var parts= d.fecha.split('-');
-    var lbl  = parts[2]+'/'+parts[1];
     var col2 = document.createElement('div');
     col2.className='ghd-bar-col';
     col2.title = d.fecha+': '+fmt(d.total);
     col2.innerHTML =
       '<div class="ghd-bar'+(esHoy?' hoy':'')+'" style="height:'+pct+'%;background:'+col+';opacity:'+(esHoy?'1':'0.75')+';"></div>'
-      +'<div class="ghd-bar-lbl">'+(esHoy?'Hoy':lbl)+'</div>';
+      +'<div class="ghd-bar-lbl">'+(esHoy?'Hoy':parts[2]+'/'+parts[1])+'</div>';
     barsWrap.appendChild(col2);
   });
   grafCard.appendChild(barsWrap);
   mc.appendChild(grafCard);
 
-  // ── Lista detallada ──────────────────────────────────
+  // ── Lista por día con gastos individuales ──
   var listaCard = document.createElement('div');
   listaCard.className='card';
   var titL = document.createElement('div');
@@ -11239,24 +11238,75 @@ function renderGastoHistorial(){
   hist.slice().reverse().forEach(function(d){
     var esHoy  = d.fecha===hoy;
     var esMayor= d.total===maximo.total;
-    var col    = d.total>promedio*1.5 ? 'var(--danger)' : d.total>promedio ? 'var(--gold)' : 'var(--accent2)';
+    var colTotal = d.total>promedio*1.5?'var(--danger)':d.total>promedio?'var(--gold)':'var(--accent2)';
     var parts  = d.fecha.split('-');
-    var fechaLeg = parts[2]+' '+meses[parseInt(parts[1])-1]+' '+parts[0];
-    var chips  = [];
-    if(d.efec>0)  chips.push('💵 '+fmt(d.efec));
-    if(d.banco>0) chips.push('🏧 '+fmt(d.banco));
-    if(d.tc>0)    chips.push('💳 '+fmt(d.tc));
-    var row = document.createElement('div');
-    row.className='ghd-row';
-    row.innerHTML =
+    var fechaLeg = (esHoy?'📍 Hoy — ':'')
+      + parts[2]+' '+meses[parseInt(parts[1])-1]+' '+parts[0]
+      + (esMayor?' 🔴':'');
+
+    // Encabezado del día — clickeable para expandir/colapsar
+    var dayId = 'ghd_day_'+d.fecha.replace(/-/g,'');
+    var header = document.createElement('div');
+    header.style.cssText='display:flex;align-items:center;justify-content:space-between;'
+      +'padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;';
+    header.innerHTML =
       '<div>'
-        +'<div class="ghd-row-fecha">'+(esHoy?'📍 ':'')+(esMayor?'🔴 ':'')+fechaLeg+'</div>'
-        +'<div class="ghd-row-detalle">'+d.n+' movimiento'+(d.n!==1?'s':'')
-          +(chips.length?' · '+chips.join(' · '):'')+'</div>'
+        +'<div style="font-size:0.82rem;font-weight:800;">'+fechaLeg+'</div>'
+        +'<div style="font-size:0.65rem;color:var(--dim);margin-top:2px;">'+d.txs.length+' gasto'+(d.txs.length!==1?'s':'')+'</div>'
       +'</div>'
-      +'<div class="ghd-row-monto" style="color:'+col+';">'+fmt(d.total)+'</div>';
-    listaCard.appendChild(row);
+      +'<div style="display:flex;align-items:center;gap:8px;">'
+        +'<div style="font-size:0.92rem;font-weight:900;font-family:JetBrains Mono,monospace;color:'+colTotal+';">'+fmt(d.total)+'</div>'
+        +'<div id="arr_'+dayId+'" style="font-size:0.75rem;color:var(--dim);transition:transform 0.2s;">▼</div>'
+      +'</div>';
+
+    // Lista de gastos individuales del día
+    var detalleDiv = document.createElement('div');
+    detalleDiv.id = dayId;
+    detalleDiv.style.display = esHoy ? 'block' : 'none'; // hoy abierto, resto cerrado
+    d.txs.slice().sort(function(a,b){ return (a.fecha||'').localeCompare(b.fecha||''); })
+      .forEach(function(t){
+        var row = document.createElement('div');
+        row.style.cssText='display:flex;align-items:center;justify-content:space-between;'
+          +'padding:7px 0 7px 12px;border-bottom:1px solid rgba(255,255,255,0.04);';
+        var ico = t.cat==='Comida'||t.cat==='Alimentación'?'🍽️'
+          :t.cat==='Transporte'?'🚗':t.cat==='Servicios'?'⚡'
+          :t.cat==='Salud'?'💊':t.cat==='Entretenimiento'?'🎬'
+          :t.cat==='Educación'?'📚':t.cat==='Pagos'?'📅':'💸';
+        var cuenta = t.cuenta==='efectivo'?'💵'
+          :(t.cuenta||'').indexOf('cheque_')===0?'🏧'
+          :(t.cuenta||'').indexOf('tc_')===0?'💳':'';
+        row.innerHTML =
+          '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">'
+            +'<span style="font-size:0.9rem;">'+ico+'</span>'
+            +'<div style="min-width:0;">'
+              +'<div style="font-size:0.78rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
+                +(t.desc||'Sin descripción')
+              +'</div>'
+              +'<div style="font-size:0.62rem;color:var(--dim);">'
+                +(t.cat||'')+(cuenta?' '+cuenta:'')
+              +'</div>'
+            +'</div>'
+          +'</div>'
+          +'<div style="font-size:0.82rem;font-weight:800;color:var(--danger);margin-left:8px;white-space:nowrap;">-'+fmt(t.monto)+'</div>';
+        detalleDiv.appendChild(row);
+      });
+
+    // Toggle expand/collapse
+    (function(dId, arrId){
+      header.addEventListener('click', function(){
+        var det = document.getElementById(dId);
+        var arr = document.getElementById(arrId);
+        if(!det) return;
+        var open = det.style.display !== 'none';
+        det.style.display = open ? 'none' : 'block';
+        if(arr) arr.style.transform = open ? '' : 'rotate(180deg)';
+      });
+    })(dayId, 'arr_'+dayId);
+
+    listaCard.appendChild(header);
+    listaCard.appendChild(detalleDiv);
   });
+
   mc.appendChild(listaCard);
 }
 
