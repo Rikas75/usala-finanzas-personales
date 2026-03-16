@@ -10753,52 +10753,139 @@ function _renderMainContent(htmlStr){
 function abrirDetalleTC(i){
   var c=getCuentas(); var t=(c.tarjetas||[])[i];
   if(!t){ showToast('Tarjeta no encontrada'); return; }
-  var banco=t.banco||'Tarjeta'; var tipo=t.tipo||''; var ultimos=t.ultimos||'';
-  var limite=Number(t.limite)||0; var balance=Number(t.balance)||0;
-  var interes=Number(t.interes)||0; var diaPago=t.diaPago||'';
-  var fechaCorte=t.fechaCorte||'';
-  var txs=getTxs().filter(function(tx){ return tx.cuenta==='tc_'+i; });
+
+  var banco      = t.banco||'Tarjeta';
+  var tipo       = t.tipo||'';
+  var ultimos    = t.ultimos||'';
+  var limite     = Number(t.limite)||0;
+  var balance    = Number(t.balance)||0;
+  var interes    = Number(t.interes)||0;
+  var diaPago    = t.diaPago||'';
+  var fechaCorte = t.fechaCorte||'';
+  var pagoMin    = Number(t.pagoMinimo)||0;
+
+  var disponible = Math.max(0, limite - balance);
+  var pct        = limite > 0 ? Math.min(100, Math.round((balance/limite)*100)) : 0;
+  var colorBarra = pct>=90?'var(--danger)':pct>=70?'#f57c00':'var(--accent)';
+
+  // "Falta para no generar interés" = saldo completo (hay que pagar todo antes del corte)
+  var faltaInteres = balance; // pagar todo = no genera interés
+
+  // Días para el corte
+  var diasCorte = '';
+  if(fechaCorte){
+    var hoy = new Date(); hoy.setHours(0,0,0,0);
+    var diaC = parseInt(fechaCorte);
+    if(!isNaN(diaC)){
+      var corteDate = new Date(hoy.getFullYear(), hoy.getMonth(), diaC);
+      if(corteDate < hoy) corteDate.setMonth(corteDate.getMonth()+1);
+      var diff = Math.round((corteDate-hoy)/86400000);
+      diasCorte = diff===0 ? 'Hoy es el corte' : 'En '+diff+' día'+(diff!==1?'s':'');
+    }
+  }
+
+  var txs = getTxs().filter(function(tx){ return tx.cuenta==='tc_'+i; });
   txs.sort(function(a,b){ return (b.fecha||'').localeCompare(a.fecha||''); });
-  var mc=document.getElementById('mainContent');
-  var pct=limite>0?Math.min(100,Math.round((balance/limite)*100)):0;
-  var color=pct>=90?'var(--danger)':pct>=70?'#f57c00':'var(--accent)';
-  var html='<div class="page-header">'+backSubBtn()+'<div class="page-title">'+banco+'</div></div>'
-    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">'
-      +'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">'
-        +'<div class="stat-label">Saldo usado</div>'
-        +'<div style="font-size:1.2rem;font-weight:900;color:var(--danger);">'+fmt(balance)+'</div>'
-        +'<div style="font-size:0.68rem;color:var(--dim);">de '+fmt(limite)+' de limite</div>'
-      +'</div>'
-      +'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">'
-        +'<div class="stat-label">Disponible</div>'
-        +'<div style="font-size:1.2rem;font-weight:900;color:var(--accent);">'+fmt(Math.max(0,limite-balance))+'</div>'
-        +'<div style="font-size:0.68rem;color:var(--dim);">'+pct+'% usado</div>'
-      +'</div>'
-    +'</div>'
-    +'<div style="margin-bottom:14px;"><div style="height:8px;background:var(--inp);border-radius:4px;overflow:hidden;">'
-      +'<div style="height:100%;width:'+pct+'%;background:'+color+';border-radius:4px;"></div></div></div>'
-    +(tipo||ultimos?'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;font-size:0.78rem;display:flex;justify-content:space-between;"><span style="color:var(--dim);">Tipo</span><b>'+tipo+(ultimos?' - ***'+ultimos:'')+'</b></div>':'')
-    +(fechaCorte?'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;font-size:0.78rem;display:flex;justify-content:space-between;"><span style="color:var(--dim);">Fecha de corte</span><b>'+fechaCorte+'</b></div>':'')
-    +(diaPago?'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;font-size:0.78rem;display:flex;justify-content:space-between;"><span style="color:var(--dim);">Dia de pago</span><b>Dia '+diaPago+' de cada mes</b></div>':'')
-    +(interes?'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:14px;font-size:0.78rem;display:flex;justify-content:space-between;"><span style="color:var(--dim);">Interes anual</span><b>'+interes+'%</b></div>':'')
-    +'<div style="display:flex;gap:8px;margin-bottom:16px;">'
-      +'<button class="btn-main" style="flex:1;" onclick="registrarPagoTC('+i+')">Registrar pago</button>'
-      +'<button class="btn-sec" onclick="editarTC('+i+')">Editar</button>'
-    +'</div>'
-    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'+'<div class="stat-label" style="margin:0;">Movimientos ('+txs.length+')</div>'+'</div>'+txSearchBar('tcMovs_'+i,'Buscar movimiento...')+'<div id="tcMovs_'+i+'">';
+
+  var mc = document.getElementById('mainContent');
+
+  // ── Tarjeta hero ──
+  var html = '<div class="page-header">'+backSubBtn()+'<div class="page-title">💳 '+banco+'</div></div>'
+
+  // Nombre + tipo
+  + '<div style="background:linear-gradient(135deg,var(--card),var(--inp));border:1px solid var(--border);border-radius:18px;padding:20px;margin-bottom:14px;">'
+    + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">'
+      + '<div>'
+        + '<div style="font-size:0.7rem;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;">'+banco+'</div>'
+        + '<div style="font-size:0.82rem;color:var(--dim);margin-top:2px;">'+(tipo||'Tarjeta de Crédito')+(ultimos?' — ***'+ultimos:'')+'</div>'
+      + '</div>'
+      + '<div style="font-size:2rem;">💳</div>'
+    + '</div>'
+
+    // Saldo usado grande
+    + '<div style="margin-bottom:12px;">'
+      + '<div style="font-size:0.65rem;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;">Saldo usado</div>'
+      + '<div style="font-size:2rem;font-weight:900;color:var(--danger);">'+fmt(balance)+'</div>'
+    + '</div>'
+
+    // Barra de uso
+    + '<div style="height:8px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden;margin-bottom:6px;">'
+      + '<div style="height:100%;width:'+pct+'%;background:'+colorBarra+';border-radius:4px;transition:width 0.5s;"></div>'
+    + '</div>'
+    + '<div style="font-size:0.68rem;color:var(--dim);text-align:right;">'+pct+'% del límite usado</div>'
+  + '</div>'
+
+  // Grid de 4 datos clave
+  + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
+
+    // Disponible
+    + '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;">'
+      + '<div class="stat-label">💚 Disponible</div>'
+      + '<div style="font-size:1.15rem;font-weight:900;color:var(--accent2);">'+fmt(disponible)+'</div>'
+    + '</div>'
+
+    // Límite
+    + '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;">'
+      + '<div class="stat-label">🏛 Límite</div>'
+      + '<div style="font-size:1.15rem;font-weight:900;color:var(--text);">'+(limite>0?fmt(limite):'—')+'</div>'
+    + '</div>'
+
+    // Corte
+    + '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;">'
+      + '<div class="stat-label">📅 Día de corte</div>'
+      + '<div style="font-size:1rem;font-weight:900;color:var(--text);">'+(fechaCorte?'Día '+fechaCorte:'—')+'</div>'
+      + (diasCorte?'<div style="font-size:0.65rem;color:var(--accent);margin-top:2px;">'+diasCorte+'</div>':'')
+    + '</div>'
+
+    // Día de pago
+    + '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;">'
+      + '<div class="stat-label">💳 Día de pago</div>'
+      + '<div style="font-size:1rem;font-weight:900;color:var(--text);">'+(diaPago?'Día '+diaPago:'—')+'</div>'
+    + '</div>'
+
+  + '</div>'
+
+  // Falta para no generar interés — fila completa destacada
+  + '<div style="background:'+(balance>0?'rgba(229,57,53,0.07)':'rgba(43,192,112,0.07)')+';border:1.5px solid '+(balance>0?'rgba(229,57,53,0.25)':'rgba(43,192,112,0.25)')+';border-radius:14px;padding:14px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">'
+    + '<div>'
+      + '<div style="font-size:0.72rem;font-weight:800;color:var(--dim);text-transform:uppercase;letter-spacing:0.04em;">🚫 Falta para no generar interés</div>'
+      + '<div style="font-size:0.65rem;color:var(--dim);margin-top:2px;">Paga este monto antes del corte</div>'
+    + '</div>'
+    + '<div style="font-size:1.2rem;font-weight:900;color:'+(balance>0?'var(--danger)':'var(--accent2)')+';">'+(balance>0?fmt(faltaInteres):'$0.00')+'</div>'
+  + '</div>'
+
+  // Interés anual (si tiene)
+  + (interes>0?'<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;"><div style="font-size:0.72rem;font-weight:700;color:var(--dim);">📈 Interés anual</div><div style="font-size:0.95rem;font-weight:800;color:#f57c00;">'+interes+'%</div></div>':'')
+
+  // Pago mínimo (si tiene)
+  + (pagoMin>0?'<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;"><div style="font-size:0.72rem;font-weight:700;color:var(--dim);">⚠️ Pago mínimo</div><div style="font-size:0.95rem;font-weight:800;color:#f57c00;">'+fmt(pagoMin)+'</div></div>':'')
+
+  // Botones de acción
+  + '<div style="display:flex;gap:8px;margin-bottom:16px;">'
+    + '<button class="btn-main" style="flex:1;" onclick="registrarPagoTC('+i+')">💳 Registrar pago</button>'
+    + '<button class="btn-sec" onclick="editarTC('+i+')">✏️ Editar</button>'
+  + '</div>'
+
+  // Movimientos
+  + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'
+    + '<div class="stat-label" style="margin:0;">Movimientos ('+txs.length+')</div>'
+  + '</div>'
+  + txSearchBar('tcMovs_'+i,'Buscar movimiento...')
+  + '<div id="tcMovs_'+i+'">';
+
   if(!txs.length){
-    html+='<div class="empty-state">Sin movimientos en esta tarjeta</div>';
+    html += '<div class="empty-state">Sin movimientos en esta tarjeta</div>';
   } else {
     txs.forEach(function(tx){
-      var esI=tx.tipo==='ingreso';
-      html+='<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;">'
-        +'<div><div style="font-size:0.82rem;font-weight:700;">'+(tx.desc||'Movimiento')+'</div>'
-        +'<div style="font-size:0.68rem;color:var(--dim);">'+(tx.fecha||'')+(tx.cat?' - '+tx.cat:'')+'</div></div>'
-        +'<div style="font-size:0.95rem;font-weight:900;color:'+(esI?'var(--accent)':'var(--danger)')+';">'+(esI?'+':'-')+fmt(tx.monto||0)+'</div>'
-        +'</div>';
+      var esI = tx.tipo==='ingreso';
+      html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;">'
+        + '<div><div style="font-size:0.82rem;font-weight:700;">'+(tx.desc||'Movimiento')+'</div>'
+        + '<div style="font-size:0.68rem;color:var(--dim);">'+(tx.fecha||'')+(tx.cat?' · '+tx.cat:'')+'</div></div>'
+        + '<div style="font-size:0.95rem;font-weight:900;color:'+(esI?'var(--accent)':'var(--danger)')+';margin-left:10px;">'+(esI?'+':'-')+fmt(tx.monto||0)+'</div>'
+        + '</div>';
     });
   }
-  mc.innerHTML=html;
+  mc.innerHTML = html;
 }
 function cobrarCxC(i){
   var cxcs=load('cxc',[]);
