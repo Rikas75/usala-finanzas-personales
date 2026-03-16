@@ -2643,45 +2643,40 @@ function enviarSolicitud(){
   if(btn){ btn.textContent='Enviando...'; btn.disabled=true; }
 
   var sol = {
+    id: Date.now(),
     nombre: nombre, motivo: motivo, contacto: contacto,
     fecha: today(), estado: 'pendiente'
   };
-  // Guardar en Supabase ← aquí está el fix clave
-  DB.insert('usala_solicitudes', sol).then(function(res){
-    if(btn){ btn.textContent='📩 Enviar solicitud'; btn.disabled=false; }
-    // Mostrar panel de confirmación
-    ['panelSolicitud'].forEach(function(id){ var el=document.getElementById(id); if(el) el.style.display='none'; });
-    var pe = document.getElementById('panelEnviada'); if(pe) pe.style.display='block';
-    // Botón WhatsApp de respaldo (por si acaso)
-    var txt = '🔑 Solicitud USALA\n👤 '+nombre+'\n📞 '+contacto+(motivo?'\n💬 '+motivo:'');
-    var waBtn = document.getElementById('_solWaBtn');
-    if(waBtn) waBtn.href='https://wa.me/?text='+encodeURIComponent(txt);
-    var cpBtn = document.getElementById('_solCopyBtn');
-    if(cpBtn) cpBtn.onclick=function(){ navigator.clipboard.writeText(txt).catch(function(){}); showToast('✓ Copiado'); };
-  }).catch(function(e){
-    // Supabase no disponible — intentar segundo método
-    var txt = '🔑 Solicitud USALA\n👤 '+nombre+'\n📞 '+contacto+(motivo?'\n💬 '+motivo:'');
-    if(btn){ btn.textContent='📩 Enviar solicitud'; btn.disabled=false; }
-    ['panelSolicitud'].forEach(function(id){ var el=document.getElementById(id); if(el) el.style.display='none'; });
-    var pe = document.getElementById('panelEnviada'); if(pe){
-      pe.style.display='block';
-      // Mostrar aviso de que debe enviar manualmente
-      var avisoEl = document.getElementById('_solAvisoManual');
-      if(!avisoEl){
-        avisoEl = document.createElement('div');
-        avisoEl.id = '_solAvisoManual';
-        avisoEl.style.cssText='background:rgba(255,179,64,0.12);border:1px solid rgba(255,179,64,0.3);border-radius:14px;padding:14px;margin-top:12px;font-size:0.78rem;color:var(--text);';
-        avisoEl.innerHTML='<div style="font-weight:800;margin-bottom:6px;">⚠️ Sin conexión al servidor</div>'
-          +'<div style="color:var(--dim);margin-bottom:10px;">Copia el texto y mándalo al administrador por WhatsApp o correo:</div>'
-          +'<div style="background:var(--inp);border-radius:10px;padding:10px;font-family:monospace;font-size:0.72rem;word-break:break-all;">'+txt.replace(/\n/g,'<br>')+'</div>';
-        pe.appendChild(avisoEl);
-      }
-    }
-    var waBtn = document.getElementById('_solWaBtn');
-    if(waBtn) waBtn.href='https://wa.me/?text='+encodeURIComponent(txt);
-    var cpBtn = document.getElementById('_solCopyBtn');
-    if(cpBtn) cpBtn.onclick=function(){ navigator.clipboard.writeText(txt).catch(function(){}); showToast('✓ Copiado'); };
+
+  // 1. Guardar SIEMPRE en localStorage (para el admin en mismo dispositivo)
+  var sols = JSON.parse(localStorage.getItem('usala_solicitudes')||'[]');
+  var ya = sols.find(function(s){ return s.contacto===contacto && s.estado==='pendiente'; });
+  if(!ya){ sols.push(sol); localStorage.setItem('usala_solicitudes', JSON.stringify(sols)); }
+
+  // 2. Intentar Supabase en paralelo (para admin en otro dispositivo)
+  DB.insert('usala_solicitudes', sol).catch(function(e){
+    // Silencioso — ya está guardado localmente
   });
+
+  // 3. Texto para compartir manualmente
+  var txt = '🔑 Solicitud USALA\n👤 '+nombre+'\n📞 '+contacto+(motivo?'\n💬 '+motivo:'');
+
+  if(btn){ btn.textContent='📩 Enviar solicitud'; btn.disabled=false; }
+
+  // 4. Mostrar panel de enviada
+  ['panelSolicitud'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.style.display='none';
+  });
+  var pe = document.getElementById('panelEnviada');
+  if(pe) pe.style.display='block';
+
+  var waBtn = document.getElementById('_solWaBtn');
+  if(waBtn) waBtn.href='https://wa.me/?text='+encodeURIComponent(txt);
+  var cpBtn = document.getElementById('_solCopyBtn');
+  if(cpBtn) cpBtn.onclick=function(){
+    navigator.clipboard.writeText(txt).catch(function(){});
+    showToast('✓ Copiado');
+  };
 }
 // ══════════════════════════════════════════════════════
 // SOLICITUDES — Leer desde Supabase (admin)
@@ -7857,6 +7852,12 @@ async function renderCodigos(){
     + '<option value="3650">Sin vencimiento</option>'
     + '</select>'
     + '<button class="btn-main" onclick="generarCodigo()">🔑 Generar código</button>'
+    + '</div>'
+    + '<div class="sec-title">📥 Importar solicitud manual</div>'
+    + '<div class="card" style="margin-bottom:14px;padding:14px 16px;">'
+    + '<div style="font-size:0.72rem;color:var(--dim);margin-bottom:8px;">Pega aquí el mensaje que te mandó el usuario por WhatsApp:</div>'
+    + '<textarea class="inp" id="importSolInp" placeholder="Pega aquí el mensaje del usuario..." rows="3" style="margin-bottom:8px;resize:vertical;"></textarea>'
+    + '<button class="btn-sec" onclick="importarSolicitud()">📥 Importar solicitud</button>'
     + '</div>'
     + '<div class="sec-title">📋 Códigos existentes</div>'
     + codsHtml;
