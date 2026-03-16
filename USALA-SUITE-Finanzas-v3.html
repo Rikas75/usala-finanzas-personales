@@ -2694,11 +2694,20 @@ async function dbGetSolicitudes(){
 }
 
 async function dbActualizarSolicitud(id, estado, codigoGenerado){
+  // 1. Actualizar en localStorage (fuente local)
+  var sols = JSON.parse(localStorage.getItem('usala_solicitudes')||'[]');
+  var idx  = sols.findIndex(function(s){ return String(s.id)===String(id); });
+  if(idx >= 0){
+    sols[idx].estado = estado;
+    if(codigoGenerado) sols[idx].codigoGenerado = codigoGenerado;
+    localStorage.setItem('usala_solicitudes', JSON.stringify(sols));
+  }
+  // 2. Intentar Supabase (silencioso si falla)
   try {
     var data = { estado: estado };
     if(codigoGenerado) data.codigo_generado = codigoGenerado;
     await DB.update('usala_solicitudes', 'id=eq.'+id, data);
-  } catch(e){ console.warn('dbActualizarSolicitud:', e); }
+  } catch(e){ /* silencioso — ya está actualizado localmente */ }
 }
 // Badge de solicitudes — consultar Supabase periódicamente
 function importarSolicitud(){
@@ -7925,13 +7934,16 @@ async function rechazarSolicitudDB(solId){
   });
 }
 
-async function eliminarSolicitudDB(solId, codigoGenerado){
-  var tieneCode = codigoGenerado && codigoGenerado.trim() !== '';
-    var msg = tieneCode
-      ? ('Eliminar esta solicitud y REVOCAR el codigo ' + codigoGenerado + '? El usuario perdera el acceso.')
-      : 'Eliminar permanentemente esta solicitud?';
-  usalaConfirm(msg, async function(){
-
+async function eliminarSolicitudDB(solId){
+  usalaConfirm('¿Eliminar esta solicitud?', async function(){
+    // Borrar de localStorage
+    var sols = JSON.parse(localStorage.getItem('usala_solicitudes')||'[]');
+    sols = sols.filter(function(s){ return String(s.id)!==String(solId); });
+    localStorage.setItem('usala_solicitudes', JSON.stringify(sols));
+    // Intentar Supabase
+    try { await DB.del('usala_solicitudes','id=eq.'+solId); } catch(e){}
+    showToast('🗑 Solicitud eliminada');
+    renderCodigos();
   });
 }
 function _toggleImportPanel(){
