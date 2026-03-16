@@ -7887,6 +7887,13 @@ function aprobarSolicitudDB(solId, nombre){
     +'<button onclick="document.getElementById(\'modalAprobSol\').remove()" style="width:100%;margin-top:8px;background:none;border:none;font-family:Outfit,sans-serif;font-size:0.85rem;color:var(--dim);cursor:pointer;">Cancelar</button>'
     +'</div>';
   document.body.appendChild(modal);
+  // Asignar onclick al botón DESPUÉS de agregarlo al DOM
+  var btnConf = document.getElementById('_btnConfAprobSol');
+  if(btnConf){
+    btnConf.onclick = function(){
+      _confirmarAprobSol(solId, encodeURIComponent(nombre));
+    };
+  }
 }
 
 async function _confirmarAprobSol(solId, nombreEnc){
