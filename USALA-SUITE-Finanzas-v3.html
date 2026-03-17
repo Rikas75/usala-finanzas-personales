@@ -8,6 +8,7 @@
 <title>USALA — Finanzas Personales</title>
 <style>
 
+
 :root {
   /* ── Verde Natural — verde suave, fresco ── */
   --bg:      #eef6f0;
@@ -1309,6 +1310,7 @@ textarea.inp{resize:vertical;}
   font-size:0.92rem;font-weight:900;
   font-family:'JetBrains Mono',monospace;
 }
+
 </style>
 </head>
 <body>
@@ -1379,9 +1381,6 @@ textarea.inp{resize:vertical;}
     <div id="accTituloZona" style="margin-bottom:20px;">
       <div style="font-size:1.15rem;font-weight:800;color:#fff;margin-bottom:4px;letter-spacing:-0.02em;" id="accTitulo">Ingresa tu código</div>
       <div style="font-size:0.78rem;color:rgba(255,255,255,0.4);" id="accSubtitulo">El administrador te lo compartió</div>
-    </div>
-    <div style="background:rgba(56,170,255,0.08);border:1px solid rgba(56,170,255,0.2);border-radius:12px;padding:10px 14px;margin-bottom:16px;font-size:0.72rem;color:rgba(255,255,255,0.6);">
-      ℹ️ El administrador te enviará el código por WhatsApp, SMS o correo. USALA no lo manda automáticamente.
     </div>
 
     <div id="accessErr" class="lg-err"></div>
@@ -1931,7 +1930,9 @@ textarea.inp{resize:vertical;}
   <div id="calcBubbleVal" style="font-size:0.55rem;font-weight:800;color:#ffd60a;margin-top:2px;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;">0</div>
 </div>
 
+
 <script>
+
 
 var SUPA_URL = 'https://mdllmtuitgsqlpjmnllf.supabase.co';
 var SUPA_KEY = 'sb_publishable_I8RyoelqHZrsiM-4K6ypGg_5Ze5BSNG';
@@ -7817,4 +7818,10 @@ async function renderCodigos(){
   var solicitudes = await dbGetSolicitudes();
   var pendientes  = solicitudes.filter(function(s){ return s.estado==='pendiente'; });
 
-  var codigos = JSON.parse(localStorage.getItem('usala_codigos')
+  var codigos = JSON.parse(localStorage.getItem('usala_codigos')||'[]');
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+  // Solicitudes pendientes
+  var solBlock = '';
+  if(pendientes.length){
+    var solItems = pendientes.map(function(s){
+      return '<div style="border:1.5px solid rgba(255,179,64,0.4);border-radius:14px;padding:12px 14px;margin-bottom:8px;background:
