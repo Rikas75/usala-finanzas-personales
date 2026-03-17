@@ -1482,7 +1482,7 @@ textarea.inp{resize:vertical;}
     <input class="lg-inp" id="adminPass" type="password" placeholder="Contraseña de administrador"
       onkeydown="if(event.key==='Enter')verificarAdmin()">
     <button class="lg-btn" onclick="verificarAdmin()" style="margin-top:6px;">Entrar como Admin →</button>
-    <div style="text-align:center;font-size:0.7rem;color:rgba(255,255,255,0.25);margin-top:14px;">¿Primera vez? Usa la clave que te fue asignada</div>
+    <div style="text-align:center;font-size:0.72rem;color:rgba(255,255,255,0.4);margin-top:14px;line-height:1.6;">¿Primera vez? La contraseña por defecto es <b style="color:rgba(43,192,112,0.9);font-family:monospace;font-size:0.8rem;">admin1234</b><br><span style="font-size:0.65rem;color:rgba(255,255,255,0.25);">Cámbiala en Configuración después de entrar</span></div>
     <button onclick="recuperarAdmin()" style="width:100%;margin-top:8px;padding:10px;background:none;border:none;font-family:Outfit,sans-serif;font-size:0.7rem;color:rgba(255,255,255,0.3);text-decoration:underline;cursor:pointer;">¿Olvidaste tu contraseña? Restablecer</button>
   </div>
 </div>
@@ -8133,7 +8133,4 @@ function aprobarSolicitud(idx){
 function cerrarAprobarModal(){ var m=document.getElementById('aprobarModal'); if(m) m.remove(); }
 var _aprobarIdx = -1;
 function _confirmarAprobacion(){
-  var solicitudes=JSON.parse(localStorage.getItem('usala_solicitudes')||'[]');
-  var s=solicitudes[_aprobarIdx]; if(!s) return;
-  var prefijo=(document.getElementById('aprobarPrefijo').value.trim().toUpperCase()||'USR').substring(0,5);
-  var dias=p
+  var solicitudes=JSON.parse
