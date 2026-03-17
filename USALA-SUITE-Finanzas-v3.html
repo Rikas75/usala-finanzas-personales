@@ -1369,7 +1369,7 @@ textarea.inp{resize:vertical;}
   </div>
 
   <!-- ── PANEL: Código ── -->
-  <div class="lg-card" id="panelCodigo" style="display:none;">
+  <div class="lg-card" id="panelCodigo" style="display:block;">
 
     <!-- Saludo cuando el código ya está registrado -->
     <div id="accSaludo" style="display:none;text-align:center;margin-bottom:20px;">
@@ -8136,4 +8136,4 @@ function _confirmarAprobacion(){
   var solicitudes=JSON.parse(localStorage.getItem('usala_solicitudes')||'[]');
   var s=solicitudes[_aprobarIdx]; if(!s) return;
   var prefijo=(document.getElementById('aprobarPrefijo').value.trim().toUpperCase()||'USR').substring(0,5);
-  var dias=pa
+  var dias=p
