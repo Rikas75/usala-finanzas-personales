@@ -4227,6 +4227,29 @@ function renderConsejeroDetalle(){
   // Por ahora ir a progreso
   irProgreso();
 }
+
+function _calcTotalDeuda(c){
+  var monto   = Number(c.monto||0);
+  var interes = Number(c.interes||0);
+  var tipo    = c.tipoInteres || 'total';
+  if(!interes) return monto;
+  if(tipo === 'total'){
+    return monto + (monto * interes / 100);
+  } else if(tipo === 'mensual'){
+    // Calcular meses transcurridos desde fechaOrigen hasta hoy
+    var hoy = new Date();
+    var origen = c.fechaOrigen ? new Date(c.fechaOrigen.split('-').join('/')) : new Date(c.creado||hoy);
+    var meses = Math.max(0, Math.round((hoy - origen) / (1000*60*60*24*30)));
+    return monto + (monto * interes / 100 * meses);
+  } else if(tipo === 'anual'){
+    var hoy2 = new Date();
+    var origen2 = c.fechaOrigen ? new Date(c.fechaOrigen.split('-').join('/')) : new Date(c.creado||hoy2);
+    var anios = Math.max(0, (hoy2 - origen2) / (1000*60*60*24*365));
+    return monto + (monto * interes / 100 * anios);
+  }
+  return monto;
+}
+
 function renderInicio(){
   var txs = getTxs();
   var ing = txs.filter(function(t){ return t.tipo==='ingreso'; }).reduce(function(s,t){ return s+Number(t.monto); },0);
@@ -5431,27 +5454,6 @@ function renderCreditos(){
 }
 
 // ── Calcula el total real de una deuda incluyendo interés ──
-function _calcTotalDeuda(c){
-  var monto   = Number(c.monto||0);
-  var interes = Number(c.interes||0);
-  var tipo    = c.tipoInteres || 'total';
-  if(!interes) return monto;
-  if(tipo === 'total'){
-    return monto + (monto * interes / 100);
-  } else if(tipo === 'mensual'){
-    // Calcular meses transcurridos desde fechaOrigen hasta hoy
-    var hoy = new Date();
-    var origen = c.fechaOrigen ? new Date(c.fechaOrigen.split('-').join('/')) : new Date(c.creado||hoy);
-    var meses = Math.max(0, Math.round((hoy - origen) / (1000*60*60*24*30)));
-    return monto + (monto * interes / 100 * meses);
-  } else if(tipo === 'anual'){
-    var hoy2 = new Date();
-    var origen2 = c.fechaOrigen ? new Date(c.fechaOrigen.split('-').join('/')) : new Date(c.creado||hoy2);
-    var anios = Math.max(0, (hoy2 - origen2) / (1000*60*60*24*365));
-    return monto + (monto * interes / 100 * anios);
-  }
-  return monto;
-}
 
 function renderListaCreds(tipo){
   var allCreds=load('creditos',[]);
@@ -7815,4 +7817,4 @@ async function renderCodigos(){
   var solicitudes = await dbGetSolicitudes();
   var pendientes  = solicitudes.filter(function(s){ return s.estado==='pendiente'; });
 
-  var codigos = JSON.parse(localStorage.getItem('usala_codigos')||
+  var codigos = JSON.parse(localStorage.getItem('usala_codigos')
