@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>USALA — Exportar datos</title>
+<style>
+body{font-family:sans-serif;background:#0a1628;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:20px;box-sizing:border-box;}
+h2{margin-bottom:8px;}
+p{color:rgba(255,255,255,0.5);font-size:0.85rem;text-align:center;margin-bottom:24px;}
+button{padding:16px 28px;border:none;border-radius:16px;font-size:1rem;font-weight:700;cursor:pointer;margin:8px;width:100%;max-width:320px;}
+.exp{background:#2bc070;color:#fff;}
+.imp{background:#38aaff;color:#fff;}
+#msg{margin-top:16px;color:#2bc070;font-weight:700;}
+</style>
+</head>
+<body>
+<h2>💾 USALA — Mis Datos</h2>
+<p>Exporta todos tus datos para llevarlos a otra URL</p>
+<button class="exp" onclick="exportar()">📤 Exportar todos mis datos</button>
+<button class="imp" onclick="importar()">📥 Importar datos desde backup</button>
+<div id="msg"></div>
+<script>
+function exportar(){
+  var datos = {version:1, fecha:new Date().toISOString().split('T')[0], items:{}};
+  for(var i=0;i<localStorage.length;i++){
+    var k=localStorage.key(i);
+    if(k&&k.startsWith('usala')){
+      try{ datos.items[k]=JSON.parse(localStorage.getItem(k)); }
+      catch(e){ datos.items[k]=localStorage.getItem(k); }
+    }
+  }
+  var n = Object.keys(datos.items).length;
+  if(n===0){ document.getElementById('msg').textContent='❌ No hay datos guardados aquí'; return; }
+  var blob=new Blob([JSON.stringify(datos,null,2)],{type:'application/json'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url; a.download='usala-backup-'+datos.fecha+'.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  document.getElementById('msg').textContent='✅ '+n+' datos exportados — revisa tus descargas';
+}
+function importar(){
+  var input=document.createElement('input');
+  input.type='file'; input.accept='.json';
+  input.onchange=function(e){
+    var file=e.target.files[0]; if(!file) return;
+    var reader=new FileReader();
+    reader.onload=function(ev){
+      try{
+        var datos=JSON.parse(ev.target.result);
+        if(!datos.items){ document.getElementById('msg').textContent='❌ Archivo inválido'; return; }
+        var count=0;
+        Object.keys(datos.items).forEach(function(key){
+          var val=datos.items[key];
+          localStorage.setItem(key, typeof val==='string'?val:JSON.stringify(val));
+          count++;
+        });
+        document.getElementById('msg').textContent='✅ '+count+' datos restaurados — recarga la app';
+      }catch(e){ document.getElementById('msg').textContent='❌ Error: '+e.message; }
+    };
+    reader.readAsText(file);
+  };
+  document.body.appendChild(input); input.click(); document.body.removeChild(input);
+}
+</script>
+</body>
+</html>
