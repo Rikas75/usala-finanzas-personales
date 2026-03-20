@@ -3237,7 +3237,7 @@ function goSub(sub){
   var renders = {
     // Cuentas
     efectivo: renderEfectivo, cheques: renderCheques,
-    tarjetas_credito: renderTarjetasCredito,
+    tarjetas_credito: null, // llamada directa abajo
     nueva_tc: function(){ return renderFormTC(null); },
     // Créditos
     creditos_debo: null, creditos_cobrar: null,
@@ -3260,6 +3260,7 @@ function goSub(sub){
   if(sub==='activos'){ renderActivos(); return; }
   if(sub==='ingresos_activos'){ document.getElementById('mainContent').innerHTML=renderIngresosActivos(); return; }
   if(sub==='progreso'){ renderProgreso(); return; }
+  if(sub==='tarjetas'||sub==='tarjetas_credito'){ renderTarjetasCredito(); return; }
   if(sub==='presupuesto'){ renderPresupuesto(); return; }
   if(sub==='dashboard_admin'){ renderDashboardAdmin(); return; }
   if(sub==='panel_admin'){ renderAdminPanel(); return; }
@@ -4071,127 +4072,133 @@ function irProgreso(){
 // ═══════════════════════════════════════════════════════════
 function renderConsejero(ing, gas, debo, totalDisp, pn){
   var nombre = S && S.user ? S.user.nombre.split(' ')[0] : 'tú';
+  var txsTodas = getTxs();
+  var hoy = today();
+  var mesKey = hoy.slice(0,7);   // "2025-03"
+  var anioKey = hoy.slice(0,4);  // "2025"
 
-  // ── BALANCE REAL: solo flujo de dinero (sin patrimonio neto) ──
-  // Ingresos - Gastos - Deudas pendientes = qué tan libre estás HOY
-  var balance      = ing - gas;           // flujo neto del periodo
-  var balanceLibre = ing - gas - debo;    // flujo descontando deudas
-
-  // Tasa de ahorro real (sin activos ni patrimonio)
-  var tasaAhorro = ing > 0 ? (balance / ing) * 100 : (balance > 0 ? 100 : -100);
-
-  // Carga de deuda sobre ingresos
-  var cargaDeuda = ing > 0 ? (debo / ing) * 100 : (debo > 0 ? 999 : 0);
-
-  // Cobertura de gastos con saldo disponible (cuántos meses aguantas sin ingresos)
-  var cobertura = gas > 0 ? (totalDisp / gas) : (totalDisp > 0 ? 3 : 0);
-
-  // ── Puntuación SOLO basada en flujo real (0-100) ──
-  var puntos = 0;
-
-  // 1. Tasa de ahorro (peso 45) — lo más importante
-  if(tasaAhorro >= 20)       puntos += 45;
-  else if(tasaAhorro >= 10)  puntos += 32;
-  else if(tasaAhorro >= 1)   puntos += 18;
-  else if(tasaAhorro >= -10) puntos += 8;
-  else                       puntos += 0;  // gasta mucho más de lo que gana
-
-  // 2. Carga de deuda vs ingresos (peso 35)
-  if(cargaDeuda === 0)       puntos += 35;
-  else if(cargaDeuda < 20)   puntos += 28;
-  else if(cargaDeuda < 50)   puntos += 18;
-  else if(cargaDeuda < 100)  puntos += 8;
-  else                       puntos += 0;  // debe más de lo que gana
-
-  // 3. Cobertura de emergencia en meses (peso 20)
-  if(cobertura >= 3)         puntos += 20;
-  else if(cobertura >= 1)    puntos += 13;
-  else if(cobertura >= 0.5)  puntos += 6;
-  else                       puntos += 0;
-
-  puntos = Math.min(100, Math.round(puntos));
-
-  // ── Nivel, expresión y mensaje ──
-  var expresion, colorBarra, tituloCard, mensaje, chips;
-
-  if(puntos >= 78){
-    expresion  = 'feliz';
-    colorBarra = 'linear-gradient(90deg,#2bc070,#52d48e)';
-    tituloCard = '¡Flujo de dinero sano! 🏆';
-    mensaje    = '¡Excelente manejo, '+nombre+'! '
-      + 'Tus ingresos superan tus gastos por '+fmt(balance)+' '
-      + 'y tu carga de deuda es '+(cargaDeuda===0?'cero':'del '+Math.round(cargaDeuda)+'% de tus ingresos')+'. '
-      + (cobertura >= 2 ? 'Tienes cobertura para ~'+Math.round(cobertura)+' meses sin ingresos. ' : '')
-      + (balanceLibre > 0 ? '¡Con '+fmt(balanceLibre)+' libres podrías considerar invertir! 🚀' : '');
-    chips = [
-      {label:'Ahorro '+Math.round(Math.max(0,tasaAhorro))+'%', cls:'chip-verde'},
-      debo===0 ? {label:'Sin deudas 🎉', cls:'chip-verde'} : {label:'Deuda manejable', cls:'chip-gold'},
-      balanceLibre > 0 ? {label:'Invertir posible', cls:'chip-azul'} : null,
-    ];
-  } else if(puntos >= 55){
-    expresion  = 'contento';
-    colorBarra = 'linear-gradient(90deg,#3dbf7a,#ffb340)';
-    tituloCard = 'Buen camino 👍';
-    mensaje    = '¡Vas bien, '+nombre+'! '
-      + (balance >= 0 ? 'Tu flujo es positivo: ingresas '+fmt(ing)+' y gastas '+fmt(gas)+'. '
-                      : 'Tus gastos ('+fmt(gas)+') superan ligeramente tus ingresos ('+fmt(ing)+'). ')
-      + (debo > 0 ? 'Tienes deudas por '+fmt(debo)+' — abónalas antes de gastar en extras. ' : '')
-      + 'Con disciplina puedes llegar a una tasa de ahorro del 20%. 💪';
-    chips = [
-      {label:'Balance '+fmt(balance), cls: balance>=0?'chip-verde':'chip-rojo'},
-      debo>0 ? {label:'Reduce deuda: '+fmt(debo), cls:'chip-gold'} : {label:'Sin deudas 🎉', cls:'chip-verde'},
-      {label:'Meta: ahorro 20%', cls:'chip-azul'},
-    ];
-  } else if(puntos >= 28){
-    expresion  = 'preocupado';
-    colorBarra = 'linear-gradient(90deg,#ffb340,#ff6057)';
-    tituloCard = 'Hay que ajustar ⚠️';
-    mensaje    = (balance < 0
-      ? '¡Cuidado, '+nombre+'! Gastaste '+fmt(Math.abs(balance))+' más de lo que ingresaste. '
-      : 'Tu flujo es ajustado, '+nombre+'. Apenas queda '+fmt(balance)+' de margen. ')
-      + (debo > 0 ? 'Más tus deudas de '+fmt(debo)+' — eso pesa fuerte. ' : '')
-      + 'Detén gastos no esenciales esta semana y haz una lista de lo que debes. 🛑';
-    chips = [
-      balance < 0 ? {label:'Déficit '+fmt(Math.abs(balance)), cls:'chip-rojo'} : {label:'Margen ajustado', cls:'chip-gold'},
-      debo > 0 ? {label:'Deuda: '+fmt(debo), cls:'chip-rojo'} : null,
-      {label:'Cortar gastos ya', cls:'chip-gold'},
-    ];
-  } else {
-    expresion  = 'triste';
-    colorBarra = 'linear-gradient(90deg,#ff6057,#ff2010)';
-    tituloCard = 'Flujo en rojo 🚨';
-    mensaje    = '¡Necesitas actuar hoy, '+nombre+'! '
-      + 'Gastas '+fmt(gas)+' pero solo ingresas '+fmt(ing)
-      + (debo > 0 ? ', y además debes '+fmt(debo) : '')
-      + '. Cada día que pasa el hoyo crece. '
-      + 'Prioridad #1: detener el sangrado de gastos. Prioridad #2: generar un ingreso extra, aunque sea pequeño. ❤️';
-    chips = [
-      {label:'Déficit '+fmt(Math.abs(balance)), cls:'chip-rojo'},
-      debo > 0 ? {label:'Deuda urgente: '+fmt(debo), cls:'chip-rojo'} : null,
-      {label:'Plan de emergencia', cls:'chip-azul'},
-    ];
+  // ── Calcular flujos por periodo ──
+  function flujo(txs){
+    var i = txs.filter(function(t){ return t.tipo==='ingreso'; }).reduce(function(s,t){ return s+Number(t.monto||0); },0);
+    var g = txs.filter(function(t){ return t.tipo==='gasto';   }).reduce(function(s,t){ return s+Number(t.monto||0); },0);
+    return {ing:i, gas:g, bal:i-g};
   }
 
-  var svg = _consejeroSVG(expresion);
+  var fMes  = flujo(txsTodas.filter(function(t){ return (t.fecha||'').slice(0,7)===mesKey; }));
+  var fAnio = flujo(txsTodas.filter(function(t){ return (t.fecha||'').slice(0,4)===anioKey; }));
+  var fTodo = flujo(txsTodas);
 
-  var chipsHtml = (chips||[]).filter(Boolean).map(function(c){
-    return '<span class="consejero-chip '+c.cls+'">'+c.label+'</span>';
+  // ── Card del consejero con 3 tabs ──
+  function makeTab(f, label, periodo){
+    var balance      = f.bal;
+    var balanceLibre = f.bal - (periodo==='total'?debo:0);
+    var tasaAhorro   = f.ing > 0 ? (balance/f.ing)*100 : (balance>0?100:-100);
+    var cargaDeuda   = periodo==='total' ? (f.ing>0?(debo/f.ing)*100:(debo>0?999:0)) : 0;
+    var cobertura    = f.gas > 0 ? totalDisp/f.gas : (totalDisp>0?3:0);
+
+    var puntos = 0;
+    if(tasaAhorro>=20) puntos+=45; else if(tasaAhorro>=10) puntos+=32;
+    else if(tasaAhorro>=1) puntos+=18; else if(tasaAhorro>=-10) puntos+=8;
+    if(periodo==='total'){
+      if(cargaDeuda===0) puntos+=35; else if(cargaDeuda<20) puntos+=28;
+      else if(cargaDeuda<50) puntos+=18; else if(cargaDeuda<100) puntos+=8;
+      if(cobertura>=3) puntos+=20; else if(cobertura>=1) puntos+=13;
+      else if(cobertura>=0.5) puntos+=6;
+    } else {
+      // Para mes/año: no penalizar por deudas (son globales)
+      puntos += 35; // base neutral en deuda
+      if(cobertura>=3) puntos+=20; else if(cobertura>=1) puntos+=13;
+      else if(cobertura>=0.5) puntos+=6;
+    }
+    puntos = Math.min(100, Math.round(puntos));
+
+    var colorBarra = puntos>=78?'linear-gradient(90deg,#2bc070,#52d48e)':
+                     puntos>=55?'linear-gradient(90deg,#3dbf7a,#ffb340)':
+                     puntos>=35?'linear-gradient(90deg,#ffb340,#ff7043)':'linear-gradient(90deg,#ff5252,#b71c1c)';
+    var emoji = puntos>=78?'😊':puntos>=55?'🙂':puntos>=35?'😐':'😟';
+
+    var filas = [
+      {lbl:'📥 Ingresos '+label, val:fmt(f.ing), col:'var(--accent2)'},
+      {lbl:'📤 Gastos '+label,   val:fmt(f.gas), col:'var(--danger)'},
+      {lbl:'💵 Flujo neto',      val:(balance>=0?'+':'')+fmt(balance), col:balance>=0?'var(--accent2)':'var(--danger)'},
+    ];
+    if(periodo==='total'){
+      filas.push({lbl:'🔴 Total deudas', val:fmt(debo), col:'var(--danger)'});
+      filas.push({lbl:'💰 Libre de deudas', val:(balanceLibre>=0?'+':'')+fmt(balanceLibre), col:balanceLibre>=0?'var(--accent2)':'var(--danger)'});
+    }
+
+    var consejo = balance > 0
+      ? (tasaAhorro>=20?'¡Excelente! Estás ahorrando el '+Math.round(tasaAhorro)+'% de tus ingresos '+label+'.':
+         tasaAhorro>=10?'Buen ritmo. Ahorra el '+Math.round(tasaAhorro)+'% '+label+'. Meta: llegar al 20%.':
+         'Flujo positivo pero ajustado. Reduce gastos para ahorrar más.')
+      : (balance===0?'Ingresos = Gastos. Sin margen de ahorro.':
+         'Gastos superan ingresos en '+fmt(Math.abs(balance))+' '+label+'. Ajusta lo antes posible.');
+
+    if(periodo==='total' && debo>0)
+      consejo += ' Tus deudas ('+fmt(debo)+') son tu prioridad número uno.';
+
+    var filasHtml = filas.map(function(f){
+      return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);">'
+        +'<span style="font-size:0.75rem;color:var(--dim);">'+f.lbl+'</span>'
+        +'<span style="font-size:0.78rem;font-weight:800;color:'+f.col+';">'+f.val+'</span>'
+        +'</div>';
+    }).join('');
+
+    return '<div style="padding:4px 0;">'
+      +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">'
+        +'<div style="font-size:2rem;">'+emoji+'</div>'
+        +'<div style="flex:1;">'
+          +'<div style="font-size:0.65rem;color:var(--dim);text-transform:uppercase;font-weight:700;margin-bottom:4px;">Salud financiera</div>'
+          +'<div style="height:8px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden;">'
+            +'<div style="height:100%;width:'+puntos+'%;background:'+colorBarra+';border-radius:4px;transition:width 0.6s;"></div>'
+          +'</div>'
+          +'<div style="font-size:0.62rem;color:var(--dim);margin-top:3px;text-align:right;">'+puntos+'/100</div>'
+        +'</div>'
+      +'</div>'
+      + filasHtml
+      +'<div style="margin-top:10px;background:rgba(255,255,255,0.04);border-radius:10px;padding:10px;font-size:0.75rem;color:var(--dim);line-height:1.5;">'
+        +'💡 '+consejo
+      +'</div>'
+    +'</div>';
+  }
+
+  // Tabs
+  var tabId = 'consTab_'+Date.now();
+  var tabs = [
+    {key:'mes',  label:'Este mes', data:fMes,  periodo:'mes'},
+    {key:'anio', label:'Este año', data:fAnio, periodo:'anio'},
+    {key:'todo', label:'Total',    data:fTodo, periodo:'total'},
+  ];
+
+  var tabBtns = tabs.map(function(t,i){
+    return '<button id="'+tabId+'_btn_'+t.key+'" onclick="_consTap(\''+tabId+'\',\''+t.key+'\')" '
+      +'style="flex:1;padding:7px 4px;border:none;border-radius:8px;font-family:Outfit,sans-serif;font-size:0.72rem;font-weight:700;cursor:pointer;'
+      +(i===0?'background:var(--accent);color:#fff;':'background:transparent;color:var(--dim);')
+      +'">'+t.label+'</button>';
   }).join('');
 
-  var barId = 'saludBar_' + Date.now();
-  setTimeout(function(){
-    var el = document.getElementById(barId);
-    if(el) el.style.width = puntos + '%';
-  }, 300);
+  var tabPanels = tabs.map(function(t,i){
+    return '<div id="'+tabId+'_pan_'+t.key+'" style="'+(i>0?'display:none;':'')+'">'+makeTab(t.data,t.label,t.periodo)+'</div>';
+  }).join('');
 
-  // Nota aclaratoria
-  var nota = '<div style="font-size:0.68rem;color:var(--dim);margin-top:8px;padding:6px 10px;'
-    +'background:rgba(0,0,0,0.05);border-radius:8px;border-left:2px solid var(--accent);">'
-    +'ℹ️ Este análisis usa solo tu <b>flujo de dinero real</b> (ingresos, gastos y deudas). '
-    +'El Patrimonio Neto <b>no se considera</b> para darte una lectura más honesta.'
+  return '<div class="card" style="margin-bottom:14px;">'
+    +'<div style="font-size:0.82rem;font-weight:800;margin-bottom:10px;">🤖 Mi Consejero</div>'
+    +'<div style="display:flex;gap:4px;background:var(--inp);border-radius:10px;padding:3px;margin-bottom:12px;">'
+      +tabBtns
+    +'</div>'
+    +tabPanels
     +'</div>';
+}
 
-  return '<div class="consejero-card" onclick="renderConsejeroDetalle()">'    +'<div class="consejero-avatar">'+svg+'</div>'    +'<div class="consejero-body">'    +'<div class="consejero-titulo">💡 Consejero Financiero</div>'    +'<div class="consejero-estado">'+tituloCard+'</div>'    +'<div class="consejero-msg">'+mensaje+'</div>'    +'<div class="consejero-chips">'+chipsHtml+'</div>'    +'<div style="margin-top:8px;">'    +'<div style="display:flex;justify-content:space-between;font-size:0.68rem;color:var(--dim);margin-bottom:4px;">'    +'<span>Salud de flujo (sin patrimonio)</span>'    +'<span style="font-weight:700;color:var(--text);">'+puntos+'/100</span>'    +'</div>'    +'<div class="salud-bar-wrap"><div class="salud-bar-fill" id="'+barId+'" style="width:0%;background:'+colorBarra+';"></div></div>'    +'</div>'    +nota    +'</div>'    +'</div>';
+function _consTap(tabId, key){
+  var keys = ['mes','anio','todo'];
+  keys.forEach(function(k){
+    var btn = document.getElementById(tabId+'_btn_'+k);
+    var pan = document.getElementById(tabId+'_pan_'+k);
+    var active = k===key;
+    if(btn){ btn.style.background=active?'var(--accent)':'transparent'; btn.style.color=active?'#fff':'var(--dim)'; }
+    if(pan){ pan.style.display=active?'':'none'; }
+  });
 }
 
 // ── SVG del personaje según estado ──
@@ -4318,6 +4325,9 @@ function renderInicio(){
     +'<div class="quick-item" onclick="goTab(\'creditos\',document.querySelectorAll(\'.nb\')[2])">'
     +'<div class="quick-ico">🤝</div>'
     +'<div class="quick-lbl">Créditos</div></div>'
+    +'<div class="quick-item" onclick="goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[1]);setTimeout(function(){goSub(\'tarjetas_credito\');},80)">'
+    +'<div class="quick-ico">💳</div>'
+    +'<div class="quick-lbl">Tarjetas</div></div>'
     +'<div class="quick-item" onclick="goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[1]);setTimeout(function(){goSub(\'carrito\');},80)">'
     +'<div class="quick-ico">🛒</div>'
     +'<div class="quick-lbl">Lista del súper</div></div>'
@@ -4435,18 +4445,89 @@ function renderInicio(){
   if(S.user.isAdmin){
     var codigos = JSON.parse(localStorage.getItem('usala_codigos')||'[]');
     var hoy2 = new Date();
-    var codActivos = codigos.filter(function(c){ return c.activo && new Date(c.vencimiento.split('-').join('/'))>=hoy2; });
+    var hoy7 = new Date(); hoy7.setDate(hoy7.getDate()-7);
+    var fmt7 = hoy7.toISOString().split('T')[0];
+    var codActivos = codigos.filter(function(c){ return c.activo && new Date((c.vencimiento||'2099-12-31').split('-').join('/'))>=hoy2; });
     var codUsados  = codigos.filter(function(c){ return c.usado; });
-    invCard = '<div class="sec-title">👥 Invitados</div>'
-      +'<div class="insight-card full" onclick="goSub(\'codigos\')" style="margin-bottom:10px;">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;">'
-      +'<div style="display:flex;gap:20px;">'
-      +'<div><div class="insight-label">Conectados</div><div class="insight-val" style="color:var(--accent2);">'+codUsados.length+'</div></div>'
-      +'<div><div class="insight-label">Códigos activos</div><div class="insight-val">'+codActivos.length+'</div></div>'
+
+    var userRows = codActivos.slice(0,5).map(function(c){
+      var nombre = c.nombreUsuario||c.nota||c.codigo;
+      var actKey = 'usala_act_'+c.codigo;
+      var actData = JSON.parse(localStorage.getItem(actKey)||'{}');
+      var ultimaVez = actData.ultimaVez || '';
+      var activoHoy = actData.diasActivos && actData.diasActivos.indexOf(today()) >= 0;
+      var activoSem = actData.diasActivos && actData.diasActivos.filter(function(d){ return d>=fmt7; }).length > 0;
+      var dot = activoHoy ? '🟢' : activoSem ? '🟡' : (ultimaVez ? '⚪' : '⚫');
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);">'
+        +'<div style="display:flex;align-items:center;gap:8px;">'
+          +'<span style="font-size:0.75rem;">'+dot+'</span>'
+          +'<div><div style="font-size:0.78rem;font-weight:700;">'+nombre+'</div>'
+          +(ultimaVez?'<div style="font-size:0.62rem;color:var(--dim);">'+ultimaVez+'</div>':'<div style="font-size:0.62rem;color:var(--dim);">Sin actividad</div>')
+          +'</div>'
+        +'</div>'
+        +'</div>';
+    }).join('');
+
+    invCard = '<div class="sec-title">👥 Usuarios ('+codActivos.length+')</div>'
+      +'<div class="card" style="padding:8px 16px;margin-bottom:14px;" onclick="goSub(\'codigos\')">'
+      +'<div style="display:flex;justify-content:space-between;margin-bottom:8px;">'
+        +'<span style="font-size:0.7rem;color:var(--dim);">🟢 Hoy · 🟡 Esta semana · ⚪ Antes · ⚫ Nunca</span>'
+        +'<span style="font-size:0.7rem;color:var(--accent);">Ver todos ›</span>'
       +'</div>'
-      +'<div style="font-size:1.5rem;opacity:0.4;">›</div>'
-      +'</div></div>';
+      + userRows
+      +(codActivos.length>5?'<div style="font-size:0.7rem;color:var(--dim);text-align:center;padding-top:6px;">+'+( codActivos.length-5)+' más</div>':'')
+      +'</div>';
   }
+
+  // ── Widget tarjetas de crédito ──
+  var tarjetasCard = '';
+  var tarjetas = (cu.tarjetas||[]).filter(function(t){ return Number(t.balance||0) > 0; });
+  if(tarjetas.length){
+    var tcItems = tarjetas.map(function(t,i){
+      var bal = Number(t.balance||0);
+      var lim = Number(t.limite||0);
+      var pct = lim>0?Math.min(100,Math.round((bal/lim)*100)):0;
+      var col = pct>=90?'var(--danger)':pct>=70?'#f57c00':'var(--accent)';
+      return '<div onclick="goTab(\'cuentas\',document.querySelectorAll(\'.nb\')[1]);setTimeout(function(){abrirDetalleTC('+i+');},80)" style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;">'
+        +'<div><div style="font-size:0.8rem;font-weight:700;">'+(t.banco||'Tarjeta')+(t.ultimos?' ***'+t.ultimos:'')+'</div>'
+        +'<div style="height:4px;width:80px;background:var(--inp);border-radius:2px;margin-top:4px;overflow:hidden;">'
+        +'<div style="height:100%;width:'+pct+'%;background:'+col+';border-radius:2px;"></div></div></div>'
+        +'<div style="text-align:right;"><div style="font-size:0.85rem;font-weight:900;color:var(--danger);">'+fmt(bal)+'</div>'
+        +'<div style="font-size:0.62rem;color:var(--dim);">'+pct+'% usado</div></div>'
+        +'</div>';
+    }).join('');
+    tarjetasCard = '<div class="sec-title">💳 Tarjetas de Crédito</div>'
+      +'<div class="card" style="padding:8px 16px;margin-bottom:4px;">'+tcItems+'</div>';
+  }
+
+  // ── Widget gastos (hoy/semana/mes/año) ──
+  var _hoy = today();
+  var _semStart = (function(){ var d=new Date(); d.setDate(d.getDate()-d.getDay()); return d.toISOString().split('T')[0]; })();
+  var _mesKey   = _hoy.slice(0,7);
+  var _anioKey  = _hoy.slice(0,4);
+  var gasHoy  = txs.filter(function(t){ return t.tipo==='gasto'&&t.fecha===_hoy; }).reduce(function(s,t){ return s+Number(t.monto||0); },0);
+  var gasSem  = txs.filter(function(t){ return t.tipo==='gasto'&&t.fecha>=_semStart; }).reduce(function(s,t){ return s+Number(t.monto||0); },0);
+  var gasMes  = txs.filter(function(t){ return t.tipo==='gasto'&&(t.fecha||'').slice(0,7)===_mesKey; }).reduce(function(s,t){ return s+Number(t.monto||0); },0);
+  var gasAnio = txs.filter(function(t){ return t.tipo==='gasto'&&(t.fecha||'').slice(0,4)===_anioKey; }).reduce(function(s,t){ return s+Number(t.monto||0); },0);
+  var gastoResumen = '<div class="sec-title">📊 Mis Gastos</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">'
+    +'<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center;">'
+      +'<div style="font-size:0.6rem;color:var(--dim);font-weight:700;text-transform:uppercase;margin-bottom:4px;">Hoy</div>'
+      +'<div style="font-size:1rem;font-weight:900;color:var(--danger);">'+fmt(gasHoy)+'</div>'
+    +'</div>'
+    +'<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center;">'
+      +'<div style="font-size:0.6rem;color:var(--dim);font-weight:700;text-transform:uppercase;margin-bottom:4px;">Esta semana</div>'
+      +'<div style="font-size:1rem;font-weight:900;color:var(--danger);">'+fmt(gasSem)+'</div>'
+    +'</div>'
+    +'<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center;">'
+      +'<div style="font-size:0.6rem;color:var(--dim);font-weight:700;text-transform:uppercase;margin-bottom:4px;">Este mes</div>'
+      +'<div style="font-size:1rem;font-weight:900;color:var(--danger);">'+fmt(gasMes)+'</div>'
+    +'</div>'
+    +'<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center;">'
+      +'<div style="font-size:0.6rem;color:var(--dim);font-weight:700;text-transform:uppercase;margin-bottom:4px;">Este año</div>'
+      +'<div style="font-size:1rem;font-weight:900;color:var(--danger);">'+fmt(gasAnio)+'</div>'
+    +'</div>'
+    +'</div>';
 
   // ── Últimas transacciones ──
   var rec = txs.slice(-5).reverse().map(function(t){ return txItem(t,true); }).join('')
@@ -4461,6 +4542,8 @@ function renderInicio(){
     + quickActions
     + '<div class="sec-title">🤖 Mi Consejero</div>'
     + consejeroCard
+    + gastoResumen
+    + tarjetasCard
     + '<div class="sec-title">📊 Resumen financiero</div>'
     + insightCards
     + secPagos
@@ -7481,7 +7564,18 @@ function renderMas(){
     +'<div class="mod-item" onclick="cerrarSesion()" style="cursor:pointer;"><div class="mod-icon" style="background:linear-gradient(135deg,rgba(255,95,87,0.2),rgba(255,95,87,0.08));">🚪</div><div><div class="mod-label" style="color:var(--danger);">Cerrar sesión</div><div class="mod-sub">Volver a la pantalla de inicio</div></div></div>'
     +'</div></div>';
 
-  return profileSection + secHerramientas + secExtras + secAdmin + secCuenta;
+  var secDatos = '<div class="sec-title">💾 Mis Datos</div>'
+    +'<div class="mod-list">'
+    +'<div class="mod-item" onclick="exportarDatos()">'
+    +'<div class="mod-icon" style="background:linear-gradient(135deg,rgba(43,192,112,0.2),rgba(43,192,112,0.08));">📤</div>'
+    +'<div><div class="mod-label">Exportar mis datos</div><div class="mod-sub">Descargar backup JSON</div></div>'
+    +'<div class="mod-arrow">›</div></div>'
+    +'<div class="mod-item" onclick="importarDatos()">'
+    +'<div class="mod-icon" style="background:linear-gradient(135deg,rgba(56,170,255,0.2),rgba(56,170,255,0.08));">📥</div>'
+    +'<div><div class="mod-label">Importar datos</div><div class="mod-sub">Restaurar desde backup</div></div>'
+    +'<div class="mod-arrow">›</div></div>'
+    +'</div>';
+  return profileSection + secDatos + secHerramientas + secExtras + secAdmin + secCuenta;
 }
 
 
@@ -9784,115 +9878,50 @@ function renderReportes(){
 
 
 function renderTarjetasCredito(){
-  var c=getCuentas(); var tcs=c.tarjetas||[];
-  var txs=getTxs();
+  var c = getCuentas();
+  var tarjetas = c.tarjetas || [];
+  var mc = document.getElementById('mainContent');
+  var html = '<div class="page-header">'+backSubBtn()+'<div class="page-title">💳 Tarjetas de Crédito</div></div>'
+    +'<button class="btn-main" style="margin-bottom:14px;" onclick="goSub(\'nueva_tc\')">+ Nueva tarjeta</button>';
 
-  var items=tcs.map(function(t,i){
-    var pct=t.limite>0?Math.min(100,Math.round((t.balance/t.limite)*100)):0;
-    var disp=Math.max(0,(t.limite||0)-(t.balance||0));
-    var color=pct>=90?'var(--danger)':pct>=70?'#f57c00':'var(--accent)';
-    var hoy=new Date(); var diasCorte='';
+  if(!tarjetas.length){
+    html += '<div class="empty-state"><div style="font-size:2.5rem;margin-bottom:10px;">💳</div><div>Sin tarjetas registradas</div></div>';
+    mc.innerHTML = html; return;
+  }
 
-    // ── Calcular saldo al corte automáticamente ──
-    // Suma todas las compras con esta TC (cuenta='tc_i') hechas hasta la fecha de corte
-    var saldoAutoCorte = 0;
-    if(t.fechaCorte){
-      var fc=new Date(t.fechaCorte.split('-').join('/'));
-      var diff=Math.ceil((fc-hoy)/(1000*60*60*24));
-      diasCorte=diff>0?diff+' días para corte':'Cortó hace '+Math.abs(diff)+' días';
+  tarjetas.forEach(function(t, i){
+    var banco   = t.banco   || 'Tarjeta';
+    var tipo    = t.tipo    || 'Crédito';
+    var ultimos = t.ultimos || '';
+    var balance = Number(t.balance || 0);
+    var limite  = Number(t.limite  || 0);
+    var pct     = limite > 0 ? Math.min(100, Math.round((balance/limite)*100)) : 0;
+    var disp    = Math.max(0, limite - balance);
+    var color   = pct >= 90 ? 'var(--danger)' : pct >= 70 ? '#f57c00' : 'var(--accent)';
 
-      // Buscar el inicio del período anterior (fecha de corte menos 1 mes aprox)
-      var fcPrev = new Date(fc);
-      fcPrev.setMonth(fcPrev.getMonth()-1);
-
-      txs.forEach(function(tx){
-        if(tx.cuenta==='tc_'+i && tx.tipo==='gasto'){
-          var txDate = new Date(tx.fecha.split('-').join('/'));
-          // Sumar compras del período actual: desde corte anterior hasta corte actual
-          if(txDate >= fcPrev && txDate <= fc){
-            saldoAutoCorte += Number(tx.monto);
-          }
-        }
-      });
-    } else {
-      // Sin fecha de corte: sumar todas las compras de esta TC
-      txs.forEach(function(tx){
-        if(tx.cuenta==='tc_'+i && tx.tipo==='gasto'){
-          saldoAutoCorte += Number(tx.monto);
-        }
-      });
-    }
-
-    return '<div class="cred-item">'
-      +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'
-      +'<div style="width:42px;height:28px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:0.6rem;color:#fff;font-weight:800;">'+t.banco.substring(0,4).toUpperCase()+'</div>'
-      +'<div style="flex:1;"><div style="font-weight:800;font-size:0.9rem;">'+t.banco+'</div>'
-      +'<div style="font-size:0.68rem;color:var(--dim);">'+t.tipo+(t.ultimos?' · ***'+t.ultimos:'')+'</div></div>'
-      +'<span class="cred-badge '+(t.pagoPendiente?'badge-vencido':'badge-pagado')+'">'+(t.pagoPendiente?'⚠ Pago pend.':'✅ Al corriente')+'</span>'
+    html += '<div class="card" style="margin-bottom:12px;cursor:pointer;" onclick="abrirDetalleTC('+i+')">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">'
+        +'<div>'
+          +'<div style="font-weight:800;font-size:0.9rem;">'+banco+'</div>'
+          +'<div style="font-size:0.68rem;color:var(--dim);">'+tipo+(ultimos?' · ***'+ultimos:'')+'</div>'
+        +'</div>'
+        +'<div style="text-align:right;">'
+          +'<div style="font-size:0.72rem;color:var(--dim);">Saldo usado</div>'
+          +'<div style="font-size:1rem;font-weight:900;color:var(--danger);">'+fmt(balance)+'</div>'
+        +'</div>'
       +'</div>'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
-      +'<div style="background:var(--inp);border-radius:10px;padding:10px;">'
-      +'<div style="font-size:0.6rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:0.05em;">Saldo usado</div>'
-      +'<div style="font-size:1rem;font-weight:900;color:var(--danger);">'+fmt(t.balance||0)+'</div></div>'
-      +'<div style="background:var(--inp);border-radius:10px;padding:10px;">'
-      +'<div style="font-size:0.6rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:0.05em;">Disponible</div>'
-      +'<div style="font-size:1rem;font-weight:900;color:var(--accent);">'+fmt(disp)+'</div></div>'
-      +'<div style="background:var(--inp);border-radius:10px;padding:10px;">'
-      +'<div style="font-size:0.6rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:0.05em;">Límite</div>'
-      +'<div style="font-size:1rem;font-weight:900;">'+fmt(t.limite||0)+'</div></div>'
-      +'<div style="background:var(--inp);border-radius:10px;padding:10px;">'
-      +'<div style="font-size:0.6rem;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:0.05em;">Interés anual</div>'
-      +'<div style="font-size:1rem;font-weight:900;color:#f57c00;">'+(t.interes||0)+'%</div></div>'
+      +'<div style="height:6px;background:var(--inp);border-radius:3px;overflow:hidden;margin-bottom:8px;">'
+        +'<div style="height:100%;width:'+pct+'%;background:'+color+';border-radius:3px;"></div>'
       +'</div>'
-      +'<div class="prog-wrap"><div class="prog-bar" style="width:'+pct+'%;background:'+color+';"></div></div>'
-      +'<div style="display:flex;justify-content:space-between;font-size:0.68rem;color:var(--dim);margin-top:4px;margin-bottom:8px;">'
-      +'<span>Usado: '+pct+'%</span><span>'+(diasCorte||'')+'</span></div>'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:0.68rem;margin-bottom:8px;">'
-      +(t.fechaCorte?'<div style="background:var(--inp);border-radius:8px;padding:8px;"><div style="color:var(--dim);">✂️ Fecha de corte</div><div style="font-weight:700;margin-top:2px;">'+t.fechaCorte+'</div></div>':'')
-      +(t.diaPago?'<div style="background:rgba(229,57,53,0.06);border-radius:8px;padding:8px;"><div style="color:var(--dim);">📅 Día de pago</div><div style="font-weight:700;color:var(--danger);margin-top:2px;">Día '+t.diaPago+'</div></div>':'')
-      // Saldo al corte automático — naranja con badge "AUTO"
-      +'<div style="background:rgba(245,124,0,0.07);border-radius:8px;padding:8px;grid-column:1/-1;">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;">'
-      +'<div style="color:var(--dim);">📋 Saldo al corte</div>'
-      +'<span style="font-size:0.55rem;background:rgba(245,124,0,0.2);color:#f57c00;padding:2px 6px;border-radius:8px;font-weight:800;">AUTO</span>'
+      +'<div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--dim);">'
+        +'<span>Disponible: <b style="color:var(--accent2);">'+fmt(disp)+'</b></span>'
+        +'<span>Límite: <b>'+fmt(limite)+'</b></span>'
+        +'<span style="color:var(--accent);">'+pct+'% usado</span>'
       +'</div>'
-      +'<div style="font-weight:900;font-size:1rem;color:#f57c00;margin-top:3px;">'+fmt(saldoAutoCorte)+'</div>'
-      +(saldoAutoCorte===0?'<div style="font-size:0.6rem;color:var(--dim);margin-top:2px;">Sin compras registradas en este período</div>':'')
-      +'</div>'
-      +(t.pagoMinimo?'<div style="background:var(--inp);border-radius:8px;padding:8px;"><div style="color:var(--dim);">💳 Pago mínimo</div><div style="font-weight:700;margin-top:2px;">'+fmt(t.pagoMinimo)+'</div></div>':'')
-      +(t.pagoTotal?'<div style="background:var(--inp);border-radius:8px;padding:8px;"><div style="color:var(--dim);">💰 Para no pagar int.</div><div style="font-weight:700;margin-top:2px;">'+fmt(t.pagoTotal)+'</div></div>':'')
-      +'</div>'
-      +'<div class="cred-btns">'
-      +'<button class="cred-btn" onclick="editarTC('+i+')">✏️ Editar</button>'
-      +'<button class="cred-btn success" onclick="toggleFormCompraTC('+i+')">🛒 Registrar compra</button>'
-      +'<button class="cred-btn" onclick="registrarPagoTC('+i+')" style="background:rgba(45,158,95,0.1);color:var(--accent2);border:1px solid rgba(45,158,95,0.2);">💳 Pago</button>'
-      +'<button class="cred-btn danger" onclick="borrarTC('+i+')">🗑️</button>'
-      +'</div>'
-      // Formulario inline de compra (oculto por defecto)
-      +'<div id="formCompraTC_'+i+'" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">'
-      +'<div style="font-size:0.75rem;font-weight:800;color:var(--accent);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;">🛒 Nueva compra con '+t.banco+'</div>'
-      +'<input class="inp" id="tcCDesc_'+i+'" placeholder="Descripción (ej: Supermercado, Netflix...)" style="margin-bottom:8px;">'
-      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
-      +'<input class="inp" id="tcCMonto_'+i+'" type="number" inputmode="decimal" placeholder="Monto $">'
-      +'<select class="inp" id="tcCCat_'+i+'">'
-      +'<option>Compras</option><option>Alimentación</option><option>Servicios</option>'
-      +'<option>Transporte</option><option>Entretenimiento</option><option>Salud</option>'
-      +'<option>Ropa</option><option>Pagos</option><option>Otros</option>'
-      +'</select></div>'
-      +'<input class="inp" id="tcCFecha_'+i+'" type="date" value="'+today()+'" style="margin-bottom:8px;">'
-      +'<div style="display:flex;gap:8px;">'
-      +'<button onclick="guardarCompraTC('+i+')" style="flex:1;padding:11px;background:var(--accent);color:var(--navtext);border:none;border-radius:12px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:0.85rem;cursor:pointer;">✅ Guardar compra</button>'
-      +'<button onclick="toggleFormCompraTC('+i+')" style="padding:11px 14px;background:var(--inp);color:var(--dim);border:none;border-radius:12px;font-family:\'Outfit\',sans-serif;font-weight:700;font-size:0.85rem;cursor:pointer;">✕</button>'
-      +'</div></div>'
-      +'</div>';
-  }).join('')||'<div style="text-align:center;padding:24px;color:var(--dim);font-size:0.83rem;">Sin tarjetas registradas</div>';
-
-  return '<div class="page-header">'+backBtn('cuentas',1)+'<div class="page-title">💳 Tarjetas de Crédito</div></div>'
-    +items
-    +'<div style="height:80px;"></div>'
-    +'<div style="position:fixed;bottom:75px;left:12px;right:12px;z-index:40;">'
-    +'<button onclick="goSub(\'nueva_tc\')" style="width:100%;padding:16px;background:var(--accent);color:var(--navtext);border:none;border-radius:16px;font-family:\'Outfit\',sans-serif;font-size:1rem;font-weight:800;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.2);">+ Agregar Tarjeta</button>'
     +'</div>';
+  });
+
+  mc.innerHTML = html;
 }
 
 function renderFormTC(data){
@@ -10426,7 +10455,201 @@ function desactivarCodigo(codigo){
   goSub('codigos');
 }
 
-</script>
+
+
+// ══ EXPORTAR / IMPORTAR DATOS ══════════════════════════════
+function exportarDatos(){
+  var u = S.user;
+  if(!u) return;
+  var prefijo = u.isAdmin ? 'usala_admin' : 'usala_u_'+u.codigo;
+
+  // Recopilar todo el localStorage de este usuario
+  var datos = { version:1, fecha:today(), usuario:u.codigo||'admin', items:{} };
+  for(var i=0; i<localStorage.length; i++){
+    var key = localStorage.key(i);
+    if(key && (key.startsWith(prefijo) || key.startsWith('usala_codigos') || key.startsWith('usala_solicitudes'))){
+      try { datos.items[key] = JSON.parse(localStorage.getItem(key)); }
+      catch(e){ datos.items[key] = localStorage.getItem(key); }
+    }
+  }
+
+  // Descargar como archivo JSON
+  var json = JSON.stringify(datos, null, 2);
+  var blob = new Blob([json], {type:'application/json'});
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href = url;
+  a.download = 'usala-backup-'+today()+'.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('✅ Backup descargado');
+}
+
+function importarDatos(){
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = function(e){
+    var file = e.target.files[0];
+    if(!file){ return; }
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      try {
+        var datos = JSON.parse(ev.target.result);
+        if(!datos.items){ showToast('❌ Archivo inválido'); return; }
+        var count = 0;
+        Object.keys(datos.items).forEach(function(key){
+          var val = datos.items[key];
+          localStorage.setItem(key, typeof val === 'string' ? val : JSON.stringify(val));
+          count++;
+        });
+        showToast('✅ '+count+' datos restaurados — recargando...');
+        setTimeout(function(){ location.reload(); }, 1500);
+      } catch(e){
+        showToast('❌ Error al importar: '+e.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+  document.body.appendChild(input);
+  input.click();
+  document.body.removeChild(input);
+}
+
+
+function abrirConfigNip(){
+  var u = S.user;
+  if(!u) return;
+  var key = u.isAdmin ? 'usala_nip_admin' : 'usala_nip_u_' + u.codigo;
+  var tieneNip = !!localStorage.getItem(key);
+
+  var viejo = document.getElementById('configNipModal');
+  if(viejo) viejo.remove();
+
+  var m = document.createElement('div');
+  m.id = 'configNipModal';
+  m.className = 'modal open';
+  m.innerHTML = '<div class="modal-box" style="position:relative;z-index:2;">'
+    +'<div class="modal-header">'
+      +'<div class="modal-title">🔒 NIP de seguridad</div>'
+      +'<button class="modal-close" onclick="document.getElementById(\'configNipModal\').remove()">✕</button>'
+    +'</div>'
+    +'<p style="color:var(--dim);font-size:0.82rem;margin-bottom:16px;">'
+      +(tieneNip ? 'Ya tienes un NIP activo. Puedes cambiarlo o quitarlo.' : 'Crea un NIP de 4 dígitos para proteger tu acceso.')
+    +'</p>'
+    // Campo NIP
+    +'<label class="inp-label">'+(tieneNip?'Nuevo NIP (4 dígitos)':'Crear NIP (4 dígitos)')+'</label>'
+    +'<input class="inp" id="_nipNuevo" type="password" inputmode="numeric" maxlength="4" placeholder="••••" style="letter-spacing:0.5em;font-size:1.4rem;text-align:center;margin-bottom:10px;">'
+    +'<label class="inp-label">Confirmar NIP</label>'
+    +'<input class="inp" id="_nipConfirm" type="password" inputmode="numeric" maxlength="4" placeholder="••••" style="letter-spacing:0.5em;font-size:1.4rem;text-align:center;margin-bottom:16px;">'
+    +'<div id="_nipErr" style="display:none;color:var(--danger);font-size:0.78rem;margin-bottom:10px;"></div>'
+    +'<button class="btn-main" onclick="_guardarNip(\''+key+'\')">💾 '+(tieneNip?'Cambiar NIP':'Activar NIP')+'</button>'
+    +(tieneNip?'<button onclick="_quitarNip(\''+key+'\')" style="width:100%;margin-top:8px;padding:12px;background:rgba(229,57,53,0.08);color:var(--danger);border:1.5px solid rgba(229,57,53,0.2);border-radius:12px;font-family:Outfit,sans-serif;font-weight:700;cursor:pointer;">🗑 Quitar NIP</button>':'')
+    +'</div>';
+  document.body.appendChild(m);
+  setTimeout(function(){ var inp=document.getElementById('_nipNuevo'); if(inp) inp.focus(); }, 100);
+}
+
+function _guardarNip(key){
+  var n1 = (document.getElementById('_nipNuevo').value||'').trim();
+  var n2 = (document.getElementById('_nipConfirm').value||'').trim();
+  var err = document.getElementById('_nipErr');
+  if(n1.length !== 4 || !/^\d{4}$/.test(n1)){
+    err.textContent='⚠ El NIP debe ser exactamente 4 dígitos'; err.style.display='block'; return;
+  }
+  if(n1 !== n2){
+    err.textContent='⚠ Los NIP no coinciden'; err.style.display='block'; return;
+  }
+  localStorage.setItem(key, n1);
+  document.getElementById('configNipModal').remove();
+  showToast('✅ NIP activado correctamente');
+  // Refrescar la config
+  if(typeof _adminRenderConfig === 'function') _adminRenderConfig();
+  else goSub('config');
+}
+
+function _quitarNip(key){
+  usalaConfirm('¿Quitar el NIP? Entrarás sin contraseña adicional.', function(){
+    localStorage.removeItem(key);
+    document.getElementById('configNipModal').remove();
+    showToast('✅ NIP eliminado');
+    if(typeof _adminRenderConfig === 'function') _adminRenderConfig();
+    else goSub('config');
+  });
+}
+
+function abrirDetalleTC(i){
+  var c=getCuentas(); var t=(c.tarjetas||[])[i];
+  if(!t){ showToast('Tarjeta no encontrada'); return; }
+  var banco=t.banco||'Tarjeta', tipo=t.tipo||'', ultimos=t.ultimos||'';
+  var balance=Number(t.balance||0), limite=Number(t.limite||0);
+  var interes=Number(t.interes||0), diaPago=t.diaPago||'', fechaCorte=t.fechaCorte||'';
+  var pagoMin=Number(t.pagoMinimo||0);
+  var disponible=Math.max(0,limite-balance);
+  var pct=limite>0?Math.min(100,Math.round((balance/limite)*100)):0;
+  var colorBarra=pct>=90?'var(--danger)':pct>=70?'#f57c00':'var(--accent)';
+  var diasCorte='';
+  if(fechaCorte){
+    var hoy=new Date(); hoy.setHours(0,0,0,0);
+    var diaC=parseInt(fechaCorte);
+    if(!isNaN(diaC)){
+      var cd=new Date(hoy.getFullYear(),hoy.getMonth(),diaC);
+      if(cd<hoy) cd.setMonth(cd.getMonth()+1);
+      var diff=Math.round((cd-hoy)/86400000);
+      diasCorte=diff===0?'Hoy es el corte':'En '+diff+' día'+(diff!==1?'s':'');
+    }
+  }
+  var txs=getTxs().filter(function(tx){ return tx.cuenta==='tc_'+i; });
+  txs.sort(function(a,b){ return (b.fecha||'').localeCompare(a.fecha||''); });
+  var mc=document.getElementById('mainContent');
+  var h='<div class="page-header">'+backSubBtn()+'<div class="page-title">💳 '+banco+'</div></div>'
+    +'<div style="background:var(--card);border:1px solid var(--border);border-radius:18px;padding:18px;margin-bottom:12px;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">'
+        +'<div><div style="font-weight:800;font-size:0.92rem;">'+banco+'</div>'
+        +'<div style="font-size:0.75rem;color:var(--dim);">'+(tipo||'Crédito')+(ultimos?' · ***'+ultimos:'')+'</div></div>'
+        +'<div style="font-size:2rem;">💳</div>'
+      +'</div>'
+      +'<div style="font-size:0.62rem;color:var(--dim);text-transform:uppercase;font-weight:700;margin-bottom:4px;">Saldo usado</div>'
+      +'<div style="font-size:2rem;font-weight:900;color:var(--danger);margin-bottom:10px;">'+fmt(balance)+'</div>'
+      +'<div style="height:8px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden;margin-bottom:4px;">'
+        +'<div style="height:100%;width:'+pct+'%;background:'+colorBarra+';border-radius:4px;"></div></div>'
+      +'<div style="font-size:0.65rem;color:var(--dim);text-align:right;">'+pct+'% del límite usado</div>'
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
+      +'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;"><div class="stat-label">💚 Disponible</div><div style="font-size:1rem;font-weight:900;color:var(--accent2);">'+fmt(disponible)+'</div></div>'
+      +'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;"><div class="stat-label">🏛 Límite</div><div style="font-size:1rem;font-weight:900;">'+fmt(limite)+'</div></div>'
+      +'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;"><div class="stat-label">📅 Día corte</div><div style="font-size:1rem;font-weight:900;">'+(fechaCorte?'Día '+fechaCorte:'—')+'</div>'+(diasCorte?'<div style="font-size:0.6rem;color:var(--accent);">'+diasCorte+'</div>':'')+'</div>'
+      +'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;"><div class="stat-label">💳 Día pago</div><div style="font-size:1rem;font-weight:900;">'+(diaPago?'Día '+diaPago:'—')+'</div></div>'
+    +'</div>'
+    +'<div style="background:'+(balance>0?'rgba(229,57,53,0.07)':'rgba(43,192,112,0.07)')+';border:1.5px solid '+(balance>0?'rgba(229,57,53,0.25)':'rgba(43,192,112,0.25)')+';border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">'
+      +'<div><div style="font-size:0.68rem;font-weight:800;color:var(--dim);text-transform:uppercase;">🚫 Para no generar interés</div>'
+      +'<div style="font-size:0.62rem;color:var(--dim);margin-top:2px;">Paga antes del corte</div></div>'
+      +'<div style="font-size:1.1rem;font-weight:900;color:'+(balance>0?'var(--danger)':'var(--accent2)')+';">'+(balance>0?fmt(balance):'$0.00')+'</div>'
+    +'</div>'
+    +(interes>0?'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;"><div style="font-size:0.72rem;color:var(--dim);">📈 Interés anual</div><div style="font-weight:800;color:#f57c00;">'+interes+'%</div></div>':'')
+    +(pagoMin>0?'<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;"><div style="font-size:0.72rem;color:var(--dim);">⚠️ Pago mínimo</div><div style="font-weight:800;color:#f57c00;">'+fmt(pagoMin)+'</div></div>':'')
+    +'<div style="display:flex;gap:8px;margin-bottom:14px;">'
+      +'<button class="btn-main" style="flex:1;" onclick="registrarPagoTC('+i+')">💳 Registrar pago</button>'
+      +'<button class="btn-sec" onclick="editarTC('+i+')">✏️ Editar</button>'
+    +'</div>'
+    +'<div class="stat-label" style="margin-bottom:6px;">Movimientos ('+txs.length+')</div>'
+    +'<div id="tcMovs_'+i+'">';
+  if(!txs.length){
+    h+='<div class="empty-state">Sin movimientos</div>';
+  } else {
+    txs.forEach(function(tx){
+      var esI=tx.tipo==='ingreso';
+      h+='<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">'
+        +'<div><div style="font-size:0.8rem;font-weight:700;">'+(tx.desc||'Movimiento')+'</div>'
+        +'<div style="font-size:0.65rem;color:var(--dim);">'+(tx.fecha||'')+(tx.cat?' · '+tx.cat:'')+'</div></div>'
+        +'<div style="font-weight:900;color:'+(esI?'var(--accent)':'var(--danger)')+';margin-left:8px;">'+(esI?'+':'-')+fmt(tx.monto||0)+'</div>'
+        +'</div>';
+    });
+  }
+  mc.innerHTML=h;
+}</script>
 
 <!-- ══ ADMIN MODAL ══ -->
 <div class="lg-modal-backdrop" id="adminModal">
