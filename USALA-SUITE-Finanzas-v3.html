@@ -3148,54 +3148,49 @@ function initDashboard(){
   showScreen('dashboard');
   _lockIniciarEscuchas();
   _lockReiniciar();
-  // Restaurar datos desde Supabase PRIMERO, luego mostrar app
-  dbRestaurarDatos().then(function(){
-    renderTab(S.tab || 'inicio');
-    // Activar sync en tiempo real después de cargar
-    setTimeout(iniciarRealtime, 1000);
-    // Badge de solicitudes (solo admin)
-    if(S.user && S.user.isAdmin){
-      actualizarBadgeSolicitudes();
-      setInterval(actualizarBadgeSolicitudes, 30000);
-    }
-  });
-  // Mostrar botón U flotante
+
+  var u = S.user;
+  var un = document.getElementById('topUserName');
+  if(un) un.textContent = u.isAdmin ? '⚙️ Admin' : '👤 ' + u.nombre;
+  var vb = document.getElementById('verBadge');
+  if(vb) vb.textContent = 'v' + APP_VERSION;
   var ub = document.getElementById('uFabBtn');
   if(ub) ub.style.display = 'flex';
   actualizarUMenu();
-  // Mostrar botón voz si el navegador lo soporta
   if('webkitSpeechRecognition' in window || 'SpeechRecognition' in window){
     var bv = document.getElementById('btnVoz');
     if(bv) bv.style.display = 'flex';
   }
-  var u = S.user;
-  var un = document.getElementById('topUserName');
-  if(un) un.textContent = u.isAdmin ? '⚙️ Admin' : '👤 ' + u.nombre;
-  var vb = document.getElementById('verBadge'); if(vb) vb.textContent = 'v' + APP_VERSION;
-  if(u.isAdmin){
-    actualizarBadgeSolicitudes();
-  }
+  if(u.isAdmin) actualizarBadgeSolicitudes();
+
+  // 1. Mostrar la app INMEDIATAMENTE con datos locales
   goTab('inicio', document.querySelector('.nb'));
-  setTimeout(guardarSnapshotMes, 1500); // snapshot silencioso al arrancar
-  // Delegación de eventos para botones de editar/eliminar abonos
-  // Mostrar bienvenida solo la primera vez (no al admin)
+
+  // 2. Sincronizar con Supabase en segundo plano (no bloquea)
+  setTimeout(function(){
+    dbRestaurarDatos().then(function(){
+      renderTab(S.tab || 'inicio');
+      setTimeout(iniciarRealtime, 1000);
+      if(u.isAdmin){
+        actualizarBadgeSolicitudes();
+        setInterval(actualizarBadgeSolicitudes, 30000);
+      }
+    }).catch(function(){
+      // Sin conexión — datos locales ya visibles
+    });
+  }, 100);
+
+  setTimeout(guardarSnapshotMes, 2000);
+
   if(!u.isAdmin){
     var keyVisto = 'usala_bienvenida_' + u.codigo;
     if(!localStorage.getItem(keyVisto)){
       setTimeout(function(){
         var wn = document.getElementById('welcomeName');
         if(wn) wn.textContent = '¡Bienvenid@, ' + u.nombre.split(' ')[0] + '! 👋';
-        var m = document.getElementById('welcomeModal');
-        var bd = document.getElementById('welcomeBackdrop');
-        var sh = document.getElementById('welcomeSheet');
-        if(m){
-          m.style.display = 'flex';
-          requestAnimationFrame(function(){
-            if(bd) bd.style.background = 'rgba(0,0,0,0.55)';
-            if(sh) sh.style.transform = 'translateY(0)';
-          });
-        }
-      }, 700);
+        var m=document.getElementById('welcomeModal'),bd=document.getElementById('welcomeBackdrop'),sh=document.getElementById('welcomeSheet');
+        if(m){ m.style.display='flex'; requestAnimationFrame(function(){ if(bd) bd.style.background='rgba(0,0,0,0.55)'; if(sh) sh.style.transform='translateY(0)'; }); }
+      }, 800);
     }
   }
 }
